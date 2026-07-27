@@ -63,12 +63,36 @@
         <div id="currentAvatar" class="avatar-box w-7 h-7 flex items-center justify-center text-lg overflow-hidden">
           👦
         </div>
-        <select id="userSelect" onchange="switchUser()" class="bg-transparent text-xs font-extrabold text-white outline-none cursor-pointer">
+        <select id="userSelect" onchange="handleUserSelectChange(this)" class="bg-transparent text-xs font-extrabold text-white outline-none cursor-pointer">
           <!-- Dinámico -->
         </select>
       </div>
     </div>
   </header>
+
+  <!-- Modal de PIN para Cambio de Perfil (Padres) -->
+  <div id="profilePinModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-[2rem] p-6 max-w-xs w-full text-center space-y-4 shadow-2xl">
+      <div class="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center text-2xl mx-auto border border-blue-500/20">
+        🔑
+      </div>
+      <div>
+        <h3 class="font-black text-white text-base">Perfil de Adulto</h3>
+        <p class="text-xs text-zinc-400 mt-1">Introduce el PIN de Padres para activar este perfil.</p>
+      </div>
+      <div class="flex justify-center">
+        <input id="profilePinInput" type="password" maxlength="4" placeholder="••••" class="w-36 bg-zinc-950 text-center font-mono text-2xl tracking-widest border border-zinc-800 rounded-2xl px-3 py-2.5 text-white outline-none focus:border-blue-500">
+      </div>
+      <div class="grid grid-cols-2 gap-2 pt-2">
+        <button onclick="cancelProfileSwitch()" class="py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs rounded-xl transition">
+          Cancelar
+        </button>
+        <button onclick="confirmProfileSwitch()" class="py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl transition shadow-lg shadow-blue-600/30">
+          Entrar
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Contenido Principal -->
   <main class="max-w-md mx-auto p-4 space-y-6">
@@ -313,6 +337,6 @@
     </div>
   </nav>
 
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
