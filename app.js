@@ -6,7 +6,6 @@ if (window.supabase) {
   supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 }
 
-// Datos locales por defecto para garantizarnos que SIEMPRE aparezcan en pantalla
 let state = {
   currentUser: 'hijo1',
   users: {
@@ -26,13 +25,17 @@ let state = {
   ]
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-  // 1. Dibujar inmediatamente con los datos locales
+// Arranque seguro: Ejecuta renderAll tanto si la página ya cargó como si está cargando
+function startApp() {
   renderAll();
-
-  // 2. Intentar cargar de Supabase en segundo plano
   loadFromSupabase();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp);
+} else {
+  startApp();
+}
 
 function renderAll() {
   initUserSelect();
@@ -41,7 +44,6 @@ function renderAll() {
 
 async function loadFromSupabase() {
   if (!supabaseClient) return;
-
   try {
     const { data: users } = await supabaseClient.from('users').select('*');
     const { data: tasks } = await supabaseClient.from('tasks').select('*');
