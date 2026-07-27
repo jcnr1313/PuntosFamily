@@ -10,12 +10,12 @@ try {
   console.warn("No se pudo inicializar Supabase:", e);
 }
 
-let parentPin = "1234";
 let isManagerUnlocked = false;
 
 let state = {
   currentUser: 'joan',
   previousUser: 'joan',
+  parentPin: '1234', // PIN por defecto (se puede modificar)
   currentTaskFilter: 'positive',
   users: {
     'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null },
@@ -65,6 +65,7 @@ function loadLocalStorage() {
     try {
       const parsed = JSON.parse(savedState);
       if (parsed.users) state.users = { ...state.users, ...parsed.users };
+      if (parsed.parentPin) state.parentPin = parsed.parentPin;
       if (parsed.actions) state.actions = parsed.actions;
       if (parsed.rewards) state.rewards = parsed.rewards;
       if (parsed.redemptions) state.redemptions = parsed.redemptions;
@@ -78,6 +79,7 @@ function loadLocalStorage() {
 function saveLocalStorage() {
   localStorage.setItem('family_points_state', JSON.stringify({
     users: state.users,
+    parentPin: state.parentPin,
     actions: state.actions,
     rewards: state.rewards,
     redemptions: state.redemptions,
@@ -160,7 +162,7 @@ function initUserSelect() {
   }
 }
 
-// CONTROL DE CAMBIO DE USUARIO CON PIN DE SEGURIDAD
+// CONTROL DE SEGURIDAD AL CAMBIAR DE USUARIO
 function switchUser() {
   const select = document.getElementById('userSelect');
   if (!select) return;
@@ -168,10 +170,10 @@ function switchUser() {
   const targetUserId = select.value;
   const targetUser = state.users[targetUserId];
 
-  // Si intentan cambiar a un perfil de padre, pedir PIN
+  // Si se intenta cambiar a un perfil con rol de "padre", solicitar el PIN obligatorio
   if (targetUser && targetUser.role === 'padre') {
-    const pinEntered = prompt(`El perfil de ${targetUser.name} requiere PIN parental:`);
-    if (pinEntered === parentPin) {
+    const pinEntered = prompt(`Para acceder al perfil de ${targetUser.name} introduce el PIN parental:`);
+    if (pinEntered === state.parentPin) {
       state.previousUser = targetUserId;
       state.currentUser = targetUserId;
     } else {
@@ -373,11 +375,11 @@ function renderTasks() {
   }).join('');
 }
 
-// CONTROL DE ASIGNACIÓN DE PUNTOS SOLO PARA PADRES
+// APLICAR TAREAS (SÓLO VALIDO SI EL PERFIL ACTIVO ES PADRE)
 async function applyAction(actionId) {
   const activeUser = state.users[state.currentUser];
 
-  // Si el usuario actual es un hijo, denegar la acción
+  // Bloqueo total si la persona activa no es un usuario padre
   if (!activeUser || activeUser.role !== 'padre') {
     alert("🔒 Solo Papá o Mamá pueden asignar o restar puntos.");
     return;
@@ -386,7 +388,6 @@ async function applyAction(actionId) {
   const action = state.actions.find(a => a.id === actionId);
   if (!action) return;
 
-  // Preguntar a qué hijo asignar los puntos
   const targetChildId = prompt("¿A quién quieres aplicar esta tarea?\nEscribe '1' para Joan o '2' para Martina:");
   let child = null;
 
@@ -501,7 +502,7 @@ function unlockManager() {
   const pinInput = document.getElementById('pinInput');
   if (!pinInput) return;
 
-  if (pinInput.value === parentPin) {
+  if (pinInput.value === state.parentPin) {
     isManagerUnlocked = true;
     document.getElementById('pinLockScreen')?.classList.add('hidden');
     document.getElementById('pinUnlockedContent')?.classList.remove('hidden');
@@ -519,12 +520,14 @@ function lockManager() {
   document.getElementById('pinUnlockedContent')?.classList.add('hidden');
 }
 
+// PERMITE CAMBIAR EL PIN DESDE EL PANEL DE GESTIÓN
 function changePinPrompt() {
   const current = prompt("Introduce el PIN actual:");
-  if (current === parentPin) {
+  if (current === state.parentPin) {
     const newPin = prompt("Introduce el nuevo PIN de 4 dígitos:");
     if (newPin && newPin.length === 4 && !isNaN(newPin)) {
-      parentPin = newPin;
+      state.parentPin = newPin;
+      saveLocalStorage();
       alert("¡PIN actualizado con éxito!");
     } else {
       alert("El PIN debe ser un número de exactamente 4 dígitos.");
