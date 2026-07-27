@@ -105,9 +105,9 @@ function showPointsAnimation(points, childName, title) {
 }
 
 function loadLocalStorage() {
-  const savedState = localStorage.getItem('family_points_state');
-  if (savedState) {
-    try {
+  try {
+    const savedState = localStorage.getItem('family_points_state');
+    if (savedState) {
       const parsed = JSON.parse(savedState);
       if (parsed.users) state.users = { ...state.users, ...parsed.users };
       if (parsed.parentPin) state.parentPin = parsed.parentPin;
@@ -115,21 +115,25 @@ function loadLocalStorage() {
       if (parsed.rewards) state.rewards = parsed.rewards;
       if (parsed.redemptions) state.redemptions = parsed.redemptions;
       if (parsed.history) state.history = parsed.history;
-    } catch (e) {
-      console.error("Error al leer localStorage", e);
     }
+  } catch (e) {
+    console.warn("Aviso LocalStorage (iPhone):", e);
   }
 }
 
 async function saveLocalStorage() {
-  localStorage.setItem('family_points_state', JSON.stringify({
-    users: state.users,
-    parentPin: state.parentPin,
-    actions: state.actions,
-    rewards: state.rewards,
-    redemptions: state.redemptions,
-    history: state.history
-  }));
+  try {
+    localStorage.setItem('family_points_state', JSON.stringify({
+      users: state.users,
+      parentPin: state.parentPin,
+      actions: state.actions,
+      rewards: state.rewards,
+      redemptions: state.redemptions,
+      history: state.history
+    }));
+  } catch (e) {
+    console.warn("Aviso guardando LocalStorage:", e);
+  }
   await syncFullStateToCloud();
 }
 
@@ -157,15 +161,16 @@ async function fetchCloudData() {
       if (remote.redemptions) state.redemptions = remote.redemptions;
       if (remote.history) state.history = remote.history;
 
-      localStorage.setItem('family_points_state', JSON.stringify(state));
+      try {
+        localStorage.setItem('family_points_state', JSON.stringify(state));
+      } catch (err) {}
+      
       renderApp();
-      console.log("✅ Datos sincronizados desde Supabase exitosamente.");
     } else {
-      console.log("☁️ Base de datos vacía. Guardando estado local en Supabase...");
       await syncFullStateToCloud();
     }
   } catch (err) {
-    console.warn("❌ Error al consultar Supabase:", err);
+    console.warn("❌ Error de red con Supabase:", err);
   }
 }
 
@@ -188,8 +193,6 @@ async function syncFullStateToCloud() {
 
     if (error) {
       console.error("❌ Error guardando en Supabase:", error.message);
-    } else {
-      console.log("☁️ Cambios guardados en Supabase correctamente.");
     }
   } catch (err) {
     console.warn("❌ Error de red con Supabase:", err);
@@ -200,26 +203,29 @@ function setupRealtimeListener() {
   const client = getSupabaseClient();
   if (!client) return;
 
-  client
-    .channel('public:app_state')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state' }, payload => {
-      console.log("⚡ Cambio en tiempo real detectado:", payload);
-      if (payload.new && payload.new.data) {
-        const remote = payload.new.data;
-        if (remote.users) state.users = { ...state.users, ...remote.users };
-        if (remote.parentPin) state.parentPin = remote.parentPin;
-        if (remote.actions && remote.actions.length > 0) state.actions = remote.actions;
-        if (remote.rewards && remote.rewards.length > 0) state.rewards = remote.rewards;
-        if (remote.redemptions) state.redemptions = remote.redemptions;
-        if (remote.history) state.history = remote.history;
+  try {
+    client
+      .channel('public:app_state')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state' }, payload => {
+        if (payload.new && payload.new.data) {
+          const remote = payload.new.data;
+          if (remote.users) state.users = { ...state.users, ...remote.users };
+          if (remote.parentPin) state.parentPin = remote.parentPin;
+          if (remote.actions && remote.actions.length > 0) state.actions = remote.actions;
+          if (remote.rewards && remote.rewards.length > 0) state.rewards = remote.rewards;
+          if (remote.redemptions) state.redemptions = remote.redemptions;
+          if (remote.history) state.history = remote.history;
 
-        localStorage.setItem('family_points_state', JSON.stringify(state));
-        renderApp();
-      }
-    })
-    .subscribe((status) => {
-      console.log("📡 Estado suscripción Realtime:", status);
-    });
+          try {
+            localStorage.setItem('family_points_state', JSON.stringify(state));
+          } catch (err) {}
+          renderApp();
+        }
+      })
+      .subscribe();
+  } catch (e) {
+    console.warn("Realtime no disponible:", e);
+  }
 }
 
 function renderAvatarHtml(avatarStr, sizeClasses = "w-full h-full text-2xl") {
@@ -297,15 +303,15 @@ function renderApp() {
 
     const pointsEl = document.getElementById('userPointsRewardTab');
     if (pointsEl) pointsEl.innerText = `${user.points} ⭐`;
-  } catch (e) { console.error("Error avatar/puntos:", e); }
+  } catch (e) {}
 
-  try { renderLeaderboard(); } catch (e) { console.error("Error Leaderboard:", e); }
-  try { renderPodium(); } catch (e) { console.error("Error Podium:", e); }
-  try { renderUserStats(); } catch (e) { console.error("Error UserStats:", e); }
-  try { renderTasks(); } catch (e) { console.error("Error Tasks:", e); }
-  try { renderRewards(); } catch (e) { console.error("Error Rewards:", e); }
-  try { updateActivityLog(); } catch (e) { console.error("Error ActivityLog:", e); }
-  try { renderManagerPanel(); } catch (e) { console.error("Error ManagerPanel:", e); }
+  try { renderLeaderboard(); } catch (e) {}
+  try { renderPodium(); } catch (e) {}
+  try { renderUserStats(); } catch (e) {}
+  try { renderTasks(); } catch (e) {}
+  try { renderRewards(); } catch (e) {}
+  try { updateActivityLog(); } catch (e) {}
+  try { renderManagerPanel(); } catch (e) {}
 }
 
 function renderLeaderboard() {
@@ -321,7 +327,7 @@ function renderLeaderboard() {
     const leaderBg = isLeader ? 'bg-gradient-to-b from-amber-500/20 via-zinc-950 to-zinc-950 border-amber-500/50 shadow-xl shadow-amber-500/10' : 'bg-zinc-950/40 border-white/5';
 
     return `
-      <div class="flex flex-col items-center text-center ${leaderBg} p-3 rounded-2xl border backdrop-blur-sm relative overflow-hidden transition-all duration-300 hover:scale-105">
+      <div class="flex flex-col items-center text-center ${leaderBg} p-3 rounded-2xl border backdrop-blur-sm relative overflow-hidden transition-all duration-300">
         ${isLeader ? `<div class="absolute top-1 right-1 text-xs animate-bounce">🏆</div>` : ''}
         <div class="relative mt-1">
           <div class="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center border-2 ${ringColor} overflow-hidden shadow-inner">
@@ -351,7 +357,7 @@ function renderPodium() {
 
   container.innerHTML = `
     ${second ? `
-      <div class="flex flex-col items-center transition-transform hover:scale-105 duration-200">
+      <div class="flex flex-col items-center">
         <div class="w-10 h-10 rounded-full bg-zinc-900 border-2 border-slate-300 flex items-center justify-center overflow-hidden shadow-md">
           ${renderAvatarHtml(second.avatar, "text-lg")}
         </div>
@@ -363,7 +369,7 @@ function renderPodium() {
       </div>
     ` : ''}
 
-    <div class="flex flex-col items-center transition-transform hover:scale-110 duration-200">
+    <div class="flex flex-col items-center">
       <div class="relative">
         <span class="absolute -top-3 left-1/2 -translate-x-1/2 text-base animate-bounce">👑</span>
         <div class="w-14 h-14 rounded-full bg-amber-950/80 border-2 border-amber-400 flex items-center justify-center overflow-hidden shadow-lg shadow-amber-500/20">
@@ -378,7 +384,7 @@ function renderPodium() {
     </div>
 
     ${third ? `
-      <div class="flex flex-col items-center transition-transform hover:scale-105 duration-200">
+      <div class="flex flex-col items-center">
         <div class="w-10 h-10 rounded-full bg-zinc-900 border-2 border-amber-700 flex items-center justify-center overflow-hidden shadow-md">
           ${renderAvatarHtml(third.avatar, "text-lg")}
         </div>
@@ -462,7 +468,7 @@ function renderTasks() {
     const ptsText = isPos ? `+${action.points}` : `${action.points}`;
 
     return `
-      <div onclick="applyAction(${action.id})" class="bg-zinc-900 hover:bg-zinc-800/90 p-4 rounded-[1.75rem] border border-zinc-800/80 cursor-pointer transition-all duration-200 active:scale-90 hover:scale-105 flex flex-col justify-between space-y-4 shadow-md group">
+      <div onclick="applyAction(${action.id})" class="bg-zinc-900 hover:bg-zinc-800/90 p-4 rounded-[1.75rem] border border-zinc-800/80 cursor-pointer transition-all duration-200 active:scale-90 flex flex-col justify-between space-y-4 shadow-md group">
         <div class="w-12 h-12 rounded-2xl bg-zinc-950 flex items-center justify-center text-2xl border border-zinc-800/50 shadow-inner group-hover:rotate-12 transition-transform">
           ${action.icon || (isPos ? '⭐' : '⚠️')}
         </div>
@@ -536,7 +542,7 @@ function updateActivityLog() {
   }
 
   container.innerHTML = state.history.slice(0, 5).map(item => `
-    <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-800/60 text-left text-zinc-300 font-medium text-xs transition-all hover:border-zinc-700">
+    <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-800/60 text-left text-zinc-300 font-medium text-xs">
       ${item}
     </div>
   `).join('');
@@ -552,8 +558,8 @@ function renderRewards() {
     const canAfford = user.points >= reward.cost;
 
     return `
-      <div class="bg-zinc-900 p-4 rounded-[1.75rem] border border-zinc-800/80 flex flex-col justify-between space-y-3 text-center shadow-md hover:scale-105 transition-all duration-200">
-        <div class="text-4xl my-1 animate-pulse">${reward.icon || '🎁'}</div>
+      <div class="bg-zinc-900 p-4 rounded-[1.75rem] border border-zinc-800/80 flex flex-col justify-between space-y-3 text-center shadow-md">
+        <div class="text-4xl my-1">${reward.icon || '🎁'}</div>
         <div>
           <p class="font-bold text-xs text-zinc-100">${reward.title}</p>
           <p class="text-xs font-black text-amber-400 mt-0.5">${reward.cost} ⭐</p>
@@ -561,7 +567,7 @@ function renderRewards() {
         <button 
           onclick="claimReward(${reward.id})"
           ${!canAfford ? 'disabled' : ''}
-          class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:hover:bg-emerald-600 text-white rounded-xl text-xs font-extrabold transition active:scale-95 shadow-lg shadow-emerald-600/20">
+          class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 text-white rounded-xl text-xs font-extrabold transition active:scale-95 shadow-lg shadow-emerald-600/20">
           Canjear
         </button>
       </div>
@@ -652,7 +658,7 @@ function renderManagerPanel() {
       redemptionsContainer.innerHTML = `<p class="text-center text-xs text-zinc-500 py-3">No hay canjes registrados.</p>`;
     } else {
       redemptionsContainer.innerHTML = state.redemptions.map(item => `
-        <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between gap-2 transition-all hover:border-zinc-700">
+        <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between gap-2">
           <div class="flex items-center gap-2.5">
             <div class="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">
               ${renderAvatarHtml(item.userAvatar, "text-sm")}
@@ -678,7 +684,7 @@ function renderManagerPanel() {
           </div>
           <span class="font-bold text-xs text-white">${u.name}</span>
         </div>
-        <button onclick="changeUserAvatar('${u.id}')" class="text-xs text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-3 py-1.5 rounded-xl font-bold transition active:scale-95">
+        <button onclick="changeUserAvatar('${u.id}')" class="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl font-bold active:scale-95">
           Cambiar Foto / Emoji
         </button>
       </div>
@@ -700,8 +706,8 @@ function renderManagerPanel() {
           </div>
         </div>
         <div class="flex items-center gap-1.5">
-          <button onclick="modifyPoints('${kid.id}', -10)" class="bg-zinc-900 hover:bg-zinc-800 text-red-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800 active:scale-95">-10</button>
-          <button onclick="modifyPoints('${kid.id}', 10)" class="bg-zinc-900 hover:bg-zinc-800 text-emerald-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800 active:scale-95">+10</button>
+          <button onclick="modifyPoints('${kid.id}', -10)" class="bg-zinc-900 text-red-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800 active:scale-95">-10</button>
+          <button onclick="modifyPoints('${kid.id}', 10)" class="bg-zinc-900 text-emerald-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800 active:scale-95">+10</button>
         </div>
       </div>
     `).join('');
@@ -719,12 +725,8 @@ function renderManagerPanel() {
           </div>
         </div>
         <div class="flex items-center gap-1">
-          <button onclick="editReward(${r.id})" class="text-[11px] text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1.5 rounded-lg border border-amber-500/20 font-bold active:scale-95">
-            ✏️ Editar
-          </button>
-          <button onclick="deleteReward(${r.id})" class="text-[11px] text-red-400 bg-red-500/10 hover:bg-red-500/20 px-2.5 py-1.5 rounded-lg border border-red-500/20 font-bold active:scale-95">
-            🗑️
-          </button>
+          <button onclick="editReward(${r.id})" class="text-[11px] text-amber-400 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20 font-bold active:scale-95">✏️</button>
+          <button onclick="deleteReward(${r.id})" class="text-[11px] text-red-400 bg-red-500/10 px-2.5 py-1.5 rounded-lg border border-red-500/20 font-bold active:scale-95">🗑️</button>
         </div>
       </div>
     `).join('');
@@ -742,12 +744,8 @@ function renderManagerPanel() {
           </div>
         </div>
         <div class="flex items-center gap-1">
-          <button onclick="editAction(${a.id})" class="text-[11px] text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1.5 rounded-lg border border-blue-500/20 font-bold active:scale-95">
-            ✏️ Editar
-          </button>
-          <button onclick="deleteAction(${a.id})" class="text-[11px] text-red-400 bg-red-500/10 hover:bg-red-500/20 px-2.5 py-1.5 rounded-lg border border-red-500/20 font-bold active:scale-95">
-            🗑️
-          </button>
+          <button onclick="editAction(${a.id})" class="text-[11px] text-blue-400 bg-blue-500/10 px-2.5 py-1.5 rounded-lg border border-blue-500/20 font-bold active:scale-95">✏️</button>
+          <button onclick="deleteAction(${a.id})" class="text-[11px] text-red-400 bg-red-500/10 px-2.5 py-1.5 rounded-lg border border-red-500/20 font-bold active:scale-95">🗑️</button>
         </div>
       </div>
     `).join('');
