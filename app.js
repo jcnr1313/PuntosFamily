@@ -6,10 +6,13 @@ if (window.supabase) {
   supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 }
 
-// Estado base con los nombres actualizados: Joan y Martina
+// PIN por defecto para el Gestor
+let parentPin = "1234";
+let isManagerUnlocked = false;
+
 let state = {
   currentUser: 'joan',
-  currentTaskFilter: 'positive', // 'positive' | 'negative'
+  currentTaskFilter: 'positive',
   users: {
     'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0 },
     'martina': { id: 'martina', name: 'Martina', role: 'hijo', avatar: '👧', points: 0 },
@@ -17,14 +20,12 @@ let state = {
     'mama': { id: 'mama', name: 'Mamá', role: 'padre', avatar: '👩', points: 0 }
   },
   actions: [
-    // Positivas
     { id: 1, title: 'Poner la mesa', points: 15, type: 'positive', icon: '🍽️' },
     { id: 2, title: 'Pasear al perro', points: 20, type: 'positive', icon: '🐾' },
     { id: 3, title: 'Limpiar la habitación', points: 25, type: 'positive', icon: '🛏️' },
     { id: 4, title: 'Deberes hechos', points: 30, type: 'positive', icon: '📖' },
     { id: 5, title: 'Pasar la aspiradora', points: 20, type: 'positive', icon: '💨' },
     { id: 6, title: 'Regar plantas', points: 10, type: 'positive', icon: '💧' },
-    // Penalizaciones
     { id: 7, title: 'Dejó las luces encendidas', points: -5, type: 'negative', icon: '⚡' },
     { id: 8, title: 'No tiró de la cadena', points: -10, type: 'negative', icon: '⚠️' },
     { id: 9, title: 'Llegó tarde a cenar', points: -15, type: 'negative', icon: '⏰' },
@@ -41,27 +42,21 @@ let state = {
   history: []
 };
 
-// Navegación entre pestañas
 function setActiveTab(tab) {
   const tabs = ['home', 'tasks', 'rewards', 'manager', 'settings'];
   tabs.forEach(t => {
     const section = document.getElementById(`tab-${t}`);
     const navBtn = document.getElementById(`nav-${t}`);
     if (section) section.classList.add('hidden');
-    if (navBtn) {
-      navBtn.className = "flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium";
-    }
+    if (navBtn) navBtn.className = "flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium";
   });
 
   const targetSection = document.getElementById(`tab-${tab}`);
   const targetNav = document.getElementById(`nav-${tab}`);
   if (targetSection) targetSection.classList.remove('hidden');
-  if (targetNav) {
-    targetNav.className = "flex flex-col items-center py-1.5 text-blue-500 font-bold";
-  }
+  if (targetNav) targetNav.className = "flex flex-col items-center py-1.5 text-blue-500 font-bold";
 }
 
-// Inicializar selectores de usuario
 function initUserSelect() {
   const select = document.getElementById('userSelect');
   if (select) {
@@ -84,7 +79,6 @@ function renderApp() {
   const user = state.users[state.currentUser];
   if (!user) return;
 
-  // Header Avatar
   const avatarEl = document.getElementById('currentAvatar');
   if (avatarEl) avatarEl.innerText = user.avatar;
 
@@ -97,7 +91,7 @@ function renderApp() {
   renderManagerPanel();
 }
 
-// Render Clasificación
+// Clasificación
 function renderLeaderboard() {
   const container = document.getElementById('leaderboardList');
   if (!container) return;
@@ -111,7 +105,7 @@ function renderLeaderboard() {
     return `
       <div class="flex flex-col items-center text-center space-y-1">
         <div class="relative">
-          <div class="w-14 h-14 bg-zinc-900/60 rounded-full flex items-center justify-center text-2xl border-2 ${ringColor}">
+          <div class="w-14 h-14 bg-zinc-900/80 rounded-full flex items-center justify-center text-2xl border-2 ${ringColor}">
             ${u.avatar}
           </div>
           <span class="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-zinc-900 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-zinc-700 text-amber-300">
@@ -125,7 +119,7 @@ function renderLeaderboard() {
   }).join('');
 }
 
-// Toggle Ganar Puntos / Penalizaciones
+// Filtro Tareas
 function toggleTaskType(type) {
   state.currentTaskFilter = type;
   const btnPos = document.getElementById('btnTaskPositive');
@@ -141,12 +135,16 @@ function toggleTaskType(type) {
   renderTasks();
 }
 
-// Render Tarjetas de Tareas
 function renderTasks() {
   const container = document.getElementById('tasksGrid');
   if (!container) return;
 
   const filtered = state.actions.filter(a => a.type === state.currentTaskFilter);
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<p class="col-span-2 text-center text-xs text-zinc-500 py-6">No hay acciones registradas en esta categoría.</p>`;
+    return;
+  }
 
   container.innerHTML = filtered.map(action => {
     const isPos = action.type === 'positive';
@@ -167,16 +165,14 @@ function renderTasks() {
   }).join('');
 }
 
-// Aplicar tarea o penalización al usuario activo
 async function applyAction(actionId) {
   const action = state.actions.find(a => a.id === actionId);
   const user = state.users[state.currentUser];
 
   if (action && user) {
     user.points += action.points;
-    if (user.points < 0) user.points = 0; // Evitar puntos negativos absolutos si no se desea
+    if (user.points < 0) user.points = 0;
 
-    // Registrar en actividad
     const log = `${user.name}: ${action.title} (${action.points > 0 ? '+' : ''}${action.points} pts)`;
     state.history.unshift(log);
 
@@ -197,7 +193,7 @@ function updateActivityLog() {
   if (countEl) countEl.innerText = state.history.length;
 
   if (state.history.length === 0) {
-    container.innerHTML = 'Aún no hay tareas registradas esta semana.';
+    container.innerHTML = 'Aún no hay movimientos esta semana.';
     return;
   }
 
@@ -208,7 +204,7 @@ function updateActivityLog() {
   `).join('');
 }
 
-// Render Premios
+// Premios
 function renderRewards() {
   const container = document.getElementById('rewardsGrid');
   if (!container) return;
@@ -253,28 +249,82 @@ async function claimReward(rewardId) {
   }
 }
 
-// Panel de Gestor (Ajuste manual de puntos)
+// LÓGICA DEL PIN
+function unlockManager() {
+  const pinInput = document.getElementById('pinInput').value;
+  if (pinInput === parentPin) {
+    isManagerUnlocked = true;
+    document.getElementById('pinLockScreen').classList.add('hidden');
+    document.getElementById('pinUnlockedContent').classList.remove('hidden');
+    document.getElementById('pinInput').value = '';
+    renderManagerPanel();
+  } else {
+    alert("PIN incorrecto. Inténtalo de nuevo.");
+    document.getElementById('pinInput').value = '';
+  }
+}
+
+function lockManager() {
+  isManagerUnlocked = false;
+  document.getElementById('pinLockScreen').classList.remove('hidden');
+  document.getElementById('pinUnlockedContent').classList.add('hidden');
+}
+
+function changePinPrompt() {
+  const current = prompt("Introduce el PIN actual:");
+  if (current === parentPin) {
+    const newPin = prompt("Introduce el nuevo PIN de 4 dígitos:");
+    if (newPin && newPin.length === 4) {
+      parentPin = newPin;
+      alert("¡PIN actualizado con éxito!");
+    } else {
+      alert("El PIN debe tener 4 dígitos.");
+    }
+  } else if (current !== null) {
+    alert("PIN incorrecto.");
+  }
+}
+
+// RENDER Y GESTIÓN EN EL PANEL
 function renderManagerPanel() {
-  const container = document.getElementById('manualPointsControl');
-  if (!container) return;
+  if (!isManagerUnlocked) return;
 
-  const kids = Object.values(state.users).filter(u => u.role === 'hijo');
-
-  container.innerHTML = kids.map(kid => `
-    <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex justify-between items-center">
-      <div class="flex items-center gap-2">
-        <span class="text-xl">${kid.avatar}</span>
-        <div>
-          <p class="font-bold text-xs text-white">${kid.name}</p>
-          <span class="text-[11px] text-amber-400 font-bold">${kid.points} pts</span>
+  // 1. Puntos manuales
+  const pointsContainer = document.getElementById('manualPointsControl');
+  if (pointsContainer) {
+    const kids = Object.values(state.users).filter(u => u.role === 'hijo');
+    pointsContainer.innerHTML = kids.map(kid => `
+      <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">${kid.avatar}</span>
+          <div>
+            <p class="font-bold text-xs text-white">${kid.name}</p>
+            <span class="text-[11px] text-amber-400 font-bold">${kid.points} pts</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button onclick="modifyPoints('${kid.id}', -10)" class="bg-zinc-900 hover:bg-zinc-800 text-red-400 text-xs font-extrabold px-2.5 py-1.5 rounded-lg border border-zinc-800">-10</button>
+          <button onclick="modifyPoints('${kid.id}', 10)" class="bg-zinc-900 hover:bg-zinc-800 text-emerald-400 text-xs font-extrabold px-2.5 py-1.5 rounded-lg border border-zinc-800">+10</button>
         </div>
       </div>
-      <div class="flex items-center gap-1.5">
-        <button onclick="modifyPoints('${kid.id}', -10)" class="bg-zinc-800 hover:bg-zinc-700 text-red-400 text-xs font-extrabold px-2.5 py-1.5 rounded-lg border border-zinc-700">-10</button>
-        <button onclick="modifyPoints('${kid.id}', 10)" class="bg-zinc-800 hover:bg-zinc-700 text-emerald-400 text-xs font-extrabold px-2.5 py-1.5 rounded-lg border border-zinc-700">+10</button>
+    `).join('');
+  }
+
+  // 2. Administrar / Eliminar tareas
+  const actionsContainer = document.getElementById('manageActionsList');
+  if (actionsContainer) {
+    actionsContainer.innerHTML = state.actions.map(a => `
+      <div class="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800/80 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span>${a.icon || '📌'}</span>
+          <span class="text-xs text-zinc-200 font-medium">${a.title} (${a.points > 0 ? '+' : ''}${a.points} pts)</span>
+        </div>
+        <button onclick="deleteAction(${a.id})" class="text-xs text-red-400 hover:bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20 transition">
+          Eliminar 🗑️
+        </button>
       </div>
-    </div>
-  `).join('');
+    `).join('');
+  }
 }
 
 async function modifyPoints(userId, delta) {
@@ -290,7 +340,13 @@ async function modifyPoints(userId, delta) {
   }
 }
 
-// Añadir nueva acción desde el Gestor
+function deleteAction(id) {
+  if (confirm("¿Estás seguro de que quieres eliminar esta tarea/penalización?")) {
+    state.actions = state.actions.filter(a => a.id !== id);
+    renderApp();
+  }
+}
+
 function addNewAction() {
   const title = document.getElementById('newActionTitle').value.trim();
   const points = parseInt(document.getElementById('newActionPoints').value);
@@ -312,11 +368,11 @@ function addNewAction() {
   document.getElementById('newActionTitle').value = '';
   document.getElementById('newActionPoints').value = '';
 
-  renderTasks();
+  renderApp();
 }
 
 function resetWeeklyPoints() {
-  if (confirm("¿Reiniciar la puntuación de la semana a 0 para toda la familia?")) {
+  if (confirm("¿Reiniciar la puntuación de la semana a 0 para todos?")) {
     Object.keys(state.users).forEach(k => state.users[k].points = 0);
     state.history = [];
     renderApp();
@@ -324,7 +380,6 @@ function resetWeeklyPoints() {
   }
 }
 
-// Arranque
 function startApp() {
   initUserSelect();
   renderApp();
