@@ -15,7 +15,7 @@ let isManagerUnlocked = false;
 let state = {
   currentUser: 'joan',
   previousUser: 'joan',
-  parentPin: '1234', // PIN por defecto (se puede modificar)
+  parentPin: '1234',
   currentTaskFilter: 'positive',
   users: {
     'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null },
@@ -85,25 +85,28 @@ function saveLocalStorage() {
     redemptions: state.redemptions,
     history: state.history
   }));
+  syncFullStateToCloud();
 }
 
 async function fetchCloudData() {
   if (!supabaseClient) return;
   try {
-    const { data: remoteUsers, error } = await supabaseClient.from('users').select('*');
-    if (!error && remoteUsers && remoteUsers.length > 0) {
-      remoteUsers.forEach(rUser => {
-        if (state.users[rUser.id]) {
-          state.users[rUser.id].points = rUser.points ?? state.users[rUser.id].points;
-          if (rUser.avatar) state.users[rUser.id].avatar = rUser.avatar;
-          if (rUser.name) state.users[rUser.id].name = rUser.name;
-          if (rUser.role) state.users[rUser.id].role = rUser.role;
-          if (rUser.streak_type) state.users[rUser.id].streakType = rUser.streak_type;
-          if (rUser.streak_days) state.users[rUser.id].streakDays = rUser.streak_days;
-          if (rUser.total_completed) state.users[rUser.id].totalCompleted = rUser.total_completed;
-        }
-      });
-      saveLocalStorage();
+    const { data, error } = await supabaseClient
+      .from('app_state')
+      .select('data')
+      .eq('id', 'main_config')
+      .single();
+
+    if (!error && data && data.data) {
+      const remote = data.data;
+      if (remote.users) state.users = remote.users;
+      if (remote.parentPin) state.parentPin = remote.parentPin;
+      if (remote.actions) state.actions = remote.actions;
+      if (remote.rewards) state.rewards = remote.rewards;
+      if (remote.redemptions) state.redemptions = remote.redemptions;
+      if (remote.history) state.history = remote.history;
+
+      localStorage.setItem('family_points_state', JSON.stringify(remote));
       renderApp();
     }
   } catch (err) {
@@ -111,21 +114,23 @@ async function fetchCloudData() {
   }
 }
 
-async function syncUserToCloud(user) {
+async function syncFullStateToCloud() {
   if (!supabaseClient) return;
   try {
-    await supabaseClient.from('users').upsert({
-      id: user.id,
-      name: user.name,
-      role: user.role,
-      avatar: user.avatar,
-      points: user.points,
-      streak_type: user.streakType,
-      streak_days: user.streakDays,
-      total_completed: user.totalCompleted
-    });
+    const payload = {
+      users: state.users,
+      parentPin: state.parentPin,
+      actions: state.actions,
+      rewards: state.rewards,
+      redemptions: state.redemptions,
+      history: state.history
+    };
+
+    await supabaseClient
+      .from('app_state')
+      .upsert({ id: 'main_config', data: payload, updated_at: new Date() });
   } catch (err) {
-    console.warn("Error al guardar en Supabase", err);
+    console.warn("Error al guardar todo en Supabase", err);
   }
 }
 
@@ -162,7 +167,6 @@ function initUserSelect() {
   }
 }
 
-// CONTROL DE SEGURIDAD AL CAMBIAR DE USUARIO
 function switchUser() {
   const select = document.getElementById('userSelect');
   if (!select) return;
@@ -170,7 +174,6 @@ function switchUser() {
   const targetUserId = select.value;
   const targetUser = state.users[targetUserId];
 
-  // Si se intenta cambiar a un perfil con rol de "padre", solicitar el PIN obligatorio
   if (targetUser && targetUser.role === 'padre') {
     const pinEntered = prompt(`Para acceder al perfil de ${targetUser.name} introduce el PIN parental:`);
     if (pinEntered === state.parentPin) {
@@ -375,11 +378,9 @@ function renderTasks() {
   }).join('');
 }
 
-// APLICAR TAREAS (SÓLO VALIDO SI EL PERFIL ACTIVO ES PADRE)
 async function applyAction(actionId) {
   const activeUser = state.users[state.currentUser];
 
-  // Bloqueo total si la persona activa no es un usuario padre
   if (!activeUser || activeUser.role !== 'padre') {
     alert("🔒 Solo Papá o Mamá pueden asignar o restar puntos.");
     return;
@@ -416,7 +417,6 @@ async function applyAction(actionId) {
 
     saveLocalStorage();
     renderApp();
-    await syncUserToCloud(child);
   }
 }
 
@@ -494,7 +494,6 @@ async function claimReward(rewardId) {
 
     saveLocalStorage();
     renderApp();
-    await syncUserToCloud(user);
   }
 }
 
@@ -520,7 +519,6 @@ function lockManager() {
   document.getElementById('pinUnlockedContent')?.classList.add('hidden');
 }
 
-// PERMITE CAMBIAR EL PIN DESDE EL PANEL DE GESTIÓN
 function changePinPrompt() {
   const current = prompt("Introduce el PIN actual:");
   if (current === state.parentPin) {
@@ -742,7 +740,6 @@ async function changeUserAvatar(userId) {
     saveLocalStorage();
     initUserSelect();
     renderApp();
-    await syncUserToCloud(user);
   }
 }
 
@@ -753,7 +750,6 @@ async function modifyPoints(userId, delta) {
     if (user.points < 0) user.points = 0;
     saveLocalStorage();
     renderApp();
-    await syncUserToCloud(user);
   }
 }
 
@@ -806,7 +802,6 @@ function resetMonthlyPoints() {
       state.users[k].streakDays = 0;
       state.users[k].streakType = 'none';
       state.users[k].totalCompleted = 0;
-      syncUserToCloud(state.users[k]);
     });
     state.history = [];
     state.redemptions = [];
