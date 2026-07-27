@@ -76,7 +76,7 @@ function loadLocalStorage() {
   }
 }
 
-function saveLocalStorage() {
+async function saveLocalStorage() {
   localStorage.setItem('family_points_state', JSON.stringify({
     users: state.users,
     parentPin: state.parentPin,
@@ -85,7 +85,7 @@ function saveLocalStorage() {
     redemptions: state.redemptions,
     history: state.history
   }));
-  syncFullStateToCloud();
+  await syncFullStateToCloud();
 }
 
 async function fetchCloudData() {
@@ -95,9 +95,14 @@ async function fetchCloudData() {
       .from('app_state')
       .select('data')
       .eq('id', 'main_config')
-      .single();
+      .maybeSingle();
 
-    if (!error && data && data.data) {
+    if (error) {
+      console.warn("Error leyendo de Supabase:", error);
+      return;
+    }
+
+    if (data && data.data) {
       const remote = data.data;
       if (remote.users) state.users = remote.users;
       if (remote.parentPin) state.parentPin = remote.parentPin;
@@ -108,9 +113,12 @@ async function fetchCloudData() {
 
       localStorage.setItem('family_points_state', JSON.stringify(remote));
       renderApp();
+    } else {
+      // Si la base de datos está vacía, subimos la configuración inicial
+      await syncFullStateToCloud();
     }
   } catch (err) {
-    console.warn("Modo offline o error al consultar Supabase", err);
+    console.warn("Error general al consultar Supabase", err);
   }
 }
 
@@ -126,12 +134,39 @@ async function syncFullStateToCloud() {
       history: state.history
     };
 
-    await supabaseClient
+    const { error } = await supabaseClient
       .from('app_state')
       .upsert({ id: 'main_config', data: payload, updated_at: new Date() });
+
+    if (error) {
+      console.error("Error al guardar en Supabase:", error);
+    }
   } catch (err) {
-    console.warn("Error al guardar todo en Supabase", err);
+    console.warn("Error al conectar con Supabase:", err);
   }
+}
+
+// Escuchar cambios en tiempo real desde otros móviles
+function setupRealtimeListener() {
+  if (!supabaseClient) return;
+
+  supabaseClient
+    .channel('public:app_state')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state' }, payload => {
+      if (payload.new && payload.new.data) {
+        const remote = payload.new.data;
+        if (remote.users) state.users = remote.users;
+        if (remote.parentPin) state.parentPin = remote.parentPin;
+        if (remote.actions) state.actions = remote.actions;
+        if (remote.rewards) state.rewards = remote.rewards;
+        if (remote.redemptions) state.redemptions = remote.redemptions;
+        if (remote.history) state.history = remote.history;
+
+        localStorage.setItem('family_points_state', JSON.stringify(remote));
+        renderApp();
+      }
+    })
+    .subscribe();
 }
 
 function renderAvatarHtml(avatarStr, sizeClasses = "w-full h-full text-2xl") {
@@ -415,7 +450,7 @@ async function applyAction(actionId) {
     const log = `${activeUser.name} registró para ${child.name}: ${action.title} (${action.points > 0 ? '+' : ''}${action.points} pts)`;
     state.history.unshift(log);
 
-    saveLocalStorage();
+    await saveLocalStorage();
     renderApp();
   }
 }
@@ -492,7 +527,7 @@ async function claimReward(rewardId) {
 
     state.history.unshift(`${user.name} canjeó: ${reward.title} (-${reward.cost} pts)`);
 
-    saveLocalStorage();
+    await saveLocalStorage();
     renderApp();
   }
 }
@@ -649,7 +684,7 @@ function renderManagerPanel() {
   }
 }
 
-function editReward(rewardId) {
+async function editReward(rewardId) {
   const reward = state.rewards.find(r => r.id === rewardId);
   if (!reward) return;
 
@@ -666,11 +701,11 @@ function editReward(rewardId) {
   reward.cost = Math.abs(parsedCost);
   if (newIcon && newIcon.trim() !== "") reward.icon = newIcon.trim();
 
-  saveLocalStorage();
+  await saveLocalStorage();
   renderApp();
 }
 
-function editAction(actionId) {
+async function editAction(actionId) {
   const action = state.actions.find(a => a.id === actionId);
   if (!action) return;
 
@@ -688,11 +723,11 @@ function editAction(actionId) {
   action.type = parsedPoints < 0 ? 'negative' : 'positive';
   if (newIcon && newIcon.trim() !== "") action.icon = newIcon.trim();
 
-  saveLocalStorage();
+  await saveLocalStorage();
   renderApp();
 }
 
-function addNewReward() {
+async function addNewReward() {
   const titleEl = document.getElementById('newRewardTitle');
   const iconEl = document.getElementById('newRewardIcon');
   const costEl = document.getElementById('newRewardCost');
@@ -717,14 +752,14 @@ function addNewReward() {
   if (iconEl) iconEl.value = '';
   if (costEl) costEl.value = '';
 
-  saveLocalStorage();
+  await saveLocalStorage();
   renderApp();
 }
 
-function deleteReward(id) {
+async function deleteReward(id) {
   if (confirm("¿Seguro que deseas eliminar este premio?")) {
     state.rewards = state.rewards.filter(r => r.id !== id);
-    saveLocalStorage();
+    await saveLocalStorage();
     renderApp();
   }
 }
@@ -737,7 +772,7 @@ async function changeUserAvatar(userId) {
   
   if (input !== null && input.trim() !== '') {
     user.avatar = input.trim();
-    saveLocalStorage();
+    await saveLocalStorage();
     initUserSelect();
     renderApp();
   }
@@ -748,20 +783,20 @@ async function modifyPoints(userId, delta) {
   if (user) {
     user.points += delta;
     if (user.points < 0) user.points = 0;
-    saveLocalStorage();
+    await saveLocalStorage();
     renderApp();
   }
 }
 
-function deleteAction(id) {
+async function deleteAction(id) {
   if (confirm("¿Seguro que deseas eliminar esta tarea?")) {
     state.actions = state.actions.filter(a => a.id !== id);
-    saveLocalStorage();
+    await saveLocalStorage();
     renderApp();
   }
 }
 
-function addNewAction() {
+async function addNewAction() {
   const titleEl = document.getElementById('newActionTitle');
   const iconEl = document.getElementById('newActionIcon');
   const pointsEl = document.getElementById('newActionPoints');
@@ -791,11 +826,11 @@ function addNewAction() {
   if (iconEl) iconEl.value = '';
   if (pointsEl) pointsEl.value = '';
 
-  saveLocalStorage();
+  await saveLocalStorage();
   renderApp();
 }
 
-function resetMonthlyPoints() {
+async function resetMonthlyPoints() {
   if (confirm("¿Deseas reiniciar la puntuación mensual y rachas a 0 para todos los miembros?")) {
     Object.keys(state.users).forEach(k => {
       state.users[k].points = 0;
@@ -805,17 +840,33 @@ function resetMonthlyPoints() {
     });
     state.history = [];
     state.redemptions = [];
-    saveLocalStorage();
+    await saveLocalStorage();
     renderApp();
   }
 }
+
+// Auto-sincronizar al cambiar foco de pantalla
+window.addEventListener('focus', () => {
+  fetchCloudData();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    fetchCloudData();
+  }
+});
 
 async function startApp() {
   loadLocalStorage();
   initUserSelect();
   setActiveTab('home');
   renderApp();
+  
+  // 1. Descargar primero los datos reales de Supabase
   await fetchCloudData();
+  
+  // 2. Activar la escucha en tiempo real para cambios de otros móviles
+  setupRealtimeListener();
 }
 
 if (document.readyState === 'loading') {
