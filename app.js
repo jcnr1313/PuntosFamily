@@ -1,10 +1,14 @@
 const SUPABASE_URL = 'https://dwfpellkjknjoownvra.supabase.co';
-const SUPABASE_KEY = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZnBlbGxramtuanNvb3dudnJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzQwMDYsImV4cCI6MjEwMDcxMDAwNn0.x75ND4DNtptpxVtf-tK2FNr_33zxhk5SF7_-sAb8-jY';
+// Clave corregida comenzando por 'eyJ' en minúscula
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZnBlbGxramtuanNvb3dudnJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzQwMDYsImV4cCI6MjEwMDcxMDAwNn0.x75ND4DNtptpxVtf-tK2FNr_33zxhk5SF7_-sAb8-jY';
 
 let supabaseClient = null;
 try {
   if (window.supabase && typeof window.supabase.createClient === 'function') {
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log("Supabase cliente inicializado correctamente.");
+  } else {
+    console.error("La librería de Supabase no se cargó en el HTML.");
   }
 } catch (e) {
   console.warn("No se pudo inicializar Supabase:", e);
@@ -24,7 +28,6 @@ let state = {
     'mama': { id: 'mama', name: 'Mamá', role: 'padre', avatar: '👩', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null }
   },
   actions: [
-    // --- GANAR PUNTOS (POSITIVAS) ---
     { id: 1, title: 'Leer 30 min', points: 20, type: 'positive', icon: '📖' },
     { id: 2, title: 'Ayudar con la compra', points: 15, type: 'positive', icon: '🛒' },
     { id: 3, title: 'Ayudar a tu hermano/a', points: 20, type: 'positive', icon: '👥' },
@@ -38,8 +41,6 @@ let state = {
     { id: 11, title: 'Deberes hechos', points: 30, type: 'positive', icon: '📖' },
     { id: 12, title: 'Pasar la aspiradora', points: 20, type: 'positive', icon: '💨' },
     { id: 13, title: 'Regar plantas', points: 10, type: 'positive', icon: '💧' },
-
-    // --- PENALIZACIONES (NEGATIVAS) ---
     { id: 101, title: 'Llegar tarde a comer/cenar', points: -20, type: 'negative', icon: '🍽️' },
     { id: 102, title: 'Levantarse tarde', points: -20, type: 'negative', icon: '🛏️' },
     { id: 103, title: 'Responder mal', points: -20, type: 'negative', icon: '⛔' },
@@ -145,7 +146,7 @@ async function fetchCloudData() {
       .maybeSingle();
 
     if (error) {
-      console.warn("Error leyendo de Supabase:", error);
+      console.warn("Error leyendo de Supabase:", error.message);
       return;
     }
 
@@ -160,6 +161,7 @@ async function fetchCloudData() {
 
       localStorage.setItem('family_points_state', JSON.stringify(state));
       renderApp();
+      console.log("Datos sincronizados desde la nube exitosamente.");
     } else {
       await syncFullStateToCloud();
     }
@@ -185,7 +187,9 @@ async function syncFullStateToCloud() {
       .upsert({ id: 'main_config', data: payload, updated_at: new Date() });
 
     if (error) {
-      console.error("Error al guardar en Supabase:", error);
+      console.error("Error al guardar en Supabase:", error.message);
+    } else {
+      console.log("Cambios guardados en la nube.");
     }
   } catch (err) {
     console.warn("Error al conectar con Supabase:", err);
@@ -198,6 +202,7 @@ function setupRealtimeListener() {
   supabaseClient
     .channel('public:app_state')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state' }, payload => {
+      console.log("Cambio detectado en tiempo real:", payload);
       if (payload.new && payload.new.data) {
         const remote = payload.new.data;
         if (remote.users) state.users = { ...state.users, ...remote.users };
@@ -211,7 +216,9 @@ function setupRealtimeListener() {
         renderApp();
       }
     })
-    .subscribe();
+    .subscribe((status) => {
+      console.log("Estado de la suscripción Realtime:", status);
+    });
 }
 
 function renderAvatarHtml(avatarStr, sizeClasses = "w-full h-full text-2xl") {
