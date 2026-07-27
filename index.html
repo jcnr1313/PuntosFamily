@@ -22,24 +22,34 @@
       }
     }
   </script>
+  <style>
+    .avatar-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 9999px;
+    }
+  </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen pb-28 font-sans antialiased selection:bg-blue-500 selection:text-white">
 
   <!-- Header Pro -->
-  <header class="p-4 bg-zinc-900/90 backdrop-blur-xl border-b border-zinc-800/80 sticky top-0 z-40">
+  <header class="p-4 bg-zinc-900/90 backdrop-blur-2xl border-b border-zinc-800/80 sticky top-0 z-40">
     <div class="max-w-md mx-auto flex justify-between items-center">
       <div>
         <div class="flex items-center gap-2">
           <h1 class="text-xl font-black tracking-tight text-white">FamilyPoints</h1>
-          <span class="text-[10px] bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black px-2 py-0.5 rounded-full uppercase tracking-wider">PRO</span>
+          <span class="text-[10px] bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">PRO</span>
         </div>
         <p class="text-xs text-zinc-400 font-medium mt-0.5" id="familyHeaderTitle">Familia Navarro Potenciano</p>
       </div>
 
       <!-- Selector de usuario activo -->
-      <div class="flex items-center gap-2 bg-zinc-950/80 px-2 py-1.5 rounded-2xl border border-zinc-800">
-        <span id="currentAvatar" class="text-xl">👦</span>
-        <select id="userSelect" onchange="switchUser()" class="bg-transparent text-xs font-bold text-white outline-none cursor-pointer">
+      <div class="flex items-center gap-2 bg-zinc-950 px-2.5 py-1.5 rounded-2xl border border-zinc-800 shadow-inner">
+        <div id="currentAvatar" class="avatar-box w-7 h-7 flex items-center justify-center text-lg overflow-hidden">
+          👦
+        </div>
+        <select id="userSelect" onchange="switchUser()" class="bg-transparent text-xs font-extrabold text-white outline-none cursor-pointer">
           <!-- Dinámico -->
         </select>
       </div>
@@ -51,27 +61,27 @@
 
     <!-- PESTAÑA: INICIO / CLASIFICACIÓN -->
     <section id="tab-home" class="space-y-4">
-      <div class="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 rounded-3xl p-6 text-white shadow-xl shadow-blue-950/30 relative overflow-hidden">
+      <div class="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 rounded-[2rem] p-6 text-white shadow-2xl shadow-blue-950/40 relative overflow-hidden">
         <div class="flex justify-between items-start">
           <div>
-            <span class="text-[10px] uppercase tracking-widest font-extrabold bg-white/20 px-2.5 py-1 rounded-full backdrop-blur-md">Ranking Semanal</span>
+            <span class="text-[10px] uppercase tracking-widest font-black bg-white/20 px-3 py-1 rounded-full backdrop-blur-md">Ranking Semanal</span>
             <h2 class="text-2xl font-black tracking-tight mt-2">Clasificación</h2>
           </div>
-          <span class="text-4xl drop-shadow">🏆</span>
+          <span class="text-5xl drop-shadow-md">🏆</span>
         </div>
 
-        <div id="leaderboardList" class="grid grid-cols-3 gap-3 pt-5">
+        <div id="leaderboardList" class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6">
           <!-- Dinámico -->
         </div>
       </div>
 
       <!-- Actividad Reciente -->
-      <div class="bg-zinc-900/80 rounded-3xl p-5 border border-zinc-800/80 space-y-3">
+      <div class="bg-zinc-900/90 rounded-[2rem] p-5 border border-zinc-800/80 space-y-3 shadow-lg">
         <div class="flex justify-between items-center">
           <h3 class="font-bold text-sm text-zinc-200 flex items-center gap-2">
-            <span>⚡</span> Actividad Reciente
+            <span class="text-xl">⚡</span> Actividad Reciente
           </h3>
-          <span id="activityCount" class="text-xs font-black bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">0</span>
+          <span id="activityCount" class="text-xs font-black bg-zinc-800 text-zinc-400 px-2.5 py-0.5 rounded-full">0</span>
         </div>
         <div id="activityList" class="space-y-2 text-xs text-zinc-500 text-center py-4">
           Aún no hay movimientos esta semana.
@@ -82,17 +92,17 @@
     <!-- PESTAÑA: TAREAS (Ganar / Penalizaciones) -->
     <section id="tab-tasks" class="space-y-4 hidden">
       <!-- Selector Ganar / Penalización -->
-      <div class="grid grid-cols-2 gap-1.5 bg-zinc-900 p-1.5 rounded-2xl border border-zinc-800">
-        <button id="btnTaskPositive" onclick="toggleTaskType('positive')" class="py-2.5 rounded-xl text-xs font-extrabold transition-all bg-zinc-800 text-white shadow-sm">
-          ✨ Ganar Puntos
+      <div class="grid grid-cols-2 gap-2 bg-zinc-900 p-1.5 rounded-2xl border border-zinc-800/80">
+        <button id="btnTaskPositive" onclick="toggleTaskType('positive')" class="py-3 rounded-xl text-xs font-black transition-all bg-zinc-800 text-white shadow-md flex items-center justify-center gap-2">
+          <span class="text-base">✨</span> Ganar Puntos
         </button>
-        <button id="btnTaskNegative" onclick="toggleTaskType('negative')" class="py-2.5 rounded-xl text-xs font-extrabold transition-all text-zinc-400 hover:text-white">
-          ⚠️ Penalizaciones
+        <button id="btnTaskNegative" onclick="toggleTaskType('negative')" class="py-3 rounded-xl text-xs font-black transition-all text-zinc-400 hover:text-white flex items-center justify-center gap-2">
+          <span class="text-base">⚠️</span> Penalizaciones
         </button>
       </div>
 
       <!-- Grid Tareas -->
-      <div id="tasksGrid" class="grid grid-cols-2 gap-3">
+      <div id="tasksGrid" class="grid grid-cols-2 gap-3.5">
         <!-- Dinámico -->
       </div>
     </section>
@@ -101,9 +111,9 @@
     <section id="tab-rewards" class="space-y-4 hidden">
       <div class="flex justify-between items-center px-1">
         <h2 class="font-bold text-sm text-zinc-300">Catálogo de Premios</h2>
-        <span class="text-xs font-extrabold bg-amber-400/10 text-amber-400 border border-amber-400/20 px-3 py-1 rounded-full" id="userPointsRewardTab">0 ⭐</span>
+        <span class="text-xs font-extrabold bg-amber-400/10 text-amber-400 border border-amber-400/20 px-3 py-1.5 rounded-full flex items-center gap-1" id="userPointsRewardTab">0 ⭐</span>
       </div>
-      <div id="rewardsGrid" class="grid grid-cols-2 gap-3">
+      <div id="rewardsGrid" class="grid grid-cols-2 gap-3.5">
         <!-- Dinámico -->
       </div>
     </section>
@@ -112,8 +122,8 @@
     <section id="tab-manager" class="space-y-5 hidden">
       
       <!-- Pantalla de Bloqueo PIN -->
-      <div id="pinLockScreen" class="bg-zinc-900 rounded-3xl p-6 border border-zinc-800 text-center space-y-4">
-        <div class="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center text-2xl mx-auto border border-blue-500/20">
+      <div id="pinLockScreen" class="bg-zinc-900 rounded-[2rem] p-6 border border-zinc-800 text-center space-y-4 shadow-xl">
+        <div class="w-14 h-14 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center text-3xl mx-auto border border-blue-500/20">
           🔒
         </div>
         <div>
@@ -121,10 +131,10 @@
           <p class="text-xs text-zinc-400 mt-1">Introduce el PIN de Padres para acceder al panel.</p>
         </div>
         <div class="flex justify-center gap-2">
-          <input id="pinInput" type="password" maxlength="4" placeholder="••••" class="w-32 bg-zinc-950 text-center font-mono text-xl tracking-widest border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500">
+          <input id="pinInput" type="password" maxlength="4" placeholder="••••" class="w-36 bg-zinc-950 text-center font-mono text-2xl tracking-widest border border-zinc-800 rounded-2xl px-3 py-2.5 text-white outline-none focus:border-blue-500">
         </div>
-        <button onclick="unlockManager()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl transition">
-          Desbloquear
+        <button onclick="unlockManager()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl transition shadow-lg shadow-blue-600/30">
+          Desbloquear Panel
         </button>
       </div>
 
@@ -133,41 +143,50 @@
         <div class="flex justify-between items-center">
           <div>
             <h2 class="text-lg font-black text-white">Gestor Familiar</h2>
-            <p class="text-xs text-zinc-400">Modifica puntos, elimina o crea tareas.</p>
+            <p class="text-xs text-zinc-400">Personaliza avatares, ajusta puntos o administra tareas.</p>
           </div>
-          <button onclick="lockManager()" class="text-xs text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-lg">🔒 Bloquear</button>
+          <button onclick="lockManager()" class="text-xs font-bold text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-xl">🔒 Bloquear</button>
+        </div>
+
+        <!-- Personalizar Avatares de Miembros -->
+        <div class="bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800/80 space-y-3">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-400">Personalizar Fotos / Avatares</h3>
+          <div id="avatarCustomizerList" class="space-y-3">
+            <!-- Dinámico -->
+          </div>
         </div>
 
         <!-- Ajuste Manual de Puntos -->
-        <div class="bg-zinc-900 rounded-3xl p-5 border border-zinc-800/80 space-y-3">
-          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-400">Puntos de los Niños</h3>
+        <div class="bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800/80 space-y-3">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-400">Control Rápido de Puntos</h3>
           <div id="manualPointsControl" class="space-y-2.5">
             <!-- Dinámico -->
           </div>
         </div>
 
         <!-- Administración y Eliminación de Tareas -->
-        <div class="bg-zinc-900 rounded-3xl p-5 border border-zinc-800/80 space-y-3">
+        <div class="bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800/80 space-y-3">
           <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-400">Administrar Tareas Existentes</h3>
-          <div id="manageActionsList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+          <div id="manageActionsList" class="space-y-2 max-h-64 overflow-y-auto pr-1">
             <!-- Dinámico -->
           </div>
         </div>
 
         <!-- Añadir Nueva Tarea / Penalización -->
-        <div class="bg-zinc-900 rounded-3xl p-5 border border-zinc-800/80 space-y-3">
-          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-400">Crear Nueva Tarea o Penalización</h3>
+        <div class="bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800/80 space-y-3">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-400">Crear Tarea o Penalización</h3>
           <div class="space-y-2">
-            <input id="newActionTitle" type="text" placeholder="Ej: Limpiar la mesa" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500">
+            <input id="newActionTitle" type="text" placeholder="Ej: Doblar la ropa" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-blue-500">
             <div class="flex gap-2">
-              <input id="newActionPoints" type="number" placeholder="Puntos" class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500">
-              <select id="newActionType" class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500">
-                <option value="positive">Ganar puntos (+)</option>
-                <option value="negative">Penalización (-)</option>
+              <input id="newActionIcon" type="text" placeholder="Emoji (ej: 👕)" class="w-1/3 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-blue-500">
+              <input id="newActionPoints" type="number" placeholder="Puntos" class="w-1/3 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-blue-500">
+              <select id="newActionType" class="w-1/3 bg-zinc-950 border border-zinc-800 rounded-xl px-2 py-2.5 text-xs text-white outline-none focus:border-blue-500">
+                <option value="positive">Suma (+)</option>
+                <option value="negative">Resta (-)</option>
               </select>
             </div>
-            <button onclick="addNewAction()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition">
-              + Guardar Acción
+            <button onclick="addNewAction()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold rounded-xl transition shadow-lg shadow-blue-600/20">
+              + Guardar Tarea
             </button>
           </div>
         </div>
@@ -178,16 +197,16 @@
     <!-- PESTAÑA: AJUSTES -->
     <section id="tab-settings" class="space-y-4 hidden">
       <h2 class="text-lg font-black text-white">Ajustes</h2>
-      <div class="bg-zinc-900 rounded-3xl p-5 border border-zinc-800/80 space-y-4 text-xs">
+      <div class="bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800/80 space-y-4 text-xs">
         <div class="flex justify-between items-center py-2 border-b border-zinc-800">
           <span class="text-zinc-300 font-medium">PIN de Padres</span>
           <button onclick="changePinPrompt()" class="text-blue-400 font-bold hover:underline">Cambiar PIN</button>
         </div>
         <div class="flex justify-between items-center py-2 border-b border-zinc-800">
-          <span class="text-zinc-300 font-medium">Reinicio Semanal Automático</span>
+          <span class="text-zinc-300 font-medium">Reinicio Semanal</span>
           <span class="text-emerald-400 font-bold">Activado</span>
         </div>
-        <button onclick="resetWeeklyPoints()" class="w-full py-2.5 bg-red-500/10 border border-red-500/20 text-red-400 font-extrabold rounded-xl hover:bg-red-500/20 transition">
+        <button onclick="resetWeeklyPoints()" class="w-full py-3 bg-red-500/10 border border-red-500/20 text-red-400 font-extrabold rounded-xl hover:bg-red-500/20 transition">
           Reiniciar Puntos Semanales a 0
         </button>
       </div>
@@ -199,28 +218,28 @@
   <nav class="fixed bottom-0 left-0 right-0 bg-zinc-900/90 backdrop-blur-2xl border-t border-zinc-800/80 p-2 z-50">
     <div class="max-w-md mx-auto grid grid-cols-5 gap-1 text-center">
       <button onclick="setActiveTab('home')" id="nav-home" class="flex flex-col items-center py-1.5 text-blue-500 font-bold">
-        <span class="text-lg">🏠</span>
+        <span class="text-2xl">🏠</span>
         <span class="text-[10px]">Inicio</span>
       </button>
       <button onclick="setActiveTab('tasks')" id="nav-tasks" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium">
-        <span class="text-lg">📋</span>
+        <span class="text-2xl">📋</span>
         <span class="text-[10px]">Tareas</span>
       </button>
       <button onclick="setActiveTab('rewards')" id="nav-rewards" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium">
-        <span class="text-lg">🎁</span>
+        <span class="text-2xl">🎁</span>
         <span class="text-[10px]">Premios</span>
       </button>
       <button onclick="setActiveTab('manager')" id="nav-manager" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium">
-        <span class="text-lg">🎛️</span>
+        <span class="text-2xl">🎛️</span>
         <span class="text-[10px]">Gestor</span>
       </button>
       <button onclick="setActiveTab('settings')" id="nav-settings" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium">
-        <span class="text-lg">⚙️</span>
+        <span class="text-2xl">⚙️</span>
         <span class="text-[10px]">Ajustes</span>
       </button>
     </div>
   </nav>
 
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>
