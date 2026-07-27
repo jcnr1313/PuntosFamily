@@ -38,10 +38,11 @@ let state = {
     { id: 3, title: 'Ir al parque / Cine', cost: 120, icon: '🍿' },
     { id: 4, title: 'Día libre de tareas', cost: 150, icon: '⭐' }
   ],
+  redemptions: [],
   history: []
 };
 
-// Helper para Renderizar Avatares (Emoji o Foto URL)
+// Helper para Renderizar Avatares
 function renderAvatarHtml(avatarStr, sizeClasses = "w-full h-full text-2xl") {
   if (!avatarStr) return `<span class="${sizeClasses} flex items-center justify-center">👤</span>`;
   if (avatarStr.startsWith('http://') || avatarStr.startsWith('https://') || avatarStr.startsWith('data:image')) {
@@ -99,7 +100,7 @@ function renderApp() {
   renderManagerPanel();
 }
 
-// Clasificación / Ranking
+// Clasificación
 function renderLeaderboard() {
   const container = document.getElementById('leaderboardList');
   if (!container) return;
@@ -127,7 +128,7 @@ function renderLeaderboard() {
   }).join('');
 }
 
-// Filtro Tareas
+// Tareas
 function toggleTaskType(type) {
   state.currentTaskFilter = type;
   const btnPos = document.getElementById('btnTaskPositive');
@@ -246,6 +247,19 @@ async function claimReward(rewardId) {
 
   if (reward && user && user.points >= reward.cost) {
     user.points -= reward.cost;
+
+    const dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+    state.redemptions.unshift({
+      id: Date.now(),
+      userName: user.name,
+      userAvatar: user.avatar,
+      rewardTitle: reward.title,
+      rewardIcon: reward.icon || '🎁',
+      cost: reward.cost,
+      date: dateStr
+    });
+
     state.history.unshift(`${user.name} canjeó: ${reward.title} (-${reward.cost} pts)`);
 
     renderApp();
@@ -297,7 +311,33 @@ function changePinPrompt() {
 function renderManagerPanel() {
   if (!isManagerUnlocked) return;
 
-  // 1. Personalizar Avatares
+  // 1. Histórico de Canjes
+  const redemptionsContainer = document.getElementById('redemptionsList');
+  const redemptionsCount = document.getElementById('redemptionsCount');
+  if (redemptionsContainer) {
+    if (redemptionsCount) redemptionsCount.innerText = state.redemptions.length;
+
+    if (state.redemptions.length === 0) {
+      redemptionsContainer.innerHTML = `<p class="text-center text-xs text-zinc-500 py-3">No hay canjes registrados aún.</p>`;
+    } else {
+      redemptionsContainer.innerHTML = state.redemptions.map(item => `
+        <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">
+              ${renderAvatarHtml(item.userAvatar, "text-sm")}
+            </div>
+            <div>
+              <p class="font-bold text-xs text-white">${item.userName} <span class="text-zinc-400 font-normal">canjeó</span> ${item.rewardIcon} ${item.rewardTitle}</p>
+              <p class="text-[10px] text-zinc-500">${item.date}</p>
+            </div>
+          </div>
+          <span class="text-xs font-black text-amber-400 bg-amber-400/10 px-2 py-1 rounded-lg border border-amber-400/20">-${item.cost} ⭐</span>
+        </div>
+      `).join('');
+    }
+  }
+
+  // 2. Personalizar Avatares
   const avatarContainer = document.getElementById('avatarCustomizerList');
   if (avatarContainer) {
     avatarContainer.innerHTML = Object.values(state.users).map(u => `
@@ -315,7 +355,7 @@ function renderManagerPanel() {
     `).join('');
   }
 
-  // 2. Control rápido de puntos
+  // 3. Control rápido de puntos
   const pointsContainer = document.getElementById('manualPointsControl');
   if (pointsContainer) {
     const kids = Object.values(state.users).filter(u => u.role === 'hijo');
@@ -338,20 +378,105 @@ function renderManagerPanel() {
     `).join('');
   }
 
-  // 3. Administrar / Eliminar Tareas
+  // 4. Administrar Premios Existentes (Edición de Icono + Eliminación)
+  const rewardsContainer = document.getElementById('manageRewardsList');
+  if (rewardsContainer) {
+    rewardsContainer.innerHTML = state.rewards.map(r => `
+      <div class="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800/80 flex justify-between items-center">
+        <div class="flex items-center gap-2.5">
+          <button onclick="changeRewardIcon(${r.id})" title="Cambiar emoji" class="text-xl hover:scale-110 transition bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">
+            ${r.icon || '🎁'}
+          </button>
+          <span class="text-xs text-zinc-200 font-medium">${r.title} (${r.cost} ⭐)</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button onclick="changeRewardIcon(${r.id})" class="text-[11px] text-amber-400 hover:bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20 transition font-bold">
+            Emoji
+          </button>
+          <button onclick="deleteReward(${r.id})" class="text-[11px] text-red-400 hover:bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20 transition font-bold">
+            🗑️
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // 5. Administrar Tareas Existentes (Edición de Icono + Eliminación)
   const actionsContainer = document.getElementById('manageActionsList');
   if (actionsContainer) {
     actionsContainer.innerHTML = state.actions.map(a => `
       <div class="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800/80 flex justify-between items-center">
         <div class="flex items-center gap-2.5">
-          <span class="text-xl">${a.icon || '📌'}</span>
+          <button onclick="changeActionIcon(${a.id})" title="Cambiar emoji" class="text-xl hover:scale-110 transition bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">
+            ${a.icon || '📌'}
+          </button>
           <span class="text-xs text-zinc-200 font-medium">${a.title} (${a.points > 0 ? '+' : ''}${a.points} pts)</span>
         </div>
-        <button onclick="deleteAction(${a.id})" class="text-xs text-red-400 hover:bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 transition font-bold">
-          Eliminar 🗑️
-        </button>
+        <div class="flex items-center gap-1.5">
+          <button onclick="changeActionIcon(${a.id})" class="text-[11px] text-blue-400 hover:bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-500/20 transition font-bold">
+            Emoji
+          </button>
+          <button onclick="deleteAction(${a.id})" class="text-[11px] text-red-400 hover:bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20 transition font-bold">
+            🗑️
+          </button>
+        </div>
       </div>
     `).join('');
+  }
+}
+
+// Cambiar icono de premio
+function changeRewardIcon(rewardId) {
+  const reward = state.rewards.find(r => r.id === rewardId);
+  if (!reward) return;
+
+  const newIcon = prompt(`Introduce el nuevo emoji para el premio "${reward.title}":`, reward.icon || '🎁');
+  if (newIcon !== null && newIcon.trim() !== '') {
+    reward.icon = newIcon.trim();
+    renderApp();
+  }
+}
+
+// Cambiar icono de tarea
+function changeActionIcon(actionId) {
+  const action = state.actions.find(a => a.id === actionId);
+  if (!action) return;
+
+  const newIcon = prompt(`Introduce el nuevo emoji para "${action.title}":`, action.icon || '⭐');
+  if (newIcon !== null && newIcon.trim() !== '') {
+    action.icon = newIcon.trim();
+    renderApp();
+  }
+}
+
+function addNewReward() {
+  const title = document.getElementById('newRewardTitle').value.trim();
+  const icon = document.getElementById('newRewardIcon').value.trim() || '🎁';
+  const cost = parseInt(document.getElementById('newRewardCost').value);
+
+  if (!title || isNaN(cost) || cost <= 0) {
+    alert("Por favor introduce un nombre válido y los puntos necesarios.");
+    return;
+  }
+
+  state.rewards.push({
+    id: Date.now(),
+    title,
+    icon,
+    cost
+  });
+
+  document.getElementById('newRewardTitle').value = '';
+  document.getElementById('newRewardIcon').value = '';
+  document.getElementById('newRewardCost').value = '';
+
+  renderApp();
+}
+
+function deleteReward(id) {
+  if (confirm("¿Estás seguro de eliminar este premio del catálogo?")) {
+    state.rewards = state.rewards.filter(r => r.id !== id);
+    renderApp();
   }
 }
 
