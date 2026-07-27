@@ -1,10 +1,14 @@
 const SUPABASE_URL = 'https://dwfpellkjknjoownvra.supabase.co';
 const SUPABASE_KEY = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZnBlbGxramtuanNvb3dudnJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzQwMDYsImV4cCI6MjEwMDcxMDAwNn0.x75ND4DNtptpxVtf-tK2FNr_33zxhk5SF7_-sAb8-jY';
 
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+let supabaseClient = null;
+if (window.supabase) {
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+}
 
-// Datos por defecto de respaldo si falla la red
-const DEFAULT_DATA = {
+// Datos locales por defecto para garantizarnos que SIEMPRE aparezcan en pantalla
+let state = {
+  currentUser: 'hijo1',
   users: {
     'hijo1': { id: 'hijo1', name: 'Lucas', role: 'hijo', avatar: '👦', points: 35 },
     'hijo2': { id: 'hijo2', name: 'Sofía', role: 'hijo', avatar: '👧', points: 60 },
@@ -22,31 +26,26 @@ const DEFAULT_DATA = {
   ]
 };
 
-let state = {
-  currentUser: 'hijo1',
-  users: { ...DEFAULT_DATA.users },
-  tasks: [ ...DEFAULT_DATA.tasks ],
-  rewards: [ ...DEFAULT_DATA.rewards ]
-};
+document.addEventListener('DOMContentLoaded', () => {
+  // 1. Dibujar inmediatamente con los datos locales
+  renderAll();
 
-document.addEventListener('DOMContentLoaded', async () => {
-  initUserSelect();
-  renderApp();
-  await loadAllData();
-  setupRealtime();
+  // 2. Intentar cargar de Supabase en segundo plano
+  loadFromSupabase();
 });
 
-async function loadAllData() {
-  if (!supabase) return;
+function renderAll() {
+  initUserSelect();
+  renderApp();
+}
+
+async function loadFromSupabase() {
+  if (!supabaseClient) return;
 
   try {
-    const { data: users, error: errU } = await supabase.from('users').select('*');
-    const { data: tasks, error: errT } = await supabase.from('tasks').select('*');
-    const { data: rewards, error: errR } = await supabase.from('rewards').select('*');
-
-    if (errU || errT || errR) {
-      console.warn('Error leyendo Supabase, usando datos locales:', errU || errT || errR);
-    }
+    const { data: users } = await supabaseClient.from('users').select('*');
+    const { data: tasks } = await supabaseClient.from('tasks').select('*');
+    const { data: rewards } = await supabaseClient.from('rewards').select('*');
 
     if (users && users.length > 0) {
       state.users = {};
@@ -55,44 +54,37 @@ async function loadAllData() {
     if (tasks && tasks.length > 0) state.tasks = tasks;
     if (rewards && rewards.length > 0) state.rewards = rewards;
 
-    initUserSelect();
-    renderApp();
-  } catch (e) {
-    console.error('Error de conexión:', e);
+    renderAll();
+  } catch (err) {
+    console.log('Usando datos locales por error de red:', err);
   }
-}
-
-function setupRealtime() {
-  if (!supabase) return;
-  supabase
-    .channel('public-db-changes')
-    .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-      loadAllData();
-    })
-    .subscribe();
 }
 
 function initUserSelect() {
   const select = document.getElementById('userSelect');
   const assigneeSelect = document.getElementById('newTaskAssignee');
 
-  if (!select || !assigneeSelect) return;
+  if (select) {
+    select.innerHTML = Object.entries(state.users)
+      .map(([id, u]) => `<option value="${id}">${u.name}</option>`)
+      .join('');
+    select.value = state.currentUser;
+  }
 
-  select.innerHTML = Object.entries(state.users)
-    .map(([id, u]) => `<option value="${id}">${u.name}</option>`)
-    .join('');
-
-  assigneeSelect.innerHTML = Object.entries(state.users)
-    .filter(([_, u]) => u.role === 'hijo')
-    .map(([id, u]) => `<option value="${id}">${u.name}</option>`)
-    .join('');
-
-  select.value = state.currentUser;
+  if (assigneeSelect) {
+    assigneeSelect.innerHTML = Object.entries(state.users)
+      .filter(([_, u]) => u.role === 'hijo')
+      .map(([id, u]) => `<option value="${id}">${u.name}</option>`)
+      .join('');
+  }
 }
 
 function switchUser() {
-  state.currentUser = document.getElementById('userSelect').value;
-  renderApp();
+  const select = document.getElementById('userSelect');
+  if (select) {
+    state.currentUser = select.value;
+    renderApp();
+  }
 }
 
 function switchTab(tab) {
@@ -113,9 +105,13 @@ function renderApp() {
   const user = state.users[state.currentUser];
   if (!user) return;
 
-  document.getElementById('currentAvatar').innerText = user.avatar;
-  document.getElementById('userPoints').innerText = user.points;
-  document.getElementById('roleBadge').innerText = user.role.toUpperCase();
+  const avatarEl = document.getElementById('currentAvatar');
+  const pointsEl = document.getElementById('userPoints');
+  const roleEl = document.getElementById('roleBadge');
+
+  if (avatarEl) avatarEl.innerText = user.avatar;
+  if (pointsEl) pointsEl.innerText = user.points;
+  if (roleEl) roleEl.innerText = user.role.toUpperCase();
 
   const parentBtn = document.getElementById('tabParentBtn');
   const quickAdd = document.getElementById('quickAddContainer');
@@ -126,7 +122,8 @@ function renderApp() {
   } else {
     if (parentBtn) parentBtn.classList.add('hidden');
     if (quickAdd) quickAdd.classList.add('hidden');
-    if (!document.getElementById('parentTab').classList.contains('hidden')) {
+    const parentTab = document.getElementById('parentTab');
+    if (parentTab && !parentTab.classList.contains('hidden')) {
       switchTab('tasks');
     }
   }
@@ -138,13 +135,17 @@ function renderApp() {
 
 function renderTasks() {
   const taskList = document.getElementById('taskList');
-  const user = state.users[state.currentUser];
+  if (!taskList) return;
 
+  const user = state.users[state.currentUser];
   const myTasks = user.role === 'padre' 
     ? state.tasks 
     : state.tasks.filter(t => t.assigned_to === state.currentUser);
 
-  document.getElementById('taskCountText').innerText = `${myTasks.filter(t => t.status === 'pendiente').length} pendientes`;
+  const taskCountText = document.getElementById('taskCountText');
+  if (taskCountText) {
+    taskCountText.innerText = `${myTasks.filter(t => t.status === 'pendiente').length} pendientes`;
+  }
 
   if (myTasks.length === 0) {
     taskList.innerHTML = `<div class="bg-white p-6 rounded-2xl text-center text-slate-400 text-sm border border-slate-100 shadow-sm">🎉 ¡Sin tareas pendientes!</div>`;
@@ -181,13 +182,15 @@ async function completeTask(id) {
   if (task) task.status = 'revisando';
   renderApp();
 
-  if (supabase) {
-    await supabase.from('tasks').update({ status: 'revisando' }).eq('id', id);
+  if (supabaseClient) {
+    await supabaseClient.from('tasks').update({ status: 'revisando' }).eq('id', id);
   }
 }
 
 function renderRewards() {
   const rewardList = document.getElementById('rewardList');
+  if (!rewardList) return;
+
   const user = state.users[state.currentUser];
 
   rewardList.innerHTML = state.rewards.map(reward => {
@@ -221,8 +224,8 @@ async function claimReward(id, cost) {
     user.points -= cost;
     renderApp();
 
-    if (supabase) {
-      await supabase.from('users').update({ points: user.points }).eq('id', user.id);
+    if (supabaseClient) {
+      await supabaseClient.from('users').update({ points: user.points }).eq('id', user.id);
     }
     alert(`🎉 ¡Premio solicitado!`);
   }
@@ -243,7 +246,7 @@ function renderParentPanel() {
     <div class="bg-white p-3 rounded-xl border border-amber-200/60 flex justify-between items-center text-xs shadow-sm">
       <div>
         <p class="font-bold text-slate-800">${task.title}</p>
-        <span class="text-slate-400">Para: ${state.users[task.assigned_to]?.name}</span>
+        <span class="text-slate-400">Para: ${state.users[task.assigned_to]?.name || ''}</span>
       </div>
       <button onclick="approveTask(${task.id}, '${task.assigned_to}', ${task.points})" class="bg-emerald-600 text-white font-extrabold py-2 px-3 rounded-lg">
         Aprobar (+${task.points}⭐)
@@ -262,9 +265,9 @@ async function approveTask(taskId, assignedTo, points) {
 
   renderApp();
 
-  if (supabase) {
-    await supabase.from('tasks').update({ status: 'completada' }).eq('id', taskId);
-    await supabase.from('users').update({ points: state.users[assignedTo].points }).eq('id', assignedTo);
+  if (supabaseClient) {
+    await supabaseClient.from('tasks').update({ status: 'completada' }).eq('id', taskId);
+    await supabaseClient.from('users').update({ points: state.users[assignedTo].points }).eq('id', assignedTo);
   }
 }
 
@@ -273,8 +276,8 @@ async function quickPoints(pts) {
   if (user) {
     user.points += pts;
     renderApp();
-    if (supabase) {
-      await supabase.from('users').update({ points: user.points }).eq('id', user.id);
+    if (supabaseClient) {
+      await supabaseClient.from('users').update({ points: user.points }).eq('id', user.id);
     }
   }
 }
@@ -297,8 +300,8 @@ async function addNewTask(e) {
   state.tasks.push(newTask);
   renderApp();
 
-  if (supabase) {
-    await supabase.from('tasks').insert([newTask]);
+  if (supabaseClient) {
+    await supabaseClient.from('tasks').insert([newTask]);
   }
 
   document.getElementById('newTaskTitle').value = '';
@@ -315,8 +318,8 @@ async function addNewReward(e) {
   state.rewards.push(newReward);
   renderApp();
 
-  if (supabase) {
-    await supabase.from('rewards').insert([newReward]);
+  if (supabaseClient) {
+    await supabaseClient.from('rewards').insert([newReward]);
   }
 
   document.getElementById('newRewardTitle').value = '';
