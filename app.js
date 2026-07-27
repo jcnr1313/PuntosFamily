@@ -1,17 +1,14 @@
-const SUPABASE_URL = 'https://dwfpellkjknjoownvra.supabase.co';
-// Clave corregida comenzando por 'eyJ' en minúscula
+// --- CONFIGURACIÓN Y CLIENTE SUPABASE ---
+const SUPABASE_URL = 'https://dwfpellkjknjsoownvra.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZnBlbGxramtuanNvb3dudnJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzQwMDYsImV4cCI6MjEwMDcxMDAwNn0.x75ND4DNtptpxVtf-tK2FNr_33zxhk5SF7_-sAb8-jY';
 
-let supabaseClient = null;
-try {
+function getSupabaseClient() {
+  if (window.supabaseClient) return window.supabaseClient;
   if (window.supabase && typeof window.supabase.createClient === 'function') {
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    console.log("Supabase cliente inicializado correctamente.");
-  } else {
-    console.error("La librería de Supabase no se cargó en el HTML.");
+    window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    return window.supabaseClient;
   }
-} catch (e) {
-  console.warn("No se pudo inicializar Supabase:", e);
+  return null;
 }
 
 let isManagerUnlocked = false;
@@ -137,16 +134,17 @@ async function saveLocalStorage() {
 }
 
 async function fetchCloudData() {
-  if (!supabaseClient) return;
+  const client = getSupabaseClient();
+  if (!client) return;
   try {
-    const { data, error } = await supabaseClient
+    const { data, error } = await client
       .from('app_state')
       .select('data')
       .eq('id', 'main_config')
       .maybeSingle();
 
     if (error) {
-      console.warn("Error leyendo de Supabase:", error.message);
+      console.warn("⚠️ Error leyendo de Supabase:", error.message);
       return;
     }
 
@@ -161,17 +159,18 @@ async function fetchCloudData() {
 
       localStorage.setItem('family_points_state', JSON.stringify(state));
       renderApp();
-      console.log("Datos sincronizados desde la nube exitosamente.");
+      console.log("✅ Datos sincronizados desde Supabase exitosamente.");
     } else {
       await syncFullStateToCloud();
     }
   } catch (err) {
-    console.warn("Error general al consultar Supabase", err);
+    console.warn("❌ Error al consultar Supabase:", err);
   }
 }
 
 async function syncFullStateToCloud() {
-  if (!supabaseClient) return;
+  const client = getSupabaseClient();
+  if (!client) return;
   try {
     const payload = {
       users: state.users,
@@ -182,27 +181,28 @@ async function syncFullStateToCloud() {
       history: state.history
     };
 
-    const { error } = await supabaseClient
+    const { error } = await client
       .from('app_state')
-      .upsert({ id: 'main_config', data: payload, updated_at: new Date() });
+      .upsert({ id: 'main_config', data: payload, updated_at: new Date().toISOString() });
 
     if (error) {
-      console.error("Error al guardar en Supabase:", error.message);
+      console.error("❌ Error guardando en Supabase:", error.message);
     } else {
-      console.log("Cambios guardados en la nube.");
+      console.log("☁️ Cambios guardados en Supabase correctamente.");
     }
   } catch (err) {
-    console.warn("Error al conectar con Supabase:", err);
+    console.warn("❌ Error de red con Supabase:", err);
   }
 }
 
 function setupRealtimeListener() {
-  if (!supabaseClient) return;
+  const client = getSupabaseClient();
+  if (!client) return;
 
-  supabaseClient
+  client
     .channel('public:app_state')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state' }, payload => {
-      console.log("Cambio detectado en tiempo real:", payload);
+      console.log("⚡ Cambio en tiempo real detectado:", payload);
       if (payload.new && payload.new.data) {
         const remote = payload.new.data;
         if (remote.users) state.users = { ...state.users, ...remote.users };
@@ -217,7 +217,7 @@ function setupRealtimeListener() {
       }
     })
     .subscribe((status) => {
-      console.log("Estado de la suscripción Realtime:", status);
+      console.log("📡 Estado suscripción Realtime:", status);
     });
 }
 
@@ -260,11 +260,10 @@ function initUserSelect() {
   }
 }
 
-function switchUser() {
-  const select = document.getElementById('userSelect');
-  if (!select) return;
+function handleUserSelectChange(selectElement) {
+  if (!selectElement) return;
 
-  const targetUserId = select.value;
+  const targetUserId = selectElement.value;
   const targetUser = state.users[targetUserId];
 
   if (targetUser && targetUser.role === 'padre') {
@@ -274,7 +273,7 @@ function switchUser() {
       state.currentUser = targetUserId;
     } else {
       if (pinEntered !== null) alert("PIN incorrecto. Acceso denegado.");
-      select.value = state.previousUser;
+      selectElement.value = state.previousUser;
       return;
     }
   } else {
