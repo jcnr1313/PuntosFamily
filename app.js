@@ -1,39 +1,71 @@
 const SUPABASE_URL = 'https://dwfpellkjknjoownvra.supabase.co';
 const SUPABASE_KEY = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZnBlbGxramtuanNvb3dudnJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzQwMDYsImV4cCI6MjEwMDcxMDAwNn0.x75ND4DNtptpxVtf-tK2FNr_33zxhk5SF7_-sAb8-jY';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+// Datos por defecto de respaldo si falla la red
+const DEFAULT_DATA = {
+  users: {
+    'hijo1': { id: 'hijo1', name: 'Lucas', role: 'hijo', avatar: '👦', points: 35 },
+    'hijo2': { id: 'hijo2', name: 'Sofía', role: 'hijo', avatar: '👧', points: 60 },
+    'padre': { id: 'padre', name: 'Papá / Mamá', role: 'padre', avatar: '👑', points: 0 }
+  },
+  tasks: [
+    { id: 1, title: 'Hacer la cama', points: 10, assigned_to: 'hijo1', status: 'pendiente', category: 'Habitación' },
+    { id: 2, title: 'Recoger los juguetes', points: 15, assigned_to: 'hijo1', status: 'revisando', category: 'Hogar' },
+    { id: 3, title: 'Hacer los deberes', points: 20, assigned_to: 'hijo2', status: 'pendiente', category: 'Colegio' }
+  ],
+  rewards: [
+    { id: 1, title: '30 min de Consola', cost: 50, icon: '🎮' },
+    { id: 2, title: 'Elegir la cena', cost: 80, icon: '🍕' },
+    { id: 3, title: 'Ir al parque / Cine', cost: 120, icon: '🍿' }
+  ]
+};
 
 let state = {
   currentUser: 'hijo1',
-  users: {},
-  tasks: [],
-  rewards: []
+  users: { ...DEFAULT_DATA.users },
+  tasks: [ ...DEFAULT_DATA.tasks ],
+  rewards: [ ...DEFAULT_DATA.rewards ]
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
+  initUserSelect();
+  renderApp();
   await loadAllData();
   setupRealtime();
 });
 
 async function loadAllData() {
-  const { data: users, error: errU } = await supabase.from('users').select('*');
-  const { data: tasks, error: errT } = await supabase.from('tasks').select('*');
-  const { data: rewards, error: errR } = await supabase.from('rewards').select('*');
+  if (!supabase) return;
 
-  if (users) {
-    state.users = {};
-    users.forEach(u => state.users[u.id] = u);
+  try {
+    const { data: users, error: errU } = await supabase.from('users').select('*');
+    const { data: tasks, error: errT } = await supabase.from('tasks').select('*');
+    const { data: rewards, error: errR } = await supabase.from('rewards').select('*');
+
+    if (errU || errT || errR) {
+      console.warn('Error leyendo Supabase, usando datos locales:', errU || errT || errR);
+    }
+
+    if (users && users.length > 0) {
+      state.users = {};
+      users.forEach(u => state.users[u.id] = u);
+    }
+    if (tasks && tasks.length > 0) state.tasks = tasks;
+    if (rewards && rewards.length > 0) state.rewards = rewards;
+
+    initUserSelect();
+    renderApp();
+  } catch (e) {
+    console.error('Error de conexión:', e);
   }
-  if (tasks) state.tasks = tasks;
-  if (rewards) state.rewards = rewards;
-
-  initUserSelect();
-  renderApp();
 }
 
 function setupRealtime() {
+  if (!supabase) return;
   supabase
-    .channel('schema-db-changes')
+    .channel('public-db-changes')
     .on('postgres_changes', { event: '*', schema: 'public' }, () => {
       loadAllData();
     })
@@ -65,12 +97,16 @@ function switchUser() {
 
 function switchTab(tab) {
   ['tasks', 'rewards', 'parent'].forEach(t => {
-    document.getElementById(`${t}Tab`).classList.add('hidden');
-    document.getElementById(`tab${capitalize(t)}Btn`).className = "py-2.5 rounded-xl transition-all text-slate-500 font-bold";
+    const el = document.getElementById(`${t}Tab`);
+    const btn = document.getElementById(`tab${capitalize(t)}Btn`);
+    if (el) el.classList.add('hidden');
+    if (btn) btn.className = "py-2.5 rounded-xl transition-all text-slate-500 font-bold";
   });
 
-  document.getElementById(`${tab}Tab`).classList.remove('hidden');
-  document.getElementById(`tab${capitalize(tab)}Btn`).className = "py-2.5 rounded-xl bg-white text-indigo-600 font-extrabold shadow-sm transition-all";
+  const targetEl = document.getElementById(`${tab}Tab`);
+  const targetBtn = document.getElementById(`tab${capitalize(tab)}Btn`);
+  if (targetEl) targetEl.classList.remove('hidden');
+  if (targetBtn) targetBtn.className = "py-2.5 rounded-xl bg-white text-indigo-600 font-extrabold shadow-sm transition-all";
 }
 
 function renderApp() {
@@ -85,11 +121,11 @@ function renderApp() {
   const quickAdd = document.getElementById('quickAddContainer');
 
   if (user.role === 'padre') {
-    parentBtn.classList.remove('hidden');
-    quickAdd.classList.remove('hidden');
+    if (parentBtn) parentBtn.classList.remove('hidden');
+    if (quickAdd) quickAdd.classList.remove('hidden');
   } else {
-    parentBtn.classList.add('hidden');
-    quickAdd.classList.add('hidden');
+    if (parentBtn) parentBtn.classList.add('hidden');
+    if (quickAdd) quickAdd.classList.add('hidden');
     if (!document.getElementById('parentTab').classList.contains('hidden')) {
       switchTab('tasks');
     }
@@ -104,7 +140,6 @@ function renderTasks() {
   const taskList = document.getElementById('taskList');
   const user = state.users[state.currentUser];
 
-  // Si es padre ve todas las tareas, si es hijo ve las suyas
   const myTasks = user.role === 'padre' 
     ? state.tasks 
     : state.tasks.filter(t => t.assigned_to === state.currentUser);
@@ -112,7 +147,7 @@ function renderTasks() {
   document.getElementById('taskCountText').innerText = `${myTasks.filter(t => t.status === 'pendiente').length} pendientes`;
 
   if (myTasks.length === 0) {
-    taskList.innerHTML = `<div class="bg-white p-6 rounded-2xl text-center text-slate-400 text-sm border border-slate-100 shadow-sm">🎉 ¡Sin tareas pendientes por ahora!</div>`;
+    taskList.innerHTML = `<div class="bg-white p-6 rounded-2xl text-center text-slate-400 text-sm border border-slate-100 shadow-sm">🎉 ¡Sin tareas pendientes!</div>`;
     return;
   }
 
@@ -126,14 +161,14 @@ function renderTasks() {
           ${user.role === 'padre' ? `<span class="text-[10px] text-slate-400">(${state.users[task.assigned_to]?.name || ''})</span>` : ''}
         </div>
       </div>
-      ${getTaskAction(task, user)}
+      ${getTaskAction(task)}
     </div>
   `).join('');
 }
 
-function getTaskAction(task, user) {
+function getTaskAction(task) {
   if (task.status === 'pendiente') {
-    return `<button onclick="completeTask(${task.id})" class="bg-indigo-50 text-indigo-600 font-extrabold text-xs py-2 px-3.5 rounded-xl hover:bg-indigo-100 transition active:scale-95">Completar</button>`;
+    return `<button onclick="completeTask(${task.id})" class="bg-indigo-50 text-indigo-600 font-extrabold text-xs py-2 px-3.5 rounded-xl hover:bg-indigo-100 transition">Completar</button>`;
   }
   if (task.status === 'revisando') {
     return `<span class="bg-amber-100 text-amber-800 font-extrabold text-xs py-1.5 px-3 rounded-xl">Revisando...</span>`;
@@ -142,7 +177,13 @@ function getTaskAction(task, user) {
 }
 
 async function completeTask(id) {
-  await supabase.from('tasks').update({ status: 'revisando' }).eq('id', id);
+  const task = state.tasks.find(t => t.id === id);
+  if (task) task.status = 'revisando';
+  renderApp();
+
+  if (supabase) {
+    await supabase.from('tasks').update({ status: 'revisando' }).eq('id', id);
+  }
 }
 
 function renderRewards() {
@@ -160,15 +201,13 @@ function renderRewards() {
           <p class="font-bold text-xs text-slate-800 line-clamp-1">${reward.title}</p>
           <span class="text-xs font-black text-amber-500">${reward.cost} ⭐</span>
         </div>
-
         <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
           <div class="bg-amber-400 h-full rounded-full transition-all" style="width: ${progress}%"></div>
         </div>
-
         <button 
           onclick="claimReward(${reward.id}, ${reward.cost})"
           ${!canAfford || user.role === 'padre' ? 'disabled' : ''}
-          class="w-full py-2 bg-emerald-500 text-white rounded-xl text-xs font-extrabold shadow-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition">
+          class="w-full py-2 bg-emerald-500 text-white rounded-xl text-xs font-extrabold shadow-sm disabled:opacity-40">
           Canjear
         </button>
       </div>
@@ -179,14 +218,20 @@ function renderRewards() {
 async function claimReward(id, cost) {
   const user = state.users[state.currentUser];
   if (user && user.points >= cost) {
-    const newPoints = user.points - cost;
-    await supabase.from('users').update({ points: newPoints }).eq('id', user.id);
-    alert(`🎉 ¡Has canjeado el premio! Avisa a tus padres.`);
+    user.points -= cost;
+    renderApp();
+
+    if (supabase) {
+      await supabase.from('users').update({ points: user.points }).eq('id', user.id);
+    }
+    alert(`🎉 ¡Premio solicitado!`);
   }
 }
 
 function renderParentPanel() {
   const approvalList = document.getElementById('parentApprovalList');
+  if (!approvalList) return;
+
   const pendingTasks = state.tasks.filter(t => t.status === 'revisando');
 
   if (pendingTasks.length === 0) {
@@ -200,7 +245,7 @@ function renderParentPanel() {
         <p class="font-bold text-slate-800">${task.title}</p>
         <span class="text-slate-400">Para: ${state.users[task.assigned_to]?.name}</span>
       </div>
-      <button onclick="approveTask(${task.id}, '${task.assigned_to}', ${task.points})" class="bg-emerald-600 text-white font-extrabold py-2 px-3 rounded-lg shadow-sm hover:bg-emerald-700">
+      <button onclick="approveTask(${task.id}, '${task.assigned_to}', ${task.points})" class="bg-emerald-600 text-white font-extrabold py-2 px-3 rounded-lg">
         Aprobar (+${task.points}⭐)
       </button>
     </div>
@@ -208,15 +253,29 @@ function renderParentPanel() {
 }
 
 async function approveTask(taskId, assignedTo, points) {
-  const user = state.users[assignedTo];
-  await supabase.from('tasks').update({ status: 'completada' }).eq('id', taskId);
-  await supabase.from('users').update({ points: (user?.points || 0) + points }).eq('id', assignedTo);
+  const task = state.tasks.find(t => t.id === taskId);
+  if (task) task.status = 'completada';
+
+  if (state.users[assignedTo]) {
+    state.users[assignedTo].points += points;
+  }
+
+  renderApp();
+
+  if (supabase) {
+    await supabase.from('tasks').update({ status: 'completada' }).eq('id', taskId);
+    await supabase.from('users').update({ points: state.users[assignedTo].points }).eq('id', assignedTo);
+  }
 }
 
 async function quickPoints(pts) {
   const user = state.users[state.currentUser];
   if (user) {
-    await supabase.from('users').update({ points: user.points + pts }).eq('id', user.id);
+    user.points += pts;
+    renderApp();
+    if (supabase) {
+      await supabase.from('users').update({ points: user.points }).eq('id', user.id);
+    }
   }
 }
 
@@ -226,14 +285,21 @@ async function addNewTask(e) {
   const points = parseInt(document.getElementById('newTaskPoints').value);
   const assigned_to = document.getElementById('newTaskAssignee').value;
 
-  await supabase.from('tasks').insert([{
+  const newTask = {
     id: Date.now(),
     title,
     points,
     assigned_to,
     status: 'pendiente',
     category: 'Hogar'
-  }]);
+  };
+
+  state.tasks.push(newTask);
+  renderApp();
+
+  if (supabase) {
+    await supabase.from('tasks').insert([newTask]);
+  }
 
   document.getElementById('newTaskTitle').value = '';
   document.getElementById('newTaskPoints').value = '';
@@ -245,12 +311,13 @@ async function addNewReward(e) {
   const cost = parseInt(document.getElementById('newRewardCost').value);
   const icon = document.getElementById('newRewardIcon').value || '🎁';
 
-  await supabase.from('rewards').insert([{
-    id: Date.now(),
-    title,
-    cost,
-    icon
-  }]);
+  const newReward = { id: Date.now(), title, cost, icon };
+  state.rewards.push(newReward);
+  renderApp();
+
+  if (supabase) {
+    await supabase.from('rewards').insert([newReward]);
+  }
 
   document.getElementById('newRewardTitle').value = '';
   document.getElementById('newRewardCost').value = '';
