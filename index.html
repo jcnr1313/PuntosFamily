@@ -3,94 +3,112 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>FamilyPoints - Puntos y Hábitos</title>
+  <title>FamilyPoints</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#6366f1">
+  <meta name="theme-color" content="#4f46e5">
   
   <script src="https://cdn.tailwindcss.com"></script>
-  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <script src="app.js"></script>
-
-  <style>
-    /* Desplazamiento suave para móvil */
-    body { -webkit-tap-highlight-color: transparent; }
-  </style>
+  <script src="app.js" defer></script>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen pb-12 select-none">
+<body class="bg-indigo-50/50 text-slate-800 font-sans min-h-screen pb-16 select-none">
 
-  <header class="bg-indigo-600 text-white p-4 shadow-lg rounded-b-3xl sticky top-0 z-10">
-    <div class="max-w-md mx-auto flex justify-between items-center">
-      <div class="flex items-center space-x-2">
-        <span class="text-2xl" id="currentAvatar">👦</span>
-        <select id="userSelect" onchange="switchUser()" class="bg-indigo-700 text-white font-bold py-1 px-3 rounded-full text-sm border-none outline-none cursor-pointer">
-          </select>
+  <header class="bg-gradient-to-r from-indigo-600 to-violet-600 text-white p-5 rounded-b-[2.5rem] shadow-xl sticky top-0 z-20">
+    <div class="max-w-md mx-auto space-y-4">
+      
+      <div class="flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+          <div class="text-3xl bg-white/20 p-2 rounded-2xl backdrop-blur-sm" id="currentAvatar">👦</div>
+          <div>
+            <p class="text-xs text-indigo-200 font-medium">Perfil activo</p>
+            <select id="userSelect" onchange="switchUser()" class="bg-transparent text-white font-extrabold text-lg outline-none cursor-pointer border-b border-indigo-400/50 pr-2">
+              </select>
+          </div>
+        </div>
+        <span id="roleBadge" class="text-[10px] font-black uppercase tracking-wider bg-white/20 px-3 py-1 rounded-full border border-white/20">Hijo</span>
       </div>
 
-      <div class="bg-indigo-800/60 backdrop-blur px-4 py-1.5 rounded-full border border-indigo-400/30 flex items-center space-x-1.5 shadow-inner">
-        <span class="text-xs uppercase font-semibold text-indigo-200">Puntos</span>
-        <span id="userPoints" class="text-xl font-extrabold text-amber-300">0</span>
-        <span class="text-sm">⭐</span>
+      <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 flex justify-between items-center shadow-inner">
+        <div>
+          <p class="text-xs font-semibold text-indigo-200 uppercase tracking-wider">Balance de Puntos</p>
+          <div class="flex items-baseline space-x-1">
+            <span id="userPoints" class="text-4xl font-black text-amber-300">0</span>
+            <span class="text-xl">⭐</span>
+          </div>
+        </div>
+        <div id="quickAddContainer" class="hidden">
+          <button onclick="quickPoints(+5)" class="bg-amber-400 hover:bg-amber-500 text-amber-950 font-black text-xs px-3 py-2 rounded-xl shadow">+5 ⭐</button>
+        </div>
       </div>
+
     </div>
   </header>
 
-  <main class="max-w-md mx-auto p-4 space-y-6">
+  <main class="max-w-md mx-auto p-4 space-y-5">
 
-    <nav class="flex bg-slate-200 p-1 rounded-2xl text-xs font-bold text-slate-600">
-      <button id="tabTasksBtn" onclick="switchTab('tasks')" class="flex-1 py-2 rounded-xl bg-white text-indigo-600 shadow-sm transition">📋 Tareas</button>
-      <button id="tabRewardsBtn" onclick="switchTab('rewards')" class="flex-1 py-2 rounded-xl transition">🎁 Premios</button>
-      <button id="tabParentBtn" onclick="switchTab('parent')" class="flex-1 py-2 rounded-xl transition hidden">⚙️ Padres</button>
+    <nav class="grid grid-cols-3 bg-slate-200/80 p-1 rounded-2xl text-xs font-bold text-slate-500 shadow-inner">
+      <button id="tabTasksBtn" onclick="switchTab('tasks')" class="py-2.5 rounded-xl bg-white text-indigo-600 shadow-sm transition-all">📋 Tareas</button>
+      <button id="tabRewardsBtn" onclick="switchTab('rewards')" class="py-2.5 rounded-xl transition-all">🎁 Premios</button>
+      <button id="tabParentBtn" onclick="switchTab('parent')" class="py-2.5 rounded-xl transition-all hidden">⚙️ Gestión</button>
     </nav>
 
     <section id="tasksTab" class="space-y-3">
       <div class="flex justify-between items-center px-1">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500">Rutinas & Tareas</h2>
-        <span class="text-xs text-indigo-600 font-medium" id="taskCountText">0 pendientes</span>
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Mis Rutinas Diarias</h2>
+        <span class="text-xs bg-indigo-100 text-indigo-700 font-extrabold px-2.5 py-0.5 rounded-full" id="taskCountText">0 pendientes</span>
       </div>
-      <div id="taskList" class="space-y-2">
+      <div id="taskList" class="space-y-2.5">
         </div>
     </section>
 
     <section id="rewardsTab" class="space-y-3 hidden">
       <div class="flex justify-between items-center px-1">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500">Catálogo de Recompensas</h2>
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Catálogo de Premios</h2>
       </div>
       <div id="rewardList" class="grid grid-cols-2 gap-3">
         </div>
     </section>
 
     <section id="parentTab" class="space-y-5 hidden">
-      <div class="bg-amber-50 border border-amber-200 p-4 rounded-2xl space-y-3 shadow-sm">
-        <h3 class="font-bold text-amber-900 flex items-center space-x-1">
-          <span>🔍</span> <span>Tareas pendientes de revisión</span>
-        </h3>
+      
+      <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/80 p-4 rounded-2xl space-y-3 shadow-sm">
+        <div class="flex items-center space-x-2">
+          <span class="text-lg">🔍</span>
+          <h3 class="font-bold text-amber-900 text-sm">Tareas por verificar</h3>
+        </div>
         <div id="parentApprovalList" class="space-y-2">
           </div>
       </div>
 
-      <div class="bg-white p-4 rounded-2xl border border-slate-200 space-y-3 shadow-sm">
-        <h3 class="font-bold text-slate-700">➕ Crear nueva tarea</h3>
-        <form onsubmit="addNewTask(event)" class="space-y-2 text-sm">
-          <input type="text" id="newTaskTitle" placeholder="Ej: Recoger la habitación" required class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none focus:border-indigo-500">
-          <div class="flex space-x-2">
-            <input type="number" id="newTaskPoints" placeholder="Puntos (ej: 10)" required class="w-1/2 p-2.5 bg-slate-50 border rounded-xl outline-none focus:border-indigo-500">
-            <select id="newTaskAssignee" class="w-1/2 p-2.5 bg-slate-50 border rounded-xl outline-none focus:border-indigo-500">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-3 shadow-sm">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-1">
+          <span>➕</span> <span>Asignar Nueva Tarea</span>
+        </h3>
+        <form onsubmit="addNewTask(event)" class="space-y-2.5 text-xs">
+          <input type="text" id="newTaskTitle" placeholder="Ej: Recoger la mesa" required class="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-indigo-500 font-medium">
+          <div class="grid grid-cols-2 gap-2">
+            <input type="number" id="newTaskPoints" placeholder="Puntos (ej: 15)" required class="p-3 bg-slate-50 border rounded-xl outline-none focus:border-indigo-500 font-medium">
+            <select id="newTaskAssignee" class="p-3 bg-slate-50 border rounded-xl outline-none focus:border-indigo-500 font-bold text-slate-700">
               </select>
           </div>
-          <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-xl hover:bg-indigo-700">Guardar Tarea</button>
+          <button type="submit" class="w-full bg-indigo-600 text-white font-extrabold py-3 rounded-xl hover:bg-indigo-700 shadow-md transition">Guardar Tarea</button>
         </form>
       </div>
 
-      <div class="bg-white p-4 rounded-2xl border border-slate-200 space-y-3 shadow-sm">
-        <h3 class="font-bold text-slate-700">🎁 Crear nueva recompensa</h3>
-        <form onsubmit="addNewReward(event)" class="space-y-2 text-sm">
-          <input type="text" id="newRewardTitle" placeholder="Ej: 30 min de videojuego" required class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none focus:border-indigo-500">
-          <input type="number" id="newRewardCost" placeholder="Puntos necesarios (ej: 50)" required class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none focus:border-indigo-500">
-          <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl hover:bg-emerald-700">Guardar Premio</button>
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-3 shadow-sm">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-1">
+          <span>🎁</span> <span>Añadir Nuevo Premio</span>
+        </h3>
+        <form onsubmit="addNewReward(event)" class="space-y-2.5 text-xs">
+          <input type="text" id="newRewardTitle" placeholder="Ej: Tarde de cine" required class="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-indigo-500 font-medium">
+          <div class="grid grid-cols-2 gap-2">
+            <input type="number" id="newRewardCost" placeholder="Coste ⭐ (ej: 50)" required class="p-3 bg-slate-50 border rounded-xl outline-none focus:border-indigo-500 font-medium">
+            <input type="text" id="newRewardIcon" placeholder="Emoji (ej: 🍿)" required class="p-3 bg-slate-50 border rounded-xl outline-none focus:border-indigo-500 text-center font-medium">
+          </div>
+          <button type="submit" class="w-full bg-emerald-600 text-white font-extrabold py-3 rounded-xl hover:bg-emerald-700 shadow-md transition">Guardar Premio</button>
         </form>
       </div>
+
     </section>
 
   </main>
