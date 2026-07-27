@@ -19,7 +19,6 @@ let state = {
     'mama': { id: 'mama', name: 'Mamá', role: 'padre', avatar: '👩', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null }
   },
   actions: [
-    // Tareas Positivas
     { id: 1, title: 'Hacer caso a la primera', points: 25, type: 'positive', icon: '✋' },
     { id: 2, title: 'Limpiar a los animales', points: 25, type: 'positive', icon: '🦜🐹' },
     { id: 3, title: 'Limpiar y ordenar la habitación', points: 30, type: 'positive', icon: '🏡' },
@@ -30,8 +29,6 @@ let state = {
     { id: 8, title: 'Deberes hechos', points: 30, type: 'positive', icon: '📖' },
     { id: 9, title: 'Pasar la aspiradora', points: 20, type: 'positive', icon: '💨' },
     { id: 10, title: 'Regar plantas', points: 10, type: 'positive', icon: '💧' },
-    
-    // Penalizaciones
     { id: 11, title: 'No recoger el cuarto ni limpiarlo', points: -30, type: 'negative', icon: '🏡' },
     { id: 12, title: 'No hacer caso a la primera', points: -25, type: 'negative', icon: '✋' },
     { id: 13, title: 'Dejó las luces encendidas', points: -5, type: 'negative', icon: '⚡' },
@@ -58,7 +55,55 @@ let state = {
   history: []
 };
 
-// Helper Avatares
+// Cargar estado local guardado
+function loadLocalStorage() {
+  const savedState = localStorage.getItem('family_points_state');
+  if (savedState) {
+    try {
+      const parsed = JSON.parse(savedState);
+      if (parsed.users) state.users = { ...state.users, ...parsed.users };
+      if (parsed.actions) state.actions = parsed.actions;
+      if (parsed.rewards) state.rewards = parsed.rewards;
+      if (parsed.redemptions) state.redemptions = parsed.redemptions;
+      if (parsed.history) state.history = parsed.history;
+    } catch (e) {
+      console.error("Error al leer localStorage", e);
+    }
+  }
+}
+
+// Guardar en almacenamiento local
+function saveLocalStorage() {
+  localStorage.setItem('family_points_state', JSON.stringify({
+    users: state.users,
+    actions: state.actions,
+    rewards: state.rewards,
+    redemptions: state.redemptions,
+    history: state.history
+  }));
+}
+
+// Sincronizar desde la nube (Supabase)
+async function fetchCloudData() {
+  if (!supabaseClient) return;
+  try {
+    const { data: remoteUsers, error } = await supabaseClient.from('users').select('*');
+    if (!error && remoteUsers && remoteUsers.length > 0) {
+      remoteUsers.forEach(rUser => {
+        if (state.users[rUser.id]) {
+          state.users[rUser.id].points = rUser.points ?? state.users[rUser.id].points;
+          if (rUser.avatar) state.users[rUser.id].avatar = rUser.avatar;
+          if (rUser.name) state.users[rUser.id].name = rUser.name;
+        }
+      });
+      saveLocalStorage();
+      renderApp();
+    }
+  } catch (err) {
+    console.warn("Modo offline o error al consultar Supabase", err);
+  }
+}
+
 function renderAvatarHtml(avatarStr, sizeClasses = "w-full h-full text-2xl") {
   if (!avatarStr) return `<span class="${sizeClasses} flex items-center justify-center">👤</span>`;
   if (avatarStr.startsWith('http://') || avatarStr.startsWith('https://') || avatarStr.startsWith('data:image')) {
@@ -118,7 +163,6 @@ function renderApp() {
   renderManagerPanel();
 }
 
-// Clasificación Animada (Líder con Copa)
 function renderLeaderboard() {
   const container = document.getElementById('leaderboardList');
   if (!container) return;
@@ -149,7 +193,6 @@ function renderLeaderboard() {
   }).join('');
 }
 
-// Podio Final de Mes
 function renderPodium() {
   const container = document.getElementById('podiumList');
   if (!container) return;
@@ -162,7 +205,6 @@ function renderPodium() {
   if (!first) return;
 
   container.innerHTML = `
-    <!-- 2º Puesto -->
     ${second ? `
       <div class="flex flex-col items-center">
         <div class="w-10 h-10 rounded-full bg-zinc-900 border-2 border-slate-300 flex items-center justify-center overflow-hidden shadow-md">
@@ -176,7 +218,6 @@ function renderPodium() {
       </div>
     ` : ''}
 
-    <!-- 1º Puesto -->
     <div class="flex flex-col items-center">
       <div class="relative">
         <span class="absolute -top-3 left-1/2 -translate-x-1/2 text-base animate-trophy">👑</span>
@@ -191,7 +232,6 @@ function renderPodium() {
       </div>
     </div>
 
-    <!-- 3º Puesto -->
     ${third ? `
       <div class="flex flex-col items-center">
         <div class="w-10 h-10 rounded-full bg-zinc-900 border-2 border-amber-700 flex items-center justify-center overflow-hidden shadow-md">
@@ -207,7 +247,6 @@ function renderPodium() {
   `;
 }
 
-// Estadísticas e Racha
 function renderUserStats() {
   const container = document.getElementById('userStatsGrid');
   const nameLabel = document.getElementById('statsUserName');
@@ -246,7 +285,6 @@ function renderUserStats() {
   `;
 }
 
-// Tareas
 function toggleTaskType(type) {
   state.currentTaskFilter = type;
   const btnPos = document.getElementById('btnTaskPositive');
@@ -300,7 +338,6 @@ async function applyAction(actionId) {
     user.points += action.points;
     if (user.points < 0) user.points = 0;
 
-    // Actualizar Racha y Métricas
     user.totalCompleted = (user.totalCompleted || 0) + 1;
     if (action.type === 'positive') {
       if (user.streakType === 'positive') user.streakDays += 1;
@@ -313,11 +350,12 @@ async function applyAction(actionId) {
     const log = `${user.name}: ${action.title} (${action.points > 0 ? '+' : ''}${action.points} pts)`;
     state.history.unshift(log);
 
+    saveLocalStorage();
     renderApp();
     updateActivityLog();
 
     if (supabaseClient) {
-      await supabaseClient.from('users').update({ points: user.points }).eq('id', user.id);
+      await supabaseClient.from('users').upsert({ id: user.id, points: user.points, name: user.name, avatar: user.avatar });
     }
   }
 }
@@ -341,7 +379,6 @@ function updateActivityLog() {
   `).join('');
 }
 
-// Premios
 function renderRewards() {
   const container = document.getElementById('rewardsGrid');
   if (!container) return;
@@ -390,16 +427,16 @@ async function claimReward(rewardId) {
 
     state.history.unshift(`${user.name} canjeó: ${reward.title} (-${reward.cost} pts)`);
 
+    saveLocalStorage();
     renderApp();
     updateActivityLog();
 
     if (supabaseClient) {
-      await supabaseClient.from('users').update({ points: user.points }).eq('id', user.id);
+      await supabaseClient.from('users').upsert({ id: user.id, points: user.points, name: user.name, avatar: user.avatar });
     }
   }
 }
 
-// PIN & DESBLOQUEO GESTOR
 function unlockManager() {
   const pinInput = document.getElementById('pinInput').value;
   if (pinInput === parentPin) {
@@ -435,11 +472,9 @@ function changePinPrompt() {
   }
 }
 
-// PANEL DE GESTOR COMPLETO
 function renderManagerPanel() {
   if (!isManagerUnlocked) return;
 
-  // Histórico de Canjes
   const redemptionsContainer = document.getElementById('redemptionsList');
   const redemptionsCount = document.getElementById('redemptionsCount');
   if (redemptionsContainer) {
@@ -465,7 +500,6 @@ function renderManagerPanel() {
     }
   }
 
-  // Personalizar Avatares
   const avatarContainer = document.getElementById('avatarCustomizerList');
   if (avatarContainer) {
     avatarContainer.innerHTML = Object.values(state.users).map(u => `
@@ -483,7 +517,6 @@ function renderManagerPanel() {
     `).join('');
   }
 
-  // Control rápido de puntos
   const pointsContainer = document.getElementById('manualPointsControl');
   if (pointsContainer) {
     const kids = Object.values(state.users).filter(u => u.role === 'hijo');
@@ -506,7 +539,6 @@ function renderManagerPanel() {
     `).join('');
   }
 
-  // Editar Catálogo de Premios (Texto + Puntos + Emoji + Borrar)
   const rewardsContainer = document.getElementById('manageRewardsList');
   if (rewardsContainer) {
     rewardsContainer.innerHTML = state.rewards.map(r => `
@@ -530,7 +562,6 @@ function renderManagerPanel() {
     `).join('');
   }
 
-  // Editar Tareas y Penalizaciones (Texto + Puntos + Emoji + Borrar)
   const actionsContainer = document.getElementById('manageActionsList');
   if (actionsContainer) {
     actionsContainer.innerHTML = state.actions.map(a => `
@@ -555,7 +586,6 @@ function renderManagerPanel() {
   }
 }
 
-// Editar Premio Completo
 function editReward(rewardId) {
   const reward = state.rewards.find(r => r.id === rewardId);
   if (!reward) return;
@@ -572,10 +602,10 @@ function editReward(rewardId) {
   reward.cost = Math.abs(parseInt(newCostStr));
   if (newIcon && newIcon.trim() !== "") reward.icon = newIcon.trim();
 
+  saveLocalStorage();
   renderApp();
 }
 
-// Editar Tarea/Penalización Completa
 function editAction(actionId) {
   const action = state.actions.find(a => a.id === actionId);
   if (!action) return;
@@ -594,6 +624,7 @@ function editAction(actionId) {
   action.type = pts < 0 ? 'negative' : 'positive';
   if (newIcon && newIcon.trim() !== "") action.icon = newIcon.trim();
 
+  saveLocalStorage();
   renderApp();
 }
 
@@ -618,17 +649,19 @@ function addNewReward() {
   document.getElementById('newRewardIcon').value = '';
   document.getElementById('newRewardCost').value = '';
 
+  saveLocalStorage();
   renderApp();
 }
 
 function deleteReward(id) {
   if (confirm("¿Seguro de eliminar este premio?")) {
     state.rewards = state.rewards.filter(r => r.id !== id);
+    saveLocalStorage();
     renderApp();
   }
 }
 
-function changeUserAvatar(userId) {
+async function changeUserAvatar(userId) {
   const user = state.users[userId];
   if (!user) return;
 
@@ -636,8 +669,13 @@ function changeUserAvatar(userId) {
   
   if (input !== null && input.trim() !== '') {
     user.avatar = input.trim();
+    saveLocalStorage();
     initUserSelect();
     renderApp();
+
+    if (supabaseClient) {
+      await supabaseClient.from('users').upsert({ id: user.id, avatar: user.avatar, name: user.name, points: user.points });
+    }
   }
 }
 
@@ -646,10 +684,11 @@ async function modifyPoints(userId, delta) {
   if (user) {
     user.points += delta;
     if (user.points < 0) user.points = 0;
+    saveLocalStorage();
     renderApp();
 
     if (supabaseClient) {
-      await supabaseClient.from('users').update({ points: user.points }).eq('id', user.id);
+      await supabaseClient.from('users').upsert({ id: user.id, points: user.points, name: user.name, avatar: user.avatar });
     }
   }
 }
@@ -657,6 +696,7 @@ async function modifyPoints(userId, delta) {
 function deleteAction(id) {
   if (confirm("¿Seguro de eliminar esta tarea?")) {
     state.actions = state.actions.filter(a => a.id !== id);
+    saveLocalStorage();
     renderApp();
   }
 }
@@ -683,6 +723,7 @@ function addNewAction() {
   document.getElementById('newActionIcon').value = '';
   document.getElementById('newActionPoints').value = '';
 
+  saveLocalStorage();
   renderApp();
 }
 
@@ -696,14 +737,17 @@ function resetMonthlyPoints() {
     });
     state.history = [];
     state.redemptions = [];
+    saveLocalStorage();
     renderApp();
     updateActivityLog();
   }
 }
 
-function startApp() {
+async function startApp() {
+  loadLocalStorage();
   initUserSelect();
   renderApp();
+  await fetchCloudData();
 }
 
 if (document.readyState === 'loading') {
