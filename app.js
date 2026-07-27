@@ -1,44 +1,59 @@
-// Estado inicial o carga desde LocalStorage (Persistencia básica)
-const defaultData = {
+// ⚙️ CREDENCIALES CONFIGURADAS
+const SUPABASE_URL = 'https://dwfpellkjknjoownvra.supabase.co';
+const SUPABASE_KEY = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZnBlbGxramtuanNvb3dudnJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzQwMDYsImV4cCI6MjEwMDcxMDAwNn0.x75ND4DNtptpxVtf-tK2FNr_33zxhk5SF7_-sAb8-jY';
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let state = {
   currentUser: 'hijo1',
-  users: {
-    'hijo1': { name: 'Lucas', role: 'hijo', avatar: '👦', points: 45 },
-    'hijo2': { name: 'Sofia', role: 'hijo', avatar: '👧', points: 30 },
-    'padre': { name: 'Papá / Mamá', role: 'padre', avatar: '👑', points: 0 }
-  },
-  tasks: [
-    { id: 1, title: 'Hacer la cama', points: 5, assignedTo: 'hijo1', status: 'pendiente' },
-    { id: 2, title: 'Poner la mesa', points: 10, assignedTo: 'hijo1', status: 'revisando' },
-    { id: 3, title: 'Hacer los deberes', points: 15, assignedTo: 'hijo2', status: 'pendiente' }
-  ],
-  rewards: [
-    { id: 1, title: '30 min de Consola', cost: 30, icon: '🎮' },
-    { id: 2, title: 'Elegir la película', cost: 40, icon: '🍿' },
-    { id: 3, title: 'Salida al parque', cost: 50, icon: '🛝' }
-  ]
+  users: {},
+  tasks: [],
+  rewards: []
 };
 
-// Cargar estado o inicializar
-let state = JSON.parse(localStorage.getItem('familyPointsDB')) || defaultData;
+// Cargar datos al iniciar y activar escucha en tiempo real
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadAllData();
+  setupRealtime();
+});
 
-function saveState() {
-  localStorage.setItem('familyPointsDB', JSON.stringify(state));
-}
+// Cargar todos los datos desde Supabase
+async function loadAllData() {
+  const { data: users } = await supabase.from('users').select('*');
+  const { data: tasks } = await supabase.from('tasks').select('*');
+  const { data: rewards } = await supabase.from('rewards').select('*');
 
-// Inicialización
-document.addEventListener('DOMContentLoaded', () => {
+  if (users) {
+    state.users = {};
+    users.forEach(u => state.users[u.id] = u);
+  }
+  if (tasks) state.tasks = tasks;
+  if (rewards) state.rewards = rewards;
+
   initUserSelect();
   renderApp();
-});
+}
+
+// Suscripción en Tiempo Real (Sincronización instantánea entre móviles)
+function setupRealtime() {
+  supabase
+    .channel('schema-db-changes')
+    .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+      loadAllData();
+    })
+    .subscribe();
+}
 
 function initUserSelect() {
   const select = document.getElementById('userSelect');
   const assigneeSelect = document.getElementById('newTaskAssignee');
-  
+
+  if (!select || !assigneeSelect) return;
+
   select.innerHTML = Object.entries(state.users)
     .map(([id, u]) => `<option value="${id}">${u.name}</option>`)
     .join('');
-  
+
   assigneeSelect.innerHTML = Object.entries(state.users)
     .filter(([_, u]) => u.role === 'hijo')
     .map(([id, u]) => `<option value="${id}">${u.name}</option>`)
@@ -49,7 +64,6 @@ function initUserSelect() {
 
 function switchUser() {
   state.currentUser = document.getElementById('userSelect').value;
-  saveState();
   renderApp();
 }
 
@@ -65,12 +79,11 @@ function switchTab(tab) {
 
 function renderApp() {
   const user = state.users[state.currentUser];
-  
-  // Render Header
+  if (!user) return;
+
   document.getElementById('currentAvatar').innerText = user.avatar;
   document.getElementById('userPoints').innerText = user.points;
 
-  // Visibilidad del modo padre
   const parentBtn = document.getElementById('tabParentBtn');
   if (user.role === 'padre') {
     parentBtn.classList.remove('hidden');
@@ -88,8 +101,8 @@ function renderApp() {
 
 function renderTasks() {
   const taskList = document.getElementById('taskList');
-  const myTasks = state.tasks.filter(t => t.assignedTo === state.currentUser);
-  
+  const myTasks = state.tasks.filter(t => t.assigned_to === state.currentUser);
+
   document.getElementById('taskCountText').innerText = `${myTasks.filter(t => t.status === 'pendiente').length} pendientes`;
 
   if (myTasks.length === 0) {
@@ -110,7 +123,7 @@ function renderTasks() {
 
 function getTaskAction(task) {
   if (task.status === 'pendiente') {
-    return `<button onclick="completeTask(${task.id})" class="bg-indigo-50 text-indigo-600 font-bold text-xs py-2 px-3 rounded-xl hover:bg-indigo-100 active:scale-95 transition">Completar</button>`;
+    return `<button onclick="completeTask(${task.id})" class="bg-indigo-50 text-indigo-600 font-bold text-xs py-2 px-3 rounded-xl hover:bg-indigo-100 transition">Completar</button>`;
   }
   if (task.status === 'revisando') {
     return `<span class="bg-amber-100 text-amber-700 font-bold text-xs py-1.5 px-3 rounded-xl">Revisando...</span>`;
@@ -118,13 +131,8 @@ function getTaskAction(task) {
   return `<span class="bg-emerald-100 text-emerald-700 font-bold text-xs py-1.5 px-3 rounded-xl">¡Completada!</span>`;
 }
 
-function completeTask(id) {
-  const task = state.tasks.find(t => t.id === id);
-  if (task) {
-    task.status = 'revisando';
-    saveState();
-    renderApp();
-  }
+async function completeTask(id) {
+  await supabase.from('tasks').update({ status: 'revisando' }).eq('id', id);
 }
 
 function renderRewards() {
@@ -137,24 +145,21 @@ function renderRewards() {
       <p class="font-bold text-xs text-slate-700 mb-1">${reward.title}</p>
       <span class="text-xs font-black text-amber-500 mb-2">${reward.cost} ⭐</span>
       <button 
-        onclick="claimReward(${reward.id})"
+        onclick="claimReward(${reward.id}, ${reward.cost})"
         ${user.points < reward.cost || user.role === 'padre' ? 'disabled' : ''}
-        class="w-full py-1.5 px-2 bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-sm hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed">
+        class="w-full py-1.5 px-2 bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-sm disabled:opacity-40">
         Canjear
       </button>
     </div>
   `).join('');
 }
 
-function claimReward(id) {
-  const reward = state.rewards.find(r => r.id === id);
+async function claimReward(id, cost) {
   const user = state.users[state.currentUser];
-
-  if (user && user.points >= reward.cost) {
-    user.points -= reward.cost;
-    alert(`🎉 ¡Canjeaste: ${reward.title}! Avisa a tus padres para disfrutarlo.`);
-    saveState();
-    renderApp();
+  if (user && user.points >= cost) {
+    const newPoints = user.points - cost;
+    await supabase.from('users').update({ points: newPoints }).eq('id', user.id);
+    alert(`🎉 ¡Premio canjeado con éxito!`);
   }
 }
 
@@ -171,61 +176,53 @@ function renderParentPanel() {
     <div class="bg-white p-3 rounded-xl border border-amber-100 flex justify-between items-center text-xs">
       <div>
         <p class="font-bold text-slate-700">${task.title}</p>
-        <span class="text-slate-400">Para: ${state.users[task.assignedTo]?.name}</span>
+        <span class="text-slate-400">Para: ${state.users[task.assigned_to]?.name}</span>
       </div>
-      <button onclick="approveTask(${task.id})" class="bg-emerald-600 text-white font-bold py-1.5 px-3 rounded-lg shadow-sm">
+      <button onclick="approveTask(${task.id}, '${task.assigned_to}', ${task.points})" class="bg-emerald-600 text-white font-bold py-1.5 px-3 rounded-lg shadow-sm">
         Aprobar (+${task.points}⭐)
       </button>
     </div>
   `).join('');
 }
 
-function approveTask(id) {
-  const task = state.tasks.find(t => t.id === id);
-  if (task) {
-    task.status = 'completada';
-    state.users[task.assignedTo].points += task.points;
-    saveState();
-    renderApp();
-  }
+async function approveTask(taskId, assignedTo, points) {
+  const user = state.users[assignedTo];
+  await supabase.from('tasks').update({ status: 'completada' }).eq('id', taskId);
+  await supabase.from('users').update({ points: user.points + points }).eq('id', assignedTo);
 }
 
-function addNewTask(e) {
+async function addNewTask(e) {
   e.preventDefault();
   const title = document.getElementById('newTaskTitle').value;
   const points = parseInt(document.getElementById('newTaskPoints').value);
-  const assignedTo = document.getElementById('newTaskAssignee').value;
+  const assigned_to = document.getElementById('newTaskAssignee').value;
 
-  state.tasks.push({
+  await supabase.from('tasks').insert([{
     id: Date.now(),
     title,
     points,
-    assignedTo,
+    assigned_to,
     status: 'pendiente'
-  });
+  }]);
 
   document.getElementById('newTaskTitle').value = '';
   document.getElementById('newTaskPoints').value = '';
-  saveState();
-  renderApp();
 }
 
-function addNewReward(e) {
+async function addNewReward(e) {
   e.preventDefault();
   const title = document.getElementById('newRewardTitle').value;
   const cost = parseInt(document.getElementById('newRewardCost').value);
 
-  state.rewards.push({
+  await supabase.from('rewards').insert([{
     id: Date.now(),
     title,
     cost,
     icon: '🎉'
-  });
+  }]);
 
   document.getElementById('newRewardTitle').value = '';
   document.getElementById('newRewardCost').value = '';
-  saveState();
-  renderApp();
 }
 
 function capitalize(str) {
