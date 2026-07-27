@@ -6,51 +6,62 @@ if (window.supabase) {
   supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 }
 
-// Estado local inicial para carga instantánea
+// Estado base con los nombres actualizados: Joan y Martina
 let state = {
-  currentUser: 'hijo1',
+  currentUser: 'joan',
+  currentTaskFilter: 'positive', // 'positive' | 'negative'
   users: {
-    'hijo1': { id: 'hijo1', name: 'Lucas', role: 'hijo', avatar: '👦', points: 35 },
-    'hijo2': { id: 'hijo2', name: 'Sofía', role: 'hijo', avatar: '👧', points: 60 },
-    'padre': { id: 'padre', name: 'Papá / Mamá', role: 'padre', avatar: '👑', points: 0 }
+    'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0 },
+    'martina': { id: 'martina', name: 'Martina', role: 'hijo', avatar: '👧', points: 0 },
+    'papa': { id: 'papa', name: 'Papá', role: 'padre', avatar: '🧔', points: 0 },
+    'mama': { id: 'mama', name: 'Mamá', role: 'padre', avatar: '👩', points: 0 }
   },
-  tasks: [
-    { id: 1, title: 'Hacer la cama', points: 10, assigned_to: 'hijo1', status: 'pendiente', category: 'Habitación' },
-    { id: 2, title: 'Recoger los juguetes', points: 15, assigned_to: 'hijo1', status: 'revisando', category: 'Hogar' },
-    { id: 3, title: 'Hacer los deberes', points: 20, assigned_to: 'hijo2', status: 'pendiente', category: 'Colegio' }
+  actions: [
+    // Positivas
+    { id: 1, title: 'Poner la mesa', points: 15, type: 'positive', icon: '🍽️' },
+    { id: 2, title: 'Pasear al perro', points: 20, type: 'positive', icon: '🐾' },
+    { id: 3, title: 'Limpiar la habitación', points: 25, type: 'positive', icon: '🛏️' },
+    { id: 4, title: 'Deberes hechos', points: 30, type: 'positive', icon: '📖' },
+    { id: 5, title: 'Pasar la aspiradora', points: 20, type: 'positive', icon: '💨' },
+    { id: 6, title: 'Regar plantas', points: 10, type: 'positive', icon: '💧' },
+    // Penalizaciones
+    { id: 7, title: 'Dejó las luces encendidas', points: -5, type: 'negative', icon: '⚡' },
+    { id: 8, title: 'No tiró de la cadena', points: -10, type: 'negative', icon: '⚠️' },
+    { id: 9, title: 'Llegó tarde a cenar', points: -15, type: 'negative', icon: '⏰' },
+    { id: 10, title: 'Gritar', points: -20, type: 'negative', icon: '🔊' },
+    { id: 11, title: 'Suelo desordenado', points: -10, type: 'negative', icon: '🗑️' },
+    { id: 12, title: 'Demasiada TV', points: -15, type: 'negative', icon: '📺' }
   ],
   rewards: [
     { id: 1, title: '30 min de Consola', cost: 50, icon: '🎮' },
     { id: 2, title: 'Elegir la cena', cost: 80, icon: '🍕' },
-    { id: 3, title: 'Ir al parque / Cine', cost: 120, icon: '🍿' }
-  ]
+    { id: 3, title: 'Ir al parque / Cine', cost: 120, icon: '🍿' },
+    { id: 4, title: 'Día libre de tareas', cost: 150, icon: '⭐' }
+  ],
+  history: []
 };
 
-function renderAll() {
-  initUserSelect();
-  renderApp();
-}
-
-async function loadFromSupabase() {
-  if (!supabaseClient) return;
-  try {
-    const { data: users } = await supabaseClient.from('users').select('*');
-    const { data: tasks } = await supabaseClient.from('tasks').select('*');
-    const { data: rewards } = await supabaseClient.from('rewards').select('*');
-
-    if (users && users.length > 0) {
-      state.users = {};
-      users.forEach(u => state.users[u.id] = u);
+// Navegación entre pestañas
+function setActiveTab(tab) {
+  const tabs = ['home', 'tasks', 'rewards', 'manager', 'settings'];
+  tabs.forEach(t => {
+    const section = document.getElementById(`tab-${t}`);
+    const navBtn = document.getElementById(`nav-${t}`);
+    if (section) section.classList.add('hidden');
+    if (navBtn) {
+      navBtn.className = "flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium";
     }
-    if (tasks && tasks.length > 0) state.tasks = tasks;
-    if (rewards && rewards.length > 0) state.rewards = rewards;
+  });
 
-    renderAll();
-  } catch (err) {
-    console.log('Usando datos locales por falta de red o error:', err);
+  const targetSection = document.getElementById(`tab-${tab}`);
+  const targetNav = document.getElementById(`nav-${tab}`);
+  if (targetSection) targetSection.classList.remove('hidden');
+  if (targetNav) {
+    targetNav.className = "flex flex-col items-center py-1.5 text-blue-500 font-bold";
   }
 }
 
+// Inicializar selectores de usuario
 function initUserSelect() {
   const select = document.getElementById('userSelect');
   if (select) {
@@ -69,127 +80,155 @@ function switchUser() {
   }
 }
 
-function switchTab(tab) {
-  ['tasks', 'rewards', 'parent'].forEach(t => {
-    const el = document.getElementById(`${t}Tab`);
-    const btn = document.getElementById(`tab${capitalize(t)}Btn`);
-    if (el) el.classList.add('hidden');
-    if (btn) btn.className = "py-2.5 rounded-xl transition-all text-slate-500 font-bold";
-  });
-
-  const targetEl = document.getElementById(`${tab}Tab`);
-  const targetBtn = document.getElementById(`tab${capitalize(tab)}Btn`);
-  if (targetEl) targetEl.classList.remove('hidden');
-  if (targetBtn) targetBtn.className = "py-2.5 rounded-xl bg-white text-indigo-600 font-extrabold shadow-sm transition-all";
-}
-
 function renderApp() {
   const user = state.users[state.currentUser];
   if (!user) return;
 
+  // Header Avatar
   const avatarEl = document.getElementById('currentAvatar');
-  const pointsEl = document.getElementById('userPoints');
-  const roleEl = document.getElementById('roleBadge');
-
   if (avatarEl) avatarEl.innerText = user.avatar;
-  if (pointsEl) pointsEl.innerText = user.points;
-  if (roleEl) roleEl.innerText = user.role.toUpperCase();
 
-  const parentBtn = document.getElementById('tabParentBtn');
+  const pointsEl = document.getElementById('userPointsRewardTab');
+  if (pointsEl) pointsEl.innerText = `${user.points} ⭐`;
 
-  if (user.role === 'padre') {
-    if (parentBtn) parentBtn.classList.remove('hidden');
-  } else {
-    if (parentBtn) parentBtn.classList.add('hidden');
-    const parentTab = document.getElementById('parentTab');
-    if (parentTab && !parentTab.classList.contains('hidden')) {
-      switchTab('tasks');
-    }
-  }
-
+  renderLeaderboard();
   renderTasks();
   renderRewards();
-  renderParentPanel();
+  renderManagerPanel();
 }
 
-function renderTasks() {
-  const taskList = document.getElementById('taskList');
-  if (!taskList) return;
+// Render Clasificación
+function renderLeaderboard() {
+  const container = document.getElementById('leaderboardList');
+  if (!container) return;
 
-  const user = state.users[state.currentUser];
-  const myTasks = user.role === 'padre' 
-    ? state.tasks 
-    : state.tasks.filter(t => t.assigned_to === state.currentUser);
+  const sorted = Object.values(state.users).sort((a, b) => b.points - a.points);
 
-  const taskCountText = document.getElementById('taskCountText');
-  if (taskCountText) {
-    taskCountText.innerText = `${myTasks.filter(t => t.status === 'pendiente').length} pendientes`;
+  container.innerHTML = sorted.map((u, index) => {
+    const posLabel = index === 0 ? '1st' : index === 1 ? '2nd' : index === 2 ? '3rd' : `${index + 1}th`;
+    const ringColor = index === 0 ? 'border-amber-400' : 'border-blue-300/40';
+
+    return `
+      <div class="flex flex-col items-center text-center space-y-1">
+        <div class="relative">
+          <div class="w-14 h-14 bg-zinc-900/60 rounded-full flex items-center justify-center text-2xl border-2 ${ringColor}">
+            ${u.avatar}
+          </div>
+          <span class="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-zinc-900 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-zinc-700 text-amber-300">
+            ${posLabel}
+          </span>
+        </div>
+        <p class="font-bold text-xs pt-1 truncate w-full">${u.name}</p>
+        <p class="text-xs font-black text-blue-200">${u.points} pts</p>
+      </div>
+    `;
+  }).join('');
+}
+
+// Toggle Ganar Puntos / Penalizaciones
+function toggleTaskType(type) {
+  state.currentTaskFilter = type;
+  const btnPos = document.getElementById('btnTaskPositive');
+  const btnNeg = document.getElementById('btnTaskNegative');
+
+  if (type === 'positive') {
+    btnPos.className = "py-2.5 rounded-xl text-xs font-extrabold transition-all bg-zinc-800 text-white shadow-sm";
+    btnNeg.className = "py-2.5 rounded-xl text-xs font-extrabold transition-all text-zinc-400 hover:text-white";
+  } else {
+    btnNeg.className = "py-2.5 rounded-xl text-xs font-extrabold transition-all bg-red-950/80 text-red-200 border border-red-800/50 shadow-sm";
+    btnPos.className = "py-2.5 rounded-xl text-xs font-extrabold transition-all text-zinc-400 hover:text-white";
   }
+  renderTasks();
+}
 
-  if (myTasks.length === 0) {
-    taskList.innerHTML = `<div class="bg-white p-6 rounded-2xl text-center text-slate-400 text-sm border border-slate-100 shadow-sm">🎉 ¡Sin tareas pendientes!</div>`;
+// Render Tarjetas de Tareas
+function renderTasks() {
+  const container = document.getElementById('tasksGrid');
+  if (!container) return;
+
+  const filtered = state.actions.filter(a => a.type === state.currentTaskFilter);
+
+  container.innerHTML = filtered.map(action => {
+    const isPos = action.type === 'positive';
+    const pointsClass = isPos ? 'text-emerald-400' : 'text-red-400';
+    const ptsText = isPos ? `+${action.points}` : `${action.points}`;
+
+    return `
+      <div onclick="applyAction(${action.id})" class="bg-zinc-900 hover:bg-zinc-800/80 p-4 rounded-3xl border border-zinc-800/80 cursor-pointer transition flex flex-col justify-between space-y-3">
+        <div class="w-10 h-10 rounded-2xl bg-zinc-950 flex items-center justify-center text-xl">
+          ${action.icon || (isPos ? '⭐' : '⚠️')}
+        </div>
+        <div>
+          <h4 class="font-bold text-xs text-zinc-100 leading-tight">${action.title}</h4>
+          <p class="text-xs font-black ${pointsClass} mt-1">${ptsText} puntos</p>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Aplicar tarea o penalización al usuario activo
+async function applyAction(actionId) {
+  const action = state.actions.find(a => a.id === actionId);
+  const user = state.users[state.currentUser];
+
+  if (action && user) {
+    user.points += action.points;
+    if (user.points < 0) user.points = 0; // Evitar puntos negativos absolutos si no se desea
+
+    // Registrar en actividad
+    const log = `${user.name}: ${action.title} (${action.points > 0 ? '+' : ''}${action.points} pts)`;
+    state.history.unshift(log);
+
+    renderApp();
+    updateActivityLog();
+
+    if (supabaseClient) {
+      await supabaseClient.from('users').update({ points: user.points }).eq('id', user.id);
+    }
+  }
+}
+
+function updateActivityLog() {
+  const container = document.getElementById('activityList');
+  const countEl = document.getElementById('activityCount');
+  if (!container) return;
+
+  if (countEl) countEl.innerText = state.history.length;
+
+  if (state.history.length === 0) {
+    container.innerHTML = 'Aún no hay tareas registradas esta semana.';
     return;
   }
 
-  taskList.innerHTML = myTasks.map(task => `
-    <div class="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm">
-      <div class="space-y-0.5">
-        <span class="text-[10px] font-extrabold uppercase tracking-wider text-indigo-500">${task.category || 'Rutina'}</span>
-        <p class="font-bold text-slate-800 text-sm">${task.title}</p>
-        <div class="flex items-center space-x-1">
-          <span class="text-xs text-amber-500 font-black">+${task.points} ⭐</span>
-          ${user.role === 'padre' ? `<span class="text-[10px] text-slate-400">(${state.users[task.assigned_to]?.name || ''})</span>` : ''}
-        </div>
-      </div>
-      ${getTaskAction(task)}
+  container.innerHTML = state.history.slice(0, 5).map(item => `
+    <div class="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800/60 text-left text-zinc-300 font-medium">
+      ${item}
     </div>
   `).join('');
 }
 
-function getTaskAction(task) {
-  if (task.status === 'pendiente') {
-    return `<button onclick="completeTask(${task.id})" class="bg-indigo-50 text-indigo-600 font-extrabold text-xs py-2 px-3.5 rounded-xl hover:bg-indigo-100 transition">Completar</button>`;
-  }
-  if (task.status === 'revisando') {
-    return `<span class="bg-amber-100 text-amber-800 font-extrabold text-xs py-1.5 px-3 rounded-xl">Revisando...</span>`;
-  }
-  return `<span class="bg-emerald-100 text-emerald-700 font-extrabold text-xs py-1.5 px-3 rounded-xl">✓ Hecho</span>`;
-}
-
-async function completeTask(id) {
-  const task = state.tasks.find(t => t.id === id);
-  if (task) task.status = 'revisando';
-  renderApp();
-
-  if (supabaseClient) {
-    await supabaseClient.from('tasks').update({ status: 'revisando' }).eq('id', id);
-  }
-}
-
+// Render Premios
 function renderRewards() {
-  const rewardList = document.getElementById('rewardList');
-  if (!rewardList) return;
+  const container = document.getElementById('rewardsGrid');
+  if (!container) return;
 
   const user = state.users[state.currentUser];
 
-  rewardList.innerHTML = state.rewards.map(reward => {
+  container.innerHTML = state.rewards.map(reward => {
     const canAfford = user.points >= reward.cost;
-    const progress = Math.min(100, Math.round((user.points / reward.cost) * 100));
 
     return `
-      <div class="bg-white p-4 rounded-2xl border border-slate-100 text-center shadow-sm flex flex-col justify-between space-y-2">
-        <div class="text-4xl my-1">${reward.icon || '🎁'}</div>
+      <div class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800/80 flex flex-col justify-between space-y-3 text-center">
+        <div class="text-3xl my-1">${reward.icon || '🎁'}</div>
         <div>
-          <p class="font-bold text-xs text-slate-800 line-clamp-1">${reward.title}</p>
-          <span class="text-xs font-black text-amber-500">${reward.cost} ⭐</span>
-        </div>
-        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-          <div class="bg-amber-400 h-full rounded-full transition-all" style="width: ${progress}%"></div>
+          <p class="font-bold text-xs text-zinc-100">${reward.title}</p>
+          <p class="text-xs font-black text-amber-400 mt-0.5">${reward.cost} ⭐</p>
         </div>
         <button 
-          onclick="claimReward(${reward.id}, ${reward.cost})"
-          ${!canAfford || user.role === 'padre' ? 'disabled' : ''}
-          class="w-full py-2 bg-emerald-500 text-white rounded-xl text-xs font-extrabold shadow-sm disabled:opacity-40">
+          onclick="claimReward(${reward.id})"
+          ${!canAfford ? 'disabled' : ''}
+          class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:hover:bg-emerald-600 text-white rounded-xl text-xs font-extrabold transition">
           Canjear
         </button>
       </div>
@@ -197,67 +236,98 @@ function renderRewards() {
   }).join('');
 }
 
-async function claimReward(id, cost) {
+async function claimReward(rewardId) {
+  const reward = state.rewards.find(r => r.id === rewardId);
   const user = state.users[state.currentUser];
-  if (user && user.points >= cost) {
-    user.points -= cost;
+
+  if (reward && user && user.points >= reward.cost) {
+    user.points -= reward.cost;
+    state.history.unshift(`${user.name} canjeó: ${reward.title} (-${reward.cost} pts)`);
+
+    renderApp();
+    updateActivityLog();
+
+    if (supabaseClient) {
+      await supabaseClient.from('users').update({ points: user.points }).eq('id', user.id);
+    }
+  }
+}
+
+// Panel de Gestor (Ajuste manual de puntos)
+function renderManagerPanel() {
+  const container = document.getElementById('manualPointsControl');
+  if (!container) return;
+
+  const kids = Object.values(state.users).filter(u => u.role === 'hijo');
+
+  container.innerHTML = kids.map(kid => `
+    <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">${kid.avatar}</span>
+        <div>
+          <p class="font-bold text-xs text-white">${kid.name}</p>
+          <span class="text-[11px] text-amber-400 font-bold">${kid.points} pts</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button onclick="modifyPoints('${kid.id}', -10)" class="bg-zinc-800 hover:bg-zinc-700 text-red-400 text-xs font-extrabold px-2.5 py-1.5 rounded-lg border border-zinc-700">-10</button>
+        <button onclick="modifyPoints('${kid.id}', 10)" class="bg-zinc-800 hover:bg-zinc-700 text-emerald-400 text-xs font-extrabold px-2.5 py-1.5 rounded-lg border border-zinc-700">+10</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function modifyPoints(userId, delta) {
+  const user = state.users[userId];
+  if (user) {
+    user.points += delta;
+    if (user.points < 0) user.points = 0;
     renderApp();
 
     if (supabaseClient) {
       await supabaseClient.from('users').update({ points: user.points }).eq('id', user.id);
     }
-    alert(`🎉 ¡Premio solicitado!`);
   }
 }
 
-function renderParentPanel() {
-  const approvalList = document.getElementById('parentApprovalList');
-  if (!approvalList) return;
+// Añadir nueva acción desde el Gestor
+function addNewAction() {
+  const title = document.getElementById('newActionTitle').value.trim();
+  const points = parseInt(document.getElementById('newActionPoints').value);
+  const type = document.getElementById('newActionType').value;
 
-  const pendingTasks = state.tasks.filter(t => t.status === 'revisando');
+  if (!title || isNaN(points)) return;
 
-  if (pendingTasks.length === 0) {
-    approvalList.innerHTML = `<p class="text-xs text-amber-800/70 font-medium">No hay tareas pendientes de revisar.</p>`;
-    return;
-  }
+  const finalPoints = type === 'negative' ? -Math.abs(points) : Math.abs(points);
 
-  approvalList.innerHTML = pendingTasks.map(task => `
-    <div class="bg-white p-3 rounded-xl border border-amber-200/60 flex justify-between items-center text-xs shadow-sm">
-      <div>
-        <p class="font-bold text-slate-800">${task.title}</p>
-        <span class="text-slate-400">Para: ${state.users[task.assigned_to]?.name || ''}</span>
-      </div>
-      <button onclick="approveTask(${task.id}, '${task.assigned_to}', ${task.points})" class="bg-emerald-600 text-white font-extrabold py-2 px-3 rounded-lg">
-        Aprobar (+${task.points}⭐)
-      </button>
-    </div>
-  `).join('');
+  const newObj = {
+    id: Date.now(),
+    title,
+    points: finalPoints,
+    type,
+    icon: type === 'positive' ? '⭐' : '⚠️'
+  };
+
+  state.actions.unshift(newObj);
+  document.getElementById('newActionTitle').value = '';
+  document.getElementById('newActionPoints').value = '';
+
+  renderTasks();
 }
 
-async function approveTask(taskId, assignedTo, points) {
-  const task = state.tasks.find(t => t.id === taskId);
-  if (task) task.status = 'completada';
-
-  if (state.users[assignedTo]) {
-    state.users[assignedTo].points += points;
-  }
-
-  renderApp();
-
-  if (supabaseClient) {
-    await supabaseClient.from('tasks').update({ status: 'completada' }).eq('id', taskId);
-    await supabaseClient.from('users').update({ points: state.users[assignedTo].points }).eq('id', assignedTo);
+function resetWeeklyPoints() {
+  if (confirm("¿Reiniciar la puntuación de la semana a 0 para toda la familia?")) {
+    Object.keys(state.users).forEach(k => state.users[k].points = 0);
+    state.history = [];
+    renderApp();
+    updateActivityLog();
   }
 }
 
-function capitalize(str) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-// Inicialización de arranque seguro
+// Arranque
 function startApp() {
-  renderAll();
-  loadFromSupabase();
+  initUserSelect();
+  renderApp();
 }
 
 if (document.readyState === 'loading') {
