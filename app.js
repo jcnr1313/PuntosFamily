@@ -1,6 +1,6 @@
 // --- CONFIGURACIÓN Y CLIENTE SUPABASE ---
 const SUPABASE_URL = 'https://dwfpellkjknjsoownvra.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZnBlbGxramtuanNvb3dudnJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzQwMDYsImV4cCI6MjEwMDcxMDAwNn0.x75ND4DNtptpxVtf-tK2FNr_33zxhk5SF7_-sAb8-jY';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInRefiI6ImR3ZnBlbGxramtuanNvb3dudnJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzQwMDYsImV4cCI6MjEwMDcxMDAwNn0.x75ND4DNtptpxVtf-tK2FNr_33zxhk5SF7_-sAb8-jY';
 
 function getSupabaseClient() {
   if (window.supabaseClient) return window.supabaseClient;
@@ -148,7 +148,7 @@ async function fetchCloudData() {
       return;
     }
 
-    if (data && data.data) {
+    if (data && data.data && Object.keys(data.data).length > 0) {
       const remote = data.data;
       if (remote.users) state.users = { ...state.users, ...remote.users };
       if (remote.parentPin) state.parentPin = remote.parentPin;
@@ -161,6 +161,7 @@ async function fetchCloudData() {
       renderApp();
       console.log("✅ Datos sincronizados desde Supabase exitosamente.");
     } else {
+      console.log("☁️ Base de datos vacía. Guardando estado local en Supabase...");
       await syncFullStateToCloud();
     }
   } catch (err) {
@@ -290,19 +291,21 @@ function renderApp() {
 
   initUserSelect();
 
-  const avatarEl = document.getElementById('currentAvatar');
-  if (avatarEl) avatarEl.innerHTML = renderAvatarHtml(user.avatar, "text-xl");
+  try {
+    const avatarEl = document.getElementById('currentAvatar');
+    if (avatarEl) avatarEl.innerHTML = renderAvatarHtml(user.avatar, "text-xl");
 
-  const pointsEl = document.getElementById('userPointsRewardTab');
-  if (pointsEl) pointsEl.innerText = `${user.points} ⭐`;
+    const pointsEl = document.getElementById('userPointsRewardTab');
+    if (pointsEl) pointsEl.innerText = `${user.points} ⭐`;
+  } catch (e) { console.error("Error avatar/puntos:", e); }
 
-  renderLeaderboard();
-  renderPodium();
-  renderUserStats();
-  renderTasks();
-  renderRewards();
-  updateActivityLog();
-  renderManagerPanel();
+  try { renderLeaderboard(); } catch (e) { console.error("Error Leaderboard:", e); }
+  try { renderPodium(); } catch (e) { console.error("Error Podium:", e); }
+  try { renderUserStats(); } catch (e) { console.error("Error UserStats:", e); }
+  try { renderTasks(); } catch (e) { console.error("Error Tasks:", e); }
+  try { renderRewards(); } catch (e) { console.error("Error Rewards:", e); }
+  try { updateActivityLog(); } catch (e) { console.error("Error ActivityLog:", e); }
+  try { renderManagerPanel(); } catch (e) { console.error("Error ManagerPanel:", e); }
 }
 
 function renderLeaderboard() {
