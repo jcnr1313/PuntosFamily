@@ -71,6 +71,41 @@ let state = {
   history: []
 };
 
+// --- ANIMACIÓN DE PUNTOS Y CELEBRACIÓN ---
+function showPointsAnimation(points, childName, title) {
+  const isPositive = points > 0;
+  const overlay = document.createElement('div');
+  overlay.className = "fixed inset-0 pointer-events-none z-50 flex items-center justify-center p-4 transition-all duration-500";
+  
+  const content = document.createElement('div');
+  content.className = `transform scale-50 opacity-0 transition-all duration-300 ease-out p-6 rounded-3xl border text-center shadow-2xl backdrop-blur-md flex flex-col items-center justify-center gap-2 ${
+    isPositive 
+      ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200 shadow-emerald-500/20' 
+      : 'bg-red-950/90 border-red-500/50 text-red-200 shadow-red-500/20'
+  }`;
+
+  content.innerHTML = `
+    <div class="text-5xl animate-bounce mb-1">${isPositive ? '🎉' : '⚠️'}</div>
+    <div class="text-xs font-bold uppercase tracking-wider text-zinc-400">${childName}</div>
+    <div class="text-4xl font-black ${isPositive ? 'text-emerald-400' : 'text-red-400'}">${isPositive ? '+' : ''}${points} PTS</div>
+    <div class="text-xs font-medium text-zinc-300 max-w-[200px] truncate">${title}</div>
+  `;
+
+  overlay.appendChild(content);
+  document.body.appendChild(overlay);
+
+  requestAnimationFrame(() => {
+    content.classList.remove('scale-50', 'opacity-0');
+    content.classList.add('scale-100', 'opacity-100');
+  });
+
+  setTimeout(() => {
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-75', 'opacity-0');
+    setTimeout(() => overlay.remove(), 300);
+  }, 1800);
+}
+
 function loadLocalStorage() {
   const savedState = localStorage.getItem('family_points_state');
   if (savedState) {
@@ -192,14 +227,20 @@ function setActiveTab(tab) {
   tabs.forEach(t => {
     const section = document.getElementById(`tab-${t}`);
     const navBtn = document.getElementById(`nav-${t}`);
-    if (section) section.classList.add('hidden');
-    if (navBtn) navBtn.className = "flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium";
+    if (section) {
+      section.classList.add('hidden');
+      section.classList.remove('animate-fade-in');
+    }
+    if (navBtn) navBtn.className = "flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium transition-all duration-200";
   });
 
   const targetSection = document.getElementById(`tab-${tab}`);
   const targetNav = document.getElementById(`nav-${tab}`);
-  if (targetSection) targetSection.classList.remove('hidden');
-  if (targetNav) targetNav.className = "flex flex-col items-center py-1.5 text-blue-500 font-bold";
+  if (targetSection) {
+    targetSection.classList.remove('hidden');
+    targetSection.classList.add('animate-fade-in');
+  }
+  if (targetNav) targetNav.className = "flex flex-col items-center py-1.5 text-blue-500 font-bold scale-105 transition-all duration-200";
 }
 
 function initUserSelect() {
@@ -271,8 +312,8 @@ function renderLeaderboard() {
     const leaderBg = isLeader ? 'bg-gradient-to-b from-amber-500/20 via-zinc-950 to-zinc-950 border-amber-500/50 shadow-xl shadow-amber-500/10' : 'bg-zinc-950/40 border-white/5';
 
     return `
-      <div class="flex flex-col items-center text-center ${leaderBg} p-3 rounded-2xl border backdrop-blur-sm relative overflow-hidden">
-        ${isLeader ? `<div class="absolute top-1 right-1 text-xs animate-trophy">🏆</div>` : ''}
+      <div class="flex flex-col items-center text-center ${leaderBg} p-3 rounded-2xl border backdrop-blur-sm relative overflow-hidden transition-all duration-300 hover:scale-105">
+        ${isLeader ? `<div class="absolute top-1 right-1 text-xs animate-bounce">🏆</div>` : ''}
         <div class="relative mt-1">
           <div class="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center border-2 ${ringColor} overflow-hidden shadow-inner">
             ${renderAvatarHtml(u.avatar, "text-3xl")}
@@ -301,21 +342,21 @@ function renderPodium() {
 
   container.innerHTML = `
     ${second ? `
-      <div class="flex flex-col items-center">
+      <div class="flex flex-col items-center transition-transform hover:scale-105 duration-200">
         <div class="w-10 h-10 rounded-full bg-zinc-900 border-2 border-slate-300 flex items-center justify-center overflow-hidden shadow-md">
           ${renderAvatarHtml(second.avatar, "text-lg")}
         </div>
         <span class="text-[10px] font-extrabold text-slate-300 mt-1">${second.name}</span>
-        <div class="w-20 bg-gradient-to-t from-slate-800 to-slate-700 rounded-t-xl h-16 mt-1 flex flex-col justify-end items-center pb-2 border-t border-slate-400">
+        <div class="w-20 bg-gradient-to-t from-slate-800 to-slate-700 rounded-t-xl h-16 mt-1 flex flex-col justify-end items-center pb-2 border-t border-slate-400 shadow-lg">
           <span class="text-xs font-black text-white">🥈 2º</span>
           <span class="text-[10px] font-bold text-slate-300">${second.points} pts</span>
         </div>
       </div>
     ` : ''}
 
-    <div class="flex flex-col items-center">
+    <div class="flex flex-col items-center transition-transform hover:scale-110 duration-200">
       <div class="relative">
-        <span class="absolute -top-3 left-1/2 -translate-x-1/2 text-base animate-trophy">👑</span>
+        <span class="absolute -top-3 left-1/2 -translate-x-1/2 text-base animate-bounce">👑</span>
         <div class="w-14 h-14 rounded-full bg-amber-950/80 border-2 border-amber-400 flex items-center justify-center overflow-hidden shadow-lg shadow-amber-500/20">
           ${renderAvatarHtml(first.avatar, "text-2xl")}
         </div>
@@ -328,12 +369,12 @@ function renderPodium() {
     </div>
 
     ${third ? `
-      <div class="flex flex-col items-center">
+      <div class="flex flex-col items-center transition-transform hover:scale-105 duration-200">
         <div class="w-10 h-10 rounded-full bg-zinc-900 border-2 border-amber-700 flex items-center justify-center overflow-hidden shadow-md">
           ${renderAvatarHtml(third.avatar, "text-lg")}
         </div>
         <span class="text-[10px] font-extrabold text-amber-600 mt-1">${third.name}</span>
-        <div class="w-20 bg-gradient-to-t from-amber-900 to-amber-800 rounded-t-xl h-12 mt-1 flex flex-col justify-end items-center pb-2 border-t border-amber-600">
+        <div class="w-20 bg-gradient-to-t from-amber-900 to-amber-800 rounded-t-xl h-12 mt-1 flex flex-col justify-end items-center pb-2 border-t border-amber-600 shadow-lg">
           <span class="text-xs font-black text-white">🥉 3º</span>
           <span class="text-[10px] font-bold text-amber-300">${third.points} pts</span>
         </div>
@@ -365,7 +406,7 @@ function renderUserStats() {
   }
 
   container.innerHTML = `
-    <div class="col-span-2 ${streakColor} p-3 rounded-2xl border flex justify-between items-center">
+    <div class="col-span-2 ${streakColor} p-3 rounded-2xl border flex justify-between items-center transition-all duration-300">
       <span class="font-bold text-xs">Estado de Racha</span>
       <span class="font-black text-xs">${streakBadge}</span>
     </div>
@@ -412,8 +453,8 @@ function renderTasks() {
     const ptsText = isPos ? `+${action.points}` : `${action.points}`;
 
     return `
-      <div onclick="applyAction(${action.id})" class="bg-zinc-900 hover:bg-zinc-800/90 p-4 rounded-[1.75rem] border border-zinc-800/80 cursor-pointer transition active:scale-95 flex flex-col justify-between space-y-4 shadow-md">
-        <div class="w-12 h-12 rounded-2xl bg-zinc-950 flex items-center justify-center text-2xl border border-zinc-800/50 shadow-inner">
+      <div onclick="applyAction(${action.id})" class="bg-zinc-900 hover:bg-zinc-800/90 p-4 rounded-[1.75rem] border border-zinc-800/80 cursor-pointer transition-all duration-200 active:scale-90 hover:scale-105 flex flex-col justify-between space-y-4 shadow-md group">
+        <div class="w-12 h-12 rounded-2xl bg-zinc-950 flex items-center justify-center text-2xl border border-zinc-800/50 shadow-inner group-hover:rotate-12 transition-transform">
           ${action.icon || (isPos ? '⭐' : '⚠️')}
         </div>
         <div>
@@ -466,6 +507,8 @@ async function applyAction(actionId) {
     const log = `${performerName} registró para ${child.name}: ${action.title} (${action.points > 0 ? '+' : ''}${action.points} pts)`;
     state.history.unshift(log);
 
+    showPointsAnimation(action.points, child.name, action.title);
+
     await saveLocalStorage();
     renderApp();
   }
@@ -484,7 +527,7 @@ function updateActivityLog() {
   }
 
   container.innerHTML = state.history.slice(0, 5).map(item => `
-    <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-800/60 text-left text-zinc-300 font-medium text-xs">
+    <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-800/60 text-left text-zinc-300 font-medium text-xs transition-all hover:border-zinc-700">
       ${item}
     </div>
   `).join('');
@@ -500,8 +543,8 @@ function renderRewards() {
     const canAfford = user.points >= reward.cost;
 
     return `
-      <div class="bg-zinc-900 p-4 rounded-[1.75rem] border border-zinc-800/80 flex flex-col justify-between space-y-3 text-center shadow-md">
-        <div class="text-4xl my-1">${reward.icon || '🎁'}</div>
+      <div class="bg-zinc-900 p-4 rounded-[1.75rem] border border-zinc-800/80 flex flex-col justify-between space-y-3 text-center shadow-md hover:scale-105 transition-all duration-200">
+        <div class="text-4xl my-1 animate-pulse">${reward.icon || '🎁'}</div>
         <div>
           <p class="font-bold text-xs text-zinc-100">${reward.title}</p>
           <p class="text-xs font-black text-amber-400 mt-0.5">${reward.cost} ⭐</p>
@@ -509,7 +552,7 @@ function renderRewards() {
         <button 
           onclick="claimReward(${reward.id})"
           ${!canAfford ? 'disabled' : ''}
-          class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:hover:bg-emerald-600 text-white rounded-xl text-xs font-extrabold transition shadow-lg shadow-emerald-600/20">
+          class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:hover:bg-emerald-600 text-white rounded-xl text-xs font-extrabold transition active:scale-95 shadow-lg shadow-emerald-600/20">
           Canjear
         </button>
       </div>
@@ -542,6 +585,8 @@ async function claimReward(rewardId) {
     });
 
     state.history.unshift(`${user.name} canjeó: ${reward.title} (-${reward.cost} pts)`);
+
+    showPointsAnimation(-reward.cost, user.name, `Canjeado: ${reward.title}`);
 
     await saveLocalStorage();
     renderApp();
@@ -598,7 +643,7 @@ function renderManagerPanel() {
       redemptionsContainer.innerHTML = `<p class="text-center text-xs text-zinc-500 py-3">No hay canjes registrados.</p>`;
     } else {
       redemptionsContainer.innerHTML = state.redemptions.map(item => `
-        <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between gap-2">
+        <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between gap-2 transition-all hover:border-zinc-700">
           <div class="flex items-center gap-2.5">
             <div class="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">
               ${renderAvatarHtml(item.userAvatar, "text-sm")}
@@ -624,7 +669,7 @@ function renderManagerPanel() {
           </div>
           <span class="font-bold text-xs text-white">${u.name}</span>
         </div>
-        <button onclick="changeUserAvatar('${u.id}')" class="text-xs text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-3 py-1.5 rounded-xl font-bold transition">
+        <button onclick="changeUserAvatar('${u.id}')" class="text-xs text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-3 py-1.5 rounded-xl font-bold transition active:scale-95">
           Cambiar Foto / Emoji
         </button>
       </div>
@@ -646,8 +691,8 @@ function renderManagerPanel() {
           </div>
         </div>
         <div class="flex items-center gap-1.5">
-          <button onclick="modifyPoints('${kid.id}', -10)" class="bg-zinc-900 hover:bg-zinc-800 text-red-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800">-10</button>
-          <button onclick="modifyPoints('${kid.id}', 10)" class="bg-zinc-900 hover:bg-zinc-800 text-emerald-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800">+10</button>
+          <button onclick="modifyPoints('${kid.id}', -10)" class="bg-zinc-900 hover:bg-zinc-800 text-red-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800 active:scale-95">-10</button>
+          <button onclick="modifyPoints('${kid.id}', 10)" class="bg-zinc-900 hover:bg-zinc-800 text-emerald-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800 active:scale-95">+10</button>
         </div>
       </div>
     `).join('');
@@ -665,10 +710,10 @@ function renderManagerPanel() {
           </div>
         </div>
         <div class="flex items-center gap-1">
-          <button onclick="editReward(${r.id})" class="text-[11px] text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1.5 rounded-lg border border-amber-500/20 font-bold">
+          <button onclick="editReward(${r.id})" class="text-[11px] text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1.5 rounded-lg border border-amber-500/20 font-bold active:scale-95">
             ✏️ Editar
           </button>
-          <button onclick="deleteReward(${r.id})" class="text-[11px] text-red-400 bg-red-500/10 hover:bg-red-500/20 px-2.5 py-1.5 rounded-lg border border-red-500/20 font-bold">
+          <button onclick="deleteReward(${r.id})" class="text-[11px] text-red-400 bg-red-500/10 hover:bg-red-500/20 px-2.5 py-1.5 rounded-lg border border-red-500/20 font-bold active:scale-95">
             🗑️
           </button>
         </div>
@@ -688,10 +733,10 @@ function renderManagerPanel() {
           </div>
         </div>
         <div class="flex items-center gap-1">
-          <button onclick="editAction(${a.id})" class="text-[11px] text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1.5 rounded-lg border border-blue-500/20 font-bold">
+          <button onclick="editAction(${a.id})" class="text-[11px] text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1.5 rounded-lg border border-blue-500/20 font-bold active:scale-95">
             ✏️ Editar
           </button>
-          <button onclick="deleteAction(${a.id})" class="text-[11px] text-red-400 bg-red-500/10 hover:bg-red-500/20 px-2.5 py-1.5 rounded-lg border border-red-500/20 font-bold">
+          <button onclick="deleteAction(${a.id})" class="text-[11px] text-red-400 bg-red-500/10 hover:bg-red-500/20 px-2.5 py-1.5 rounded-lg border border-red-500/20 font-bold active:scale-95">
             🗑️
           </button>
         </div>
@@ -798,6 +843,7 @@ async function modifyPoints(userId, delta) {
   if (user) {
     user.points += delta;
     if (user.points < 0) user.points = 0;
+    showPointsAnimation(delta, user.name, "Ajuste manual de puntos");
     await saveLocalStorage();
     renderApp();
   }
