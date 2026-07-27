@@ -2,8 +2,12 @@ const SUPABASE_URL = 'https://dwfpellkjknjoownvra.supabase.co';
 const SUPABASE_KEY = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZnBlbGxramtuanNvb3dudnJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzQwMDYsImV4cCI6MjEwMDcxMDAwNn0.x75ND4DNtptpxVtf-tK2FNr_33zxhk5SF7_-sAb8-jY';
 
 let supabaseClient = null;
-if (window.supabase) {
-  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+try {
+  if (window.supabase && typeof window.supabase.createClient === 'function') {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }
+} catch (e) {
+  console.warn("No se pudo inicializar Supabase:", e);
 }
 
 let parentPin = "1234";
@@ -54,7 +58,6 @@ let state = {
   history: []
 };
 
-// Cargar estado local guardado
 function loadLocalStorage() {
   const savedState = localStorage.getItem('family_points_state');
   if (savedState) {
@@ -71,7 +74,6 @@ function loadLocalStorage() {
   }
 }
 
-// Guardar en almacenamiento local
 function saveLocalStorage() {
   localStorage.setItem('family_points_state', JSON.stringify({
     users: state.users,
@@ -82,7 +84,7 @@ function saveLocalStorage() {
   }));
 }
 
-// Sincronizar desde la nube (Supabase)
+// Descargar la información desde Supabase
 async function fetchCloudData() {
   if (!supabaseClient) return;
   try {
@@ -106,21 +108,22 @@ async function fetchCloudData() {
   }
 }
 
-// Helper para sincronizar usuario en Supabase
+// Sincronizar un usuario concreto a la nube
 async function syncUserToCloud(user) {
   if (!supabaseClient) return;
   try {
-    await supabaseClient.from('users').upsert({
+    const { error } = await supabaseClient.from('users').upsert({
       id: user.id,
-      points: user.points,
       name: user.name,
       avatar: user.avatar,
+      points: user.points,
       streak_type: user.streakType,
       streak_days: user.streakDays,
       total_completed: user.totalCompleted
     });
+    if (error) console.error("Error al subir usuario a Supabase:", error);
   } catch (err) {
-    console.warn("Error al guardar en Supabase", err);
+    console.warn("Error al conectar con Supabase", err);
   }
 }
 
@@ -686,6 +689,7 @@ function deleteReward(id) {
   }
 }
 
+// Modificado para sincronizar foto y nombre a la nube
 async function changeUserAvatar(userId) {
   const user = state.users[userId];
   if (!user) return;
@@ -773,6 +777,7 @@ function resetMonthlyPoints() {
 async function startApp() {
   loadLocalStorage();
   initUserSelect();
+  setActiveTab('home');
   renderApp();
   await fetchCloudData();
 }
