@@ -20,32 +20,44 @@ let state = {
   users: {
     'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null },
     'martina': { id: 'martina', name: 'Martina', role: 'hijo', avatar: '👧', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null },
-    'papa': { id: 'papa', name: 'Papá', role: 'padre', avatar: '🧔', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null },
+    'papa': { id: 'papa', name: 'Papá', role: 'padre', avatar: '🐍', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null },
     'mama': { id: 'mama', name: 'Mamá', role: 'padre', avatar: '👩', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null }
   },
   actions: [
-    { id: 1, title: 'Hacer caso a la primera', points: 25, type: 'positive', icon: '✋' },
-    { id: 2, title: 'Limpiar a los animales', points: 25, type: 'positive', icon: '🦜' },
-    { id: 3, title: 'Limpiar y ordenar la habitación', points: 30, type: 'positive', icon: '🏡' },
-    { id: 4, title: 'Tirar la basura', points: 10, type: 'positive', icon: '🗑️' },
-    { id: 5, title: 'Ropa recogida', points: 15, type: 'positive', icon: '👕' },
-    { id: 6, title: 'Poner la mesa', points: 15, type: 'positive', icon: '🍽️' },
-    { id: 7, title: 'Deberes hechos', points: 30, type: 'positive', icon: '📖' },
-    { id: 8, title: 'Pasar la aspiradora', points: 20, type: 'positive', icon: '💨' },
-    { id: 9, title: 'Regar plantas', points: 10, type: 'positive', icon: '💧' },
-    { id: 10, title: 'No recoger el cuarto ni limpiarlo', points: -30, type: 'negative', icon: '🏡' },
-    { id: 11, title: 'No hacer caso a la primera', points: -25, type: 'negative', icon: '✋' },
-    { id: 12, title: 'Dejó las luces encendidas', points: -5, type: 'negative', icon: '⚡' },
-    { id: 13, title: 'No tiró de la cadena', points: -10, type: 'negative', icon: '⚠️' },
-    { id: 14, title: 'Llegó tarde a cenar', points: -15, type: 'negative', icon: '⏰' },
-    { id: 15, title: 'Gritar', points: -20, type: 'negative', icon: '🔊' },
-    { id: 16, title: 'Demasiada TV', points: -15, type: 'negative', icon: '📺' },
-    { id: 17, title: 'No limpiar a los animales', points: -25, type: 'negative', icon: '🦜' },
-    { id: 18, title: 'No pasar la aspiradora', points: -20, type: 'negative', icon: '💨' },
-    { id: 19, title: 'No hacer los deberes', points: -30, type: 'negative', icon: '📖' },
-    { id: 20, title: 'No poner la mesa', points: -15, type: 'negative', icon: '🍽️' },
-    { id: 21, title: 'No recoger la ropa', points: -15, type: 'negative', icon: '👕' },
-    { id: 22, title: 'No tirar la basura', points: -10, type: 'negative', icon: '🗑️' }
+    // --- GANAR PUNTOS (POSITIVAS) ---
+    { id: 1, title: 'Leer 30 min', points: 20, type: 'positive', icon: '📖' },
+    { id: 2, title: 'Ayudar con la compra', points: 15, type: 'positive', icon: '🛒' },
+    { id: 3, title: 'Ayudar a tu hermano/a', points: 20, type: 'positive', icon: '👥' },
+    { id: 4, title: 'Sacar sobresalientes', points: 35, type: 'positive', icon: '📝' },
+    { id: 5, title: 'Hacer caso a la primera', points: 25, type: 'positive', icon: '✋' },
+    { id: 6, title: 'Limpiar a los animales', points: 25, type: 'positive', icon: '🦜' },
+    { id: 7, title: 'Limpiar y ordenar la habitación', points: 30, type: 'positive', icon: '🏡' },
+    { id: 8, title: 'Tirar la basura', points: 10, type: 'positive', icon: '🗑️' },
+    { id: 9, title: 'Ropa recogida', points: 15, type: 'positive', icon: '👕' },
+    { id: 10, title: 'Poner la mesa', points: 15, type: 'positive', icon: '🍽️' },
+    { id: 11, title: 'Deberes hechos', points: 30, type: 'positive', icon: '📖' },
+    { id: 12, title: 'Pasar la aspiradora', points: 20, type: 'positive', icon: '💨' },
+    { id: 13, title: 'Regar plantas', points: 10, type: 'positive', icon: '💧' },
+
+    // --- PENALIZACIONES (NEGATIVAS) ---
+    { id: 101, title: 'Llegar tarde a comer/cenar', points: -20, type: 'negative', icon: '🍽️' },
+    { id: 102, title: 'Levantarse tarde', points: -20, type: 'negative', icon: '🛏️' },
+    { id: 103, title: 'Responder mal', points: -20, type: 'negative', icon: '⛔' },
+    { id: 104, title: 'Olvidar deberes', points: -25, type: 'negative', icon: '📚' },
+    { id: 105, title: 'Mentir', points: -30, type: 'negative', icon: '🤥' },
+    { id: 106, title: 'Pelearse', points: -25, type: 'negative', icon: '🤼' },
+    { id: 107, title: 'No recoger el cuarto ni limpiarlo', points: -30, type: 'negative', icon: '🏡' },
+    { id: 108, title: 'No hacer caso a la primera', points: -25, type: 'negative', icon: '✋' },
+    { id: 109, title: 'Dejó las luces encendidas', points: -5, type: 'negative', icon: '⚡' },
+    { id: 110, title: 'No tiró de la cadena', points: -10, type: 'negative', icon: '⚠️' },
+    { id: 111, title: 'Llegó tarde a cenar', points: -15, type: 'negative', icon: '⏰' },
+    { id: 112, title: 'Gritar', points: -20, type: 'negative', icon: '🔊' },
+    { id: 113, title: 'Demasiada TV', points: -15, type: 'negative', icon: '📺' },
+    { id: 114, title: 'No limpiar a los animales', points: -25, type: 'negative', icon: '🦜' },
+    { id: 115, title: 'No hacer los deberes', points: -30, type: 'negative', icon: '📖' },
+    { id: 116, title: 'No poner la mesa', points: -15, type: 'negative', icon: '🍽️' },
+    { id: 117, title: 'No recoger la ropa', points: -15, type: 'negative', icon: '👕' },
+    { id: 118, title: 'No tirar la basura', points: -10, type: 'negative', icon: '🗑️' }
   ],
   rewards: [
     { id: 1, title: 'Elegir la cena', cost: 80, icon: '🍕' },
@@ -114,7 +126,6 @@ async function fetchCloudData() {
       localStorage.setItem('family_points_state', JSON.stringify(remote));
       renderApp();
     } else {
-      // Si la base de datos está vacía, subimos la configuración inicial
       await syncFullStateToCloud();
     }
   } catch (err) {
@@ -146,7 +157,6 @@ async function syncFullStateToCloud() {
   }
 }
 
-// Escuchar cambios en tiempo real desde otros móviles
 function setupRealtimeListener() {
   if (!supabaseClient) return;
 
@@ -845,7 +855,6 @@ async function resetMonthlyPoints() {
   }
 }
 
-// Auto-sincronizar al cambiar foco de pantalla
 window.addEventListener('focus', () => {
   fetchCloudData();
 });
@@ -862,10 +871,7 @@ async function startApp() {
   setActiveTab('home');
   renderApp();
   
-  // 1. Descargar primero los datos reales de Supabase
   await fetchCloudData();
-  
-  // 2. Activar la escucha en tiempo real para cambios de otros móviles
   setupRealtimeListener();
 }
 
