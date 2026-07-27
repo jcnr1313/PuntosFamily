@@ -20,28 +20,27 @@ let state = {
   },
   actions: [
     { id: 1, title: 'Hacer caso a la primera', points: 25, type: 'positive', icon: '✋' },
-    { id: 2, title: 'Limpiar a los animales', points: 25, type: 'positive', icon: '🦜🐹' },
+    { id: 2, title: 'Limpiar a los animales', points: 25, type: 'positive', icon: '🦜' },
     { id: 3, title: 'Limpiar y ordenar la habitación', points: 30, type: 'positive', icon: '🏡' },
     { id: 4, title: 'Tirar la basura', points: 10, type: 'positive', icon: '🗑️' },
     { id: 5, title: 'Ropa recogida', points: 15, type: 'positive', icon: '👕' },
     { id: 6, title: 'Poner la mesa', points: 15, type: 'positive', icon: '🍽️' },
-    { id: 7, title: 'Limpiar la habitación', points: 25, type: 'positive', icon: '🛏️' },
-    { id: 8, title: 'Deberes hechos', points: 30, type: 'positive', icon: '📖' },
-    { id: 9, title: 'Pasar la aspiradora', points: 20, type: 'positive', icon: '💨' },
-    { id: 10, title: 'Regar plantas', points: 10, type: 'positive', icon: '💧' },
-    { id: 11, title: 'No recoger el cuarto ni limpiarlo', points: -30, type: 'negative', icon: '🏡' },
-    { id: 12, title: 'No hacer caso a la primera', points: -25, type: 'negative', icon: '✋' },
-    { id: 13, title: 'Dejó las luces encendidas', points: -5, type: 'negative', icon: '⚡' },
-    { id: 14, title: 'No tiró de la cadena', points: -10, type: 'negative', icon: '⚠️' },
-    { id: 15, title: 'Llegó tarde a cenar', points: -15, type: 'negative', icon: '⏰' },
-    { id: 16, title: 'Gritar', points: -20, type: 'negative', icon: '🔊' },
-    { id: 17, title: 'Demasiada TV', points: -15, type: 'negative', icon: '📺' },
-    { id: 18, title: 'No limpiar a los animales', points: -25, type: 'negative', icon: '🦜🐹' },
-    { id: 19, title: 'No pasar la aspiradora', points: -20, type: 'negative', icon: '💨' },
-    { id: 20, title: 'No hacer los deberes', points: -30, type: 'negative', icon: '📖' },
-    { id: 21, title: 'No poner la mesa', points: -15, type: 'negative', icon: '🍽️' },
-    { id: 22, title: 'No recoger la ropa', points: -15, type: 'negative', icon: '👕' },
-    { id: 23, title: 'No tirar la basura', points: -10, type: 'negative', icon: '🗑️' }
+    { id: 7, title: 'Deberes hechos', points: 30, type: 'positive', icon: '📖' },
+    { id: 8, title: 'Pasar la aspiradora', points: 20, type: 'positive', icon: '💨' },
+    { id: 9, title: 'Regar plantas', points: 10, type: 'positive', icon: '💧' },
+    { id: 10, title: 'No recoger el cuarto ni limpiarlo', points: -30, type: 'negative', icon: '🏡' },
+    { id: 11, title: 'No hacer caso a la primera', points: -25, type: 'negative', icon: '✋' },
+    { id: 12, title: 'Dejó las luces encendidas', points: -5, type: 'negative', icon: '⚡' },
+    { id: 13, title: 'No tiró de la cadena', points: -10, type: 'negative', icon: '⚠️' },
+    { id: 14, title: 'Llegó tarde a cenar', points: -15, type: 'negative', icon: '⏰' },
+    { id: 15, title: 'Gritar', points: -20, type: 'negative', icon: '🔊' },
+    { id: 16, title: 'Demasiada TV', points: -15, type: 'negative', icon: '📺' },
+    { id: 17, title: 'No limpiar a los animales', points: -25, type: 'negative', icon: '🦜' },
+    { id: 18, title: 'No pasar la aspiradora', points: -20, type: 'negative', icon: '💨' },
+    { id: 19, title: 'No hacer los deberes', points: -30, type: 'negative', icon: '📖' },
+    { id: 20, title: 'No poner la mesa', points: -15, type: 'negative', icon: '🍽️' },
+    { id: 21, title: 'No recoger la ropa', points: -15, type: 'negative', icon: '👕' },
+    { id: 22, title: 'No tirar la basura', points: -10, type: 'negative', icon: '🗑️' }
   ],
   rewards: [
     { id: 1, title: 'Elegir la cena', cost: 80, icon: '🍕' },
@@ -94,6 +93,9 @@ async function fetchCloudData() {
           state.users[rUser.id].points = rUser.points ?? state.users[rUser.id].points;
           if (rUser.avatar) state.users[rUser.id].avatar = rUser.avatar;
           if (rUser.name) state.users[rUser.id].name = rUser.name;
+          if (rUser.streak_type) state.users[rUser.id].streakType = rUser.streak_type;
+          if (rUser.streak_days) state.users[rUser.id].streakDays = rUser.streak_days;
+          if (rUser.total_completed) state.users[rUser.id].totalCompleted = rUser.total_completed;
         }
       });
       saveLocalStorage();
@@ -101,6 +103,24 @@ async function fetchCloudData() {
     }
   } catch (err) {
     console.warn("Modo offline o error al consultar Supabase", err);
+  }
+}
+
+// Helper para sincronizar usuario en Supabase
+async function syncUserToCloud(user) {
+  if (!supabaseClient) return;
+  try {
+    await supabaseClient.from('users').upsert({
+      id: user.id,
+      points: user.points,
+      name: user.name,
+      avatar: user.avatar,
+      streak_type: user.streakType,
+      streak_days: user.streakDays,
+      total_completed: user.totalCompleted
+    });
+  } catch (err) {
+    console.warn("Error al guardar en Supabase", err);
   }
 }
 
@@ -160,6 +180,7 @@ function renderApp() {
   renderUserStats();
   renderTasks();
   renderRewards();
+  updateActivityLog();
   renderManagerPanel();
 }
 
@@ -271,7 +292,7 @@ function renderUserStats() {
 
   container.innerHTML = `
     <div class="col-span-2 ${streakColor} p-3 rounded-2xl border flex justify-between items-center">
-      <span class="font-bold">Estado de Racha</span>
+      <span class="font-bold text-xs">Estado de Racha</span>
       <span class="font-black text-xs">${streakBadge}</span>
     </div>
     <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800/80 flex flex-col justify-center">
@@ -291,11 +312,11 @@ function toggleTaskType(type) {
   const btnNeg = document.getElementById('btnTaskNegative');
 
   if (type === 'positive') {
-    btnPos.className = "py-3 rounded-xl text-xs font-black transition-all bg-zinc-800 text-white shadow-md flex items-center justify-center gap-2";
-    btnNeg.className = "py-3 rounded-xl text-xs font-black transition-all text-zinc-400 hover:text-white flex items-center justify-center gap-2";
+    if (btnPos) btnPos.className = "py-3 rounded-xl text-xs font-black transition-all bg-zinc-800 text-white shadow-md flex items-center justify-center gap-2";
+    if (btnNeg) btnNeg.className = "py-3 rounded-xl text-xs font-black transition-all text-zinc-400 hover:text-white flex items-center justify-center gap-2";
   } else {
-    btnNeg.className = "py-3 rounded-xl text-xs font-black transition-all bg-red-950/80 text-red-200 border border-red-800/50 shadow-md flex items-center justify-center gap-2";
-    btnPos.className = "py-3 rounded-xl text-xs font-black transition-all text-zinc-400 hover:text-white flex items-center justify-center gap-2";
+    if (btnNeg) btnNeg.className = "py-3 rounded-xl text-xs font-black transition-all bg-red-950/80 text-red-200 border border-red-800/50 shadow-md flex items-center justify-center gap-2";
+    if (btnPos) btnPos.className = "py-3 rounded-xl text-xs font-black transition-all text-zinc-400 hover:text-white flex items-center justify-center gap-2";
   }
   renderTasks();
 }
@@ -307,7 +328,7 @@ function renderTasks() {
   const filtered = state.actions.filter(a => a.type === state.currentTaskFilter);
 
   if (filtered.length === 0) {
-    container.innerHTML = `<p class="col-span-2 text-center text-xs text-zinc-500 py-6">No hay tareas creadas.</p>`;
+    container.innerHTML = `<p class="col-span-2 text-center text-xs text-zinc-500 py-6">No hay tareas creadas en esta sección.</p>`;
     return;
   }
 
@@ -352,11 +373,7 @@ async function applyAction(actionId) {
 
     saveLocalStorage();
     renderApp();
-    updateActivityLog();
-
-    if (supabaseClient) {
-      await supabaseClient.from('users').upsert({ id: user.id, points: user.points, name: user.name, avatar: user.avatar });
-    }
+    await syncUserToCloud(user);
   }
 }
 
@@ -368,7 +385,7 @@ function updateActivityLog() {
   if (countEl) countEl.innerText = state.history.length;
 
   if (state.history.length === 0) {
-    container.innerHTML = 'Aún no hay movimientos este mes.';
+    container.innerHTML = '<p class="text-xs text-zinc-500 py-2">Aún no hay movimientos registrados.</p>';
     return;
   }
 
@@ -398,7 +415,7 @@ function renderRewards() {
         <button 
           onclick="claimReward(${reward.id})"
           ${!canAfford ? 'disabled' : ''}
-          class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 text-white rounded-xl text-xs font-extrabold transition shadow-lg shadow-emerald-600/20">
+          class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:hover:bg-emerald-600 text-white rounded-xl text-xs font-extrabold transition shadow-lg shadow-emerald-600/20">
           Canjear
         </button>
       </div>
@@ -413,7 +430,12 @@ async function claimReward(rewardId) {
   if (reward && user && user.points >= reward.cost) {
     user.points -= reward.cost;
 
-    const dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    let dateStr = "";
+    try {
+      dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      dateStr = new Date().toISOString().slice(0, 10);
+    }
 
     state.redemptions.unshift({
       id: Date.now(),
@@ -429,43 +451,41 @@ async function claimReward(rewardId) {
 
     saveLocalStorage();
     renderApp();
-    updateActivityLog();
-
-    if (supabaseClient) {
-      await supabaseClient.from('users').upsert({ id: user.id, points: user.points, name: user.name, avatar: user.avatar });
-    }
+    await syncUserToCloud(user);
   }
 }
 
 function unlockManager() {
-  const pinInput = document.getElementById('pinInput').value;
-  if (pinInput === parentPin) {
+  const pinInput = document.getElementById('pinInput');
+  if (!pinInput) return;
+
+  if (pinInput.value === parentPin) {
     isManagerUnlocked = true;
-    document.getElementById('pinLockScreen').classList.add('hidden');
-    document.getElementById('pinUnlockedContent').classList.remove('hidden');
-    document.getElementById('pinInput').value = '';
+    document.getElementById('pinLockScreen')?.classList.add('hidden');
+    document.getElementById('pinUnlockedContent')?.classList.remove('hidden');
+    pinInput.value = '';
     renderManagerPanel();
   } else {
     alert("PIN incorrecto.");
-    document.getElementById('pinInput').value = '';
+    pinInput.value = '';
   }
 }
 
 function lockManager() {
   isManagerUnlocked = false;
-  document.getElementById('pinLockScreen').classList.remove('hidden');
-  document.getElementById('pinUnlockedContent').classList.add('hidden');
+  document.getElementById('pinLockScreen')?.classList.remove('hidden');
+  document.getElementById('pinUnlockedContent')?.classList.add('hidden');
 }
 
 function changePinPrompt() {
   const current = prompt("Introduce el PIN actual:");
   if (current === parentPin) {
     const newPin = prompt("Introduce el nuevo PIN de 4 dígitos:");
-    if (newPin && newPin.length === 4) {
+    if (newPin && newPin.length === 4 && !isNaN(newPin)) {
       parentPin = newPin;
-      alert("¡PIN actualizado!");
+      alert("¡PIN actualizado con éxito!");
     } else {
-      alert("El PIN debe tener 4 dígitos.");
+      alert("El PIN debe ser un número de exactamente 4 dígitos.");
     }
   } else if (current !== null) {
     alert("PIN incorrecto.");
@@ -481,7 +501,7 @@ function renderManagerPanel() {
     if (redemptionsCount) redemptionsCount.innerText = state.redemptions.length;
 
     if (state.redemptions.length === 0) {
-      redemptionsContainer.innerHTML = `<p class="text-center text-xs text-zinc-500 py-3">No hay canjes este mes.</p>`;
+      redemptionsContainer.innerHTML = `<p class="text-center text-xs text-zinc-500 py-3">No hay canjes registrados.</p>`;
     } else {
       redemptionsContainer.innerHTML = state.redemptions.map(item => `
         <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between gap-2">
@@ -594,12 +614,13 @@ function editReward(rewardId) {
   if (newTitle === null || newTitle.trim() === "") return;
 
   const newCostStr = prompt("Nuevos puntos necesarios:", reward.cost);
-  if (newCostStr === null || isNaN(parseInt(newCostStr))) return;
+  const parsedCost = parseInt(newCostStr);
+  if (newCostStr === null || isNaN(parsedCost)) return;
 
   const newIcon = prompt("Nuevo emoji:", reward.icon || '🎁');
 
   reward.title = newTitle.trim();
-  reward.cost = Math.abs(parseInt(newCostStr));
+  reward.cost = Math.abs(parsedCost);
   if (newIcon && newIcon.trim() !== "") reward.icon = newIcon.trim();
 
   saveLocalStorage();
@@ -614,14 +635,14 @@ function editAction(actionId) {
   if (newTitle === null || newTitle.trim() === "") return;
 
   const newPointsStr = prompt("Nuevos puntos (usa signo - si es penalización):", action.points);
-  if (newPointsStr === null || isNaN(parseInt(newPointsStr))) return;
+  const parsedPoints = parseInt(newPointsStr);
+  if (newPointsStr === null || isNaN(parsedPoints)) return;
 
   const newIcon = prompt("Nuevo emoji:", action.icon || '⭐');
 
-  const pts = parseInt(newPointsStr);
   action.title = newTitle.trim();
-  action.points = pts;
-  action.type = pts < 0 ? 'negative' : 'positive';
+  action.points = parsedPoints;
+  action.type = parsedPoints < 0 ? 'negative' : 'positive';
   if (newIcon && newIcon.trim() !== "") action.icon = newIcon.trim();
 
   saveLocalStorage();
@@ -629,12 +650,16 @@ function editAction(actionId) {
 }
 
 function addNewReward() {
-  const title = document.getElementById('newRewardTitle').value.trim();
-  const icon = document.getElementById('newRewardIcon').value.trim() || '🎁';
-  const cost = parseInt(document.getElementById('newRewardCost').value);
+  const titleEl = document.getElementById('newRewardTitle');
+  const iconEl = document.getElementById('newRewardIcon');
+  const costEl = document.getElementById('newRewardCost');
+
+  const title = titleEl ? titleEl.value.trim() : '';
+  const icon = (iconEl && iconEl.value.trim()) || '🎁';
+  const cost = parseInt(costEl ? costEl.value : '');
 
   if (!title || isNaN(cost) || cost <= 0) {
-    alert("Introduce un nombre y los puntos válidos.");
+    alert("Por favor, introduce un nombre y una cantidad de puntos válida.");
     return;
   }
 
@@ -645,16 +670,16 @@ function addNewReward() {
     cost
   });
 
-  document.getElementById('newRewardTitle').value = '';
-  document.getElementById('newRewardIcon').value = '';
-  document.getElementById('newRewardCost').value = '';
+  if (titleEl) titleEl.value = '';
+  if (iconEl) iconEl.value = '';
+  if (costEl) costEl.value = '';
 
   saveLocalStorage();
   renderApp();
 }
 
 function deleteReward(id) {
-  if (confirm("¿Seguro de eliminar este premio?")) {
+  if (confirm("¿Seguro que deseas eliminar este premio?")) {
     state.rewards = state.rewards.filter(r => r.id !== id);
     saveLocalStorage();
     renderApp();
@@ -672,10 +697,7 @@ async function changeUserAvatar(userId) {
     saveLocalStorage();
     initUserSelect();
     renderApp();
-
-    if (supabaseClient) {
-      await supabaseClient.from('users').upsert({ id: user.id, avatar: user.avatar, name: user.name, points: user.points });
-    }
+    await syncUserToCloud(user);
   }
 }
 
@@ -686,15 +708,12 @@ async function modifyPoints(userId, delta) {
     if (user.points < 0) user.points = 0;
     saveLocalStorage();
     renderApp();
-
-    if (supabaseClient) {
-      await supabaseClient.from('users').upsert({ id: user.id, points: user.points, name: user.name, avatar: user.avatar });
-    }
+    await syncUserToCloud(user);
   }
 }
 
 function deleteAction(id) {
-  if (confirm("¿Seguro de eliminar esta tarea?")) {
+  if (confirm("¿Seguro que deseas eliminar esta tarea?")) {
     state.actions = state.actions.filter(a => a.id !== id);
     saveLocalStorage();
     renderApp();
@@ -702,12 +721,20 @@ function deleteAction(id) {
 }
 
 function addNewAction() {
-  const title = document.getElementById('newActionTitle').value.trim();
-  const icon = document.getElementById('newActionIcon').value.trim() || '⭐';
-  const points = parseInt(document.getElementById('newActionPoints').value);
-  const type = document.getElementById('newActionType').value;
+  const titleEl = document.getElementById('newActionTitle');
+  const iconEl = document.getElementById('newActionIcon');
+  const pointsEl = document.getElementById('newActionPoints');
+  const typeEl = document.getElementById('newActionType');
 
-  if (!title || isNaN(points)) return;
+  const title = titleEl ? titleEl.value.trim() : '';
+  const icon = (iconEl && iconEl.value.trim()) || '⭐';
+  const points = parseInt(pointsEl ? pointsEl.value : '');
+  const type = typeEl ? typeEl.value : 'positive';
+
+  if (!title || isNaN(points)) {
+    alert("Por favor, introduce un título y los puntos válidos.");
+    return;
+  }
 
   const finalPoints = type === 'negative' ? -Math.abs(points) : Math.abs(points);
 
@@ -719,27 +746,27 @@ function addNewAction() {
     icon
   });
 
-  document.getElementById('newActionTitle').value = '';
-  document.getElementById('newActionIcon').value = '';
-  document.getElementById('newActionPoints').value = '';
+  if (titleEl) titleEl.value = '';
+  if (iconEl) iconEl.value = '';
+  if (pointsEl) pointsEl.value = '';
 
   saveLocalStorage();
   renderApp();
 }
 
 function resetMonthlyPoints() {
-  if (confirm("¿Reiniciar la puntuación mensual a 0 para todos?")) {
+  if (confirm("¿Deseas reiniciar la puntuación mensual y rachas a 0 para todos los miembros?")) {
     Object.keys(state.users).forEach(k => {
       state.users[k].points = 0;
       state.users[k].streakDays = 0;
       state.users[k].streakType = 'none';
       state.users[k].totalCompleted = 0;
+      syncUserToCloud(state.users[k]);
     });
     state.history = [];
     state.redemptions = [];
     saveLocalStorage();
     renderApp();
-    updateActivityLog();
   }
 }
 
