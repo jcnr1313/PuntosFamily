@@ -116,14 +116,14 @@ async function fetchCloudData() {
 
     if (data && data.data) {
       const remote = data.data;
-      if (remote.users) state.users = remote.users;
+      if (remote.users) state.users = { ...state.users, ...remote.users };
       if (remote.parentPin) state.parentPin = remote.parentPin;
-      if (remote.actions) state.actions = remote.actions;
-      if (remote.rewards) state.rewards = remote.rewards;
+      if (remote.actions && remote.actions.length > 0) state.actions = remote.actions;
+      if (remote.rewards && remote.rewards.length > 0) state.rewards = remote.rewards;
       if (remote.redemptions) state.redemptions = remote.redemptions;
       if (remote.history) state.history = remote.history;
 
-      localStorage.setItem('family_points_state', JSON.stringify(remote));
+      localStorage.setItem('family_points_state', JSON.stringify(state));
       renderApp();
     } else {
       await syncFullStateToCloud();
@@ -165,14 +165,14 @@ function setupRealtimeListener() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state' }, payload => {
       if (payload.new && payload.new.data) {
         const remote = payload.new.data;
-        if (remote.users) state.users = remote.users;
+        if (remote.users) state.users = { ...state.users, ...remote.users };
         if (remote.parentPin) state.parentPin = remote.parentPin;
-        if (remote.actions) state.actions = remote.actions;
-        if (remote.rewards) state.rewards = remote.rewards;
+        if (remote.actions && remote.actions.length > 0) state.actions = remote.actions;
+        if (remote.rewards && remote.rewards.length > 0) state.rewards = remote.rewards;
         if (remote.redemptions) state.redemptions = remote.redemptions;
         if (remote.history) state.history = remote.history;
 
-        localStorage.setItem('family_points_state', JSON.stringify(remote));
+        localStorage.setItem('family_points_state', JSON.stringify(state));
         renderApp();
       }
     })
@@ -240,6 +240,8 @@ function switchUser() {
 function renderApp() {
   const user = state.users[state.currentUser];
   if (!user) return;
+
+  initUserSelect();
 
   const avatarEl = document.getElementById('currentAvatar');
   if (avatarEl) avatarEl.innerHTML = renderAvatarHtml(user.avatar, "text-xl");
@@ -426,9 +428,12 @@ function renderTasks() {
 async function applyAction(actionId) {
   const activeUser = state.users[state.currentUser];
 
-  if (!activeUser || activeUser.role !== 'padre') {
-    alert("🔒 Solo Papá o Mamá pueden asignar o restar puntos.");
-    return;
+  if (activeUser && activeUser.role !== 'padre') {
+    const pinEntered = prompt("🔒 Introduce el PIN parental para confirmar la tarea:");
+    if (pinEntered !== state.parentPin) {
+      if (pinEntered !== null) alert("PIN incorrecto. No se asignaron puntos.");
+      return;
+    }
   }
 
   const action = state.actions.find(a => a.id === actionId);
@@ -457,7 +462,8 @@ async function applyAction(actionId) {
       else { child.streakType = 'negative'; child.streakDays = 1; }
     }
 
-    const log = `${activeUser.name} registró para ${child.name}: ${action.title} (${action.points > 0 ? '+' : ''}${action.points} pts)`;
+    const performerName = activeUser ? activeUser.name : 'Padre/Madre';
+    const log = `${performerName} registró para ${child.name}: ${action.title} (${action.points > 0 ? '+' : ''}${action.points} pts)`;
     state.history.unshift(log);
 
     await saveLocalStorage();
@@ -783,7 +789,6 @@ async function changeUserAvatar(userId) {
   if (input !== null && input.trim() !== '') {
     user.avatar = input.trim();
     await saveLocalStorage();
-    initUserSelect();
     renderApp();
   }
 }
