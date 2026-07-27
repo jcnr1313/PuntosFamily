@@ -6,7 +6,6 @@ if (window.supabase) {
   supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 }
 
-// PIN por defecto para el Gestor
 let parentPin = "1234";
 let isManagerUnlocked = false;
 
@@ -41,6 +40,15 @@ let state = {
   ],
   history: []
 };
+
+// Helper para Renderizar Avatares (Emoji o Foto URL)
+function renderAvatarHtml(avatarStr, sizeClasses = "w-full h-full text-2xl") {
+  if (!avatarStr) return `<span class="${sizeClasses} flex items-center justify-center">👤</span>`;
+  if (avatarStr.startsWith('http://') || avatarStr.startsWith('https://') || avatarStr.startsWith('data:image')) {
+    return `<img src="${avatarStr}" alt="Avatar" class="w-full h-full object-cover rounded-full">`;
+  }
+  return `<span class="${sizeClasses} flex items-center justify-center">${avatarStr}</span>`;
+}
 
 function setActiveTab(tab) {
   const tabs = ['home', 'tasks', 'rewards', 'manager', 'settings'];
@@ -80,7 +88,7 @@ function renderApp() {
   if (!user) return;
 
   const avatarEl = document.getElementById('currentAvatar');
-  if (avatarEl) avatarEl.innerText = user.avatar;
+  if (avatarEl) avatarEl.innerHTML = renderAvatarHtml(user.avatar, "text-xl");
 
   const pointsEl = document.getElementById('userPointsRewardTab');
   if (pointsEl) pointsEl.innerText = `${user.points} ⭐`;
@@ -91,7 +99,7 @@ function renderApp() {
   renderManagerPanel();
 }
 
-// Clasificación
+// Clasificación / Ranking
 function renderLeaderboard() {
   const container = document.getElementById('leaderboardList');
   if (!container) return;
@@ -99,21 +107,21 @@ function renderLeaderboard() {
   const sorted = Object.values(state.users).sort((a, b) => b.points - a.points);
 
   container.innerHTML = sorted.map((u, index) => {
-    const posLabel = index === 0 ? '1st' : index === 1 ? '2nd' : index === 2 ? '3rd' : `${index + 1}th`;
-    const ringColor = index === 0 ? 'border-amber-400' : 'border-blue-300/40';
+    const posLabel = index === 0 ? '🥇 1st' : index === 1 ? '🥈 2nd' : index === 2 ? '🥉 3rd' : `${index + 1}th`;
+    const ringColor = index === 0 ? 'border-amber-400 ring-2 ring-amber-400/30' : 'border-zinc-700/80';
 
     return `
-      <div class="flex flex-col items-center text-center space-y-1">
+      <div class="flex flex-col items-center text-center bg-zinc-950/40 p-3 rounded-2xl border border-white/5 backdrop-blur-sm">
         <div class="relative">
-          <div class="w-14 h-14 bg-zinc-900/80 rounded-full flex items-center justify-center text-2xl border-2 ${ringColor}">
-            ${u.avatar}
+          <div class="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center border-2 ${ringColor} overflow-hidden shadow-inner">
+            ${renderAvatarHtml(u.avatar, "text-3xl")}
           </div>
-          <span class="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-zinc-900 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-zinc-700 text-amber-300">
+          <span class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-zinc-900 text-[9px] font-black px-2 py-0.5 rounded-full border border-zinc-700 text-amber-300 shadow">
             ${posLabel}
           </span>
         </div>
-        <p class="font-bold text-xs pt-1 truncate w-full">${u.name}</p>
-        <p class="text-xs font-black text-blue-200">${u.points} pts</p>
+        <p class="font-bold text-xs pt-2.5 truncate w-full text-zinc-100">${u.name}</p>
+        <p class="text-xs font-black text-blue-200 mt-0.5">${u.points} pts</p>
       </div>
     `;
   }).join('');
@@ -126,11 +134,11 @@ function toggleTaskType(type) {
   const btnNeg = document.getElementById('btnTaskNegative');
 
   if (type === 'positive') {
-    btnPos.className = "py-2.5 rounded-xl text-xs font-extrabold transition-all bg-zinc-800 text-white shadow-sm";
-    btnNeg.className = "py-2.5 rounded-xl text-xs font-extrabold transition-all text-zinc-400 hover:text-white";
+    btnPos.className = "py-3 rounded-xl text-xs font-black transition-all bg-zinc-800 text-white shadow-md flex items-center justify-center gap-2";
+    btnNeg.className = "py-3 rounded-xl text-xs font-black transition-all text-zinc-400 hover:text-white flex items-center justify-center gap-2";
   } else {
-    btnNeg.className = "py-2.5 rounded-xl text-xs font-extrabold transition-all bg-red-950/80 text-red-200 border border-red-800/50 shadow-sm";
-    btnPos.className = "py-2.5 rounded-xl text-xs font-extrabold transition-all text-zinc-400 hover:text-white";
+    btnNeg.className = "py-3 rounded-xl text-xs font-black transition-all bg-red-950/80 text-red-200 border border-red-800/50 shadow-md flex items-center justify-center gap-2";
+    btnPos.className = "py-3 rounded-xl text-xs font-black transition-all text-zinc-400 hover:text-white flex items-center justify-center gap-2";
   }
   renderTasks();
 }
@@ -142,7 +150,7 @@ function renderTasks() {
   const filtered = state.actions.filter(a => a.type === state.currentTaskFilter);
 
   if (filtered.length === 0) {
-    container.innerHTML = `<p class="col-span-2 text-center text-xs text-zinc-500 py-6">No hay acciones registradas en esta categoría.</p>`;
+    container.innerHTML = `<p class="col-span-2 text-center text-xs text-zinc-500 py-6">No hay tareas en esta sección.</p>`;
     return;
   }
 
@@ -152,12 +160,12 @@ function renderTasks() {
     const ptsText = isPos ? `+${action.points}` : `${action.points}`;
 
     return `
-      <div onclick="applyAction(${action.id})" class="bg-zinc-900 hover:bg-zinc-800/80 p-4 rounded-3xl border border-zinc-800/80 cursor-pointer transition flex flex-col justify-between space-y-3">
-        <div class="w-10 h-10 rounded-2xl bg-zinc-950 flex items-center justify-center text-xl">
+      <div onclick="applyAction(${action.id})" class="bg-zinc-900 hover:bg-zinc-800/90 p-4 rounded-[1.75rem] border border-zinc-800/80 cursor-pointer transition active:scale-95 flex flex-col justify-between space-y-4 shadow-md">
+        <div class="w-12 h-12 rounded-2xl bg-zinc-950 flex items-center justify-center text-2xl border border-zinc-800/50 shadow-inner">
           ${action.icon || (isPos ? '⭐' : '⚠️')}
         </div>
         <div>
-          <h4 class="font-bold text-xs text-zinc-100 leading-tight">${action.title}</h4>
+          <h4 class="font-bold text-xs text-zinc-100 leading-snug">${action.title}</h4>
           <p class="text-xs font-black ${pointsClass} mt-1">${ptsText} puntos</p>
         </div>
       </div>
@@ -198,7 +206,7 @@ function updateActivityLog() {
   }
 
   container.innerHTML = state.history.slice(0, 5).map(item => `
-    <div class="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800/60 text-left text-zinc-300 font-medium">
+    <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-800/60 text-left text-zinc-300 font-medium text-xs">
       ${item}
     </div>
   `).join('');
@@ -215,8 +223,8 @@ function renderRewards() {
     const canAfford = user.points >= reward.cost;
 
     return `
-      <div class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800/80 flex flex-col justify-between space-y-3 text-center">
-        <div class="text-3xl my-1">${reward.icon || '🎁'}</div>
+      <div class="bg-zinc-900 p-4 rounded-[1.75rem] border border-zinc-800/80 flex flex-col justify-between space-y-3 text-center shadow-md">
+        <div class="text-4xl my-1">${reward.icon || '🎁'}</div>
         <div>
           <p class="font-bold text-xs text-zinc-100">${reward.title}</p>
           <p class="text-xs font-black text-amber-400 mt-0.5">${reward.cost} ⭐</p>
@@ -224,7 +232,7 @@ function renderRewards() {
         <button 
           onclick="claimReward(${reward.id})"
           ${!canAfford ? 'disabled' : ''}
-          class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:hover:bg-emerald-600 text-white rounded-xl text-xs font-extrabold transition">
+          class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 text-white rounded-xl text-xs font-extrabold transition shadow-lg shadow-emerald-600/20">
           Canjear
         </button>
       </div>
@@ -249,7 +257,7 @@ async function claimReward(rewardId) {
   }
 }
 
-// LÓGICA DEL PIN
+// PIN & DESBLOQUEO GESTOR
 function unlockManager() {
   const pinInput = document.getElementById('pinInput').value;
   if (pinInput === parentPin) {
@@ -285,45 +293,78 @@ function changePinPrompt() {
   }
 }
 
-// RENDER Y GESTIÓN EN EL PANEL
+// PANEL DE GESTOR
 function renderManagerPanel() {
   if (!isManagerUnlocked) return;
 
-  // 1. Puntos manuales
+  // 1. Personalizar Avatares
+  const avatarContainer = document.getElementById('avatarCustomizerList');
+  if (avatarContainer) {
+    avatarContainer.innerHTML = Object.values(state.users).map(u => `
+      <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">
+            ${renderAvatarHtml(u.avatar, "text-xl")}
+          </div>
+          <span class="font-bold text-xs text-white">${u.name}</span>
+        </div>
+        <button onclick="changeUserAvatar('${u.id}')" class="text-xs text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-3 py-1.5 rounded-xl font-bold transition">
+          Cambiar Foto / Emoji
+        </button>
+      </div>
+    `).join('');
+  }
+
+  // 2. Control rápido de puntos
   const pointsContainer = document.getElementById('manualPointsControl');
   if (pointsContainer) {
     const kids = Object.values(state.users).filter(u => u.role === 'hijo');
     pointsContainer.innerHTML = kids.map(kid => `
       <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex justify-between items-center">
-        <div class="flex items-center gap-2">
-          <span class="text-xl">${kid.avatar}</span>
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">
+            ${renderAvatarHtml(kid.avatar, "text-base")}
+          </div>
           <div>
             <p class="font-bold text-xs text-white">${kid.name}</p>
             <span class="text-[11px] text-amber-400 font-bold">${kid.points} pts</span>
           </div>
         </div>
         <div class="flex items-center gap-1.5">
-          <button onclick="modifyPoints('${kid.id}', -10)" class="bg-zinc-900 hover:bg-zinc-800 text-red-400 text-xs font-extrabold px-2.5 py-1.5 rounded-lg border border-zinc-800">-10</button>
-          <button onclick="modifyPoints('${kid.id}', 10)" class="bg-zinc-900 hover:bg-zinc-800 text-emerald-400 text-xs font-extrabold px-2.5 py-1.5 rounded-lg border border-zinc-800">+10</button>
+          <button onclick="modifyPoints('${kid.id}', -10)" class="bg-zinc-900 hover:bg-zinc-800 text-red-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800">-10</button>
+          <button onclick="modifyPoints('${kid.id}', 10)" class="bg-zinc-900 hover:bg-zinc-800 text-emerald-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800">+10</button>
         </div>
       </div>
     `).join('');
   }
 
-  // 2. Administrar / Eliminar tareas
+  // 3. Administrar / Eliminar Tareas
   const actionsContainer = document.getElementById('manageActionsList');
   if (actionsContainer) {
     actionsContainer.innerHTML = state.actions.map(a => `
       <div class="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800/80 flex justify-between items-center">
-        <div class="flex items-center gap-2">
-          <span>${a.icon || '📌'}</span>
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">${a.icon || '📌'}</span>
           <span class="text-xs text-zinc-200 font-medium">${a.title} (${a.points > 0 ? '+' : ''}${a.points} pts)</span>
         </div>
-        <button onclick="deleteAction(${a.id})" class="text-xs text-red-400 hover:bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20 transition">
+        <button onclick="deleteAction(${a.id})" class="text-xs text-red-400 hover:bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 transition font-bold">
           Eliminar 🗑️
         </button>
       </div>
     `).join('');
+  }
+}
+
+function changeUserAvatar(userId) {
+  const user = state.users[userId];
+  if (!user) return;
+
+  const input = prompt(`Cambiar avatar de ${user.name}.\nPuedes escribir un emoji (ej: 🦸‍♂️) o pegar el enlace/URL de una imagen:`, user.avatar);
+  
+  if (input !== null && input.trim() !== '') {
+    user.avatar = input.trim();
+    initUserSelect();
+    renderApp();
   }
 }
 
@@ -349,6 +390,7 @@ function deleteAction(id) {
 
 function addNewAction() {
   const title = document.getElementById('newActionTitle').value.trim();
+  const icon = document.getElementById('newActionIcon').value.trim() || '⭐';
   const points = parseInt(document.getElementById('newActionPoints').value);
   const type = document.getElementById('newActionType').value;
 
@@ -361,11 +403,12 @@ function addNewAction() {
     title,
     points: finalPoints,
     type,
-    icon: type === 'positive' ? '⭐' : '⚠️'
+    icon
   };
 
   state.actions.unshift(newObj);
   document.getElementById('newActionTitle').value = '';
+  document.getElementById('newActionIcon').value = '';
   document.getElementById('newActionPoints').value = '';
 
   renderApp();
