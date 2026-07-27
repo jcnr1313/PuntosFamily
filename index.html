@@ -15,9 +15,7 @@
       darkMode: 'class',
       theme: {
         extend: {
-          colors: {
-            brand: '#3b82f6',
-          },
+          colors: { brand: '#3b82f6' },
           keyframes: {
             trophyBounce: {
               '0%, 100%': { transform: 'translateY(0) scale(1)' },
@@ -34,6 +32,18 @@
           }
         }
       }
+    }
+  </script>
+  <script>
+    // Configuración obligatoria de Supabase para la Nube
+    const SUPABASE_URL = 'https://dwfpellkjknjsoownvra.supabase.co'; 
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZnBlbGxramtuanNvb3dudnJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzQwMDYsImV4cCI6MjEwMDcxMDAwNn0.x75ND4DNtptpxVtf-tK2FNr_33zxhk5SF7_-sAb8-jY';
+    
+    // Inicialización de la librería Supabase
+    if (typeof supabase !== 'undefined' && SUPABASE_URL !== 'TU_SUPABASE_URL') {
+      window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } else {
+      window.supabaseClient = null;
     }
   </script>
   <style>
@@ -70,35 +80,11 @@
     </div>
   </header>
 
-  <!-- Modal de PIN para Cambio de Perfil (Padres) -->
-  <div id="profilePinModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-zinc-900 border border-zinc-800 rounded-[2rem] p-6 max-w-xs w-full text-center space-y-4 shadow-2xl">
-      <div class="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center text-2xl mx-auto border border-blue-500/20">
-        🔑
-      </div>
-      <div>
-        <h3 class="font-black text-white text-base">Perfil de Adulto</h3>
-        <p class="text-xs text-zinc-400 mt-1">Introduce el PIN de Padres para activar este perfil.</p>
-      </div>
-      <div class="flex justify-center">
-        <input id="profilePinInput" type="password" maxlength="4" placeholder="••••" class="w-36 bg-zinc-950 text-center font-mono text-2xl tracking-widest border border-zinc-800 rounded-2xl px-3 py-2.5 text-white outline-none focus:border-blue-500">
-      </div>
-      <div class="grid grid-cols-2 gap-2 pt-2">
-        <button onclick="cancelProfileSwitch()" class="py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs rounded-xl transition">
-          Cancelar
-        </button>
-        <button onclick="confirmProfileSwitch()" class="py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl transition shadow-lg shadow-blue-600/30">
-          Entrar
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Contenido Principal -->
   <main class="max-w-md mx-auto p-4 space-y-6">
 
     <!-- PESTAÑA: INICIO / CLASIFICACIÓN Y ESTADÍSTICAS -->
-    <section id="tab-home" class="space-y-4">
+    <section id="tab-home" class="space-y-4 tab-content">
       <div class="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 rounded-[2rem] p-6 text-white shadow-2xl shadow-blue-950/40 relative overflow-hidden">
         <div class="flex justify-between items-start">
           <div>
@@ -154,7 +140,7 @@
     </section>
 
     <!-- PESTAÑA: TAREAS (Ganar / Penalizaciones) -->
-    <section id="tab-tasks" class="space-y-4 hidden">
+    <section id="tab-tasks" class="space-y-4 tab-content hidden">
       <div class="grid grid-cols-2 gap-2 bg-zinc-900 p-1.5 rounded-2xl border border-zinc-800/80">
         <button id="btnTaskPositive" onclick="toggleTaskType('positive')" class="py-3 rounded-xl text-xs font-black transition-all bg-zinc-800 text-white shadow-md flex items-center justify-center gap-2">
           <span class="text-base">✨</span> Ganar Puntos
@@ -170,7 +156,7 @@
     </section>
 
     <!-- PESTAÑA: PREMIOS -->
-    <section id="tab-rewards" class="space-y-4 hidden">
+    <section id="tab-rewards" class="space-y-4 tab-content hidden">
       <div class="flex justify-between items-center px-1">
         <h2 class="font-bold text-sm text-zinc-300">Catálogo de Premios</h2>
         <span class="text-xs font-extrabold bg-amber-400/10 text-amber-400 border border-amber-400/20 px-3 py-1.5 rounded-full flex items-center gap-1" id="userPointsRewardTab">0 ⭐</span>
@@ -181,7 +167,7 @@
     </section>
 
     <!-- PESTAÑA: GESTOR (Protegido por PIN) -->
-    <section id="tab-manager" class="space-y-5 hidden">
+    <section id="tab-manager" class="space-y-5 tab-content hidden">
       
       <!-- Pantalla de Bloqueo PIN -->
       <div id="pinLockScreen" class="bg-zinc-900 rounded-[2rem] p-6 border border-zinc-800 text-center space-y-4 shadow-xl">
@@ -292,7 +278,7 @@
     </section>
 
     <!-- PESTAÑA: AJUSTES -->
-    <section id="tab-settings" class="space-y-4 hidden">
+    <section id="tab-settings" class="space-y-4 tab-content hidden">
       <h2 class="text-lg font-black text-white">Ajustes</h2>
       <div class="bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800/80 space-y-4 text-xs">
         <div class="flex justify-between items-center py-2 border-b border-zinc-800">
@@ -337,6 +323,6 @@
     </div>
   </nav>
 
-  <script src="app.js?v=10"></script>
+  <script src="app.js"></script>
 </body>
 </html>
