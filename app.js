@@ -6,6 +6,7 @@ if (window.supabase) {
   supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 }
 
+// Estado local inicial para carga instantánea
 let state = {
   currentUser: 'hijo1',
   users: {
@@ -24,18 +25,6 @@ let state = {
     { id: 3, title: 'Ir al parque / Cine', cost: 120, icon: '🍿' }
   ]
 };
-
-// Arranque seguro: Ejecuta renderAll tanto si la página ya cargó como si está cargando
-function startApp() {
-  renderAll();
-  loadFromSupabase();
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', startApp);
-} else {
-  startApp();
-}
 
 function renderAll() {
   initUserSelect();
@@ -58,26 +47,17 @@ async function loadFromSupabase() {
 
     renderAll();
   } catch (err) {
-    console.log('Usando datos locales por error de red:', err);
+    console.log('Usando datos locales por falta de red o error:', err);
   }
 }
 
 function initUserSelect() {
   const select = document.getElementById('userSelect');
-  const assigneeSelect = document.getElementById('newTaskAssignee');
-
   if (select) {
     select.innerHTML = Object.entries(state.users)
       .map(([id, u]) => `<option value="${id}">${u.name}</option>`)
       .join('');
     select.value = state.currentUser;
-  }
-
-  if (assigneeSelect) {
-    assigneeSelect.innerHTML = Object.entries(state.users)
-      .filter(([_, u]) => u.role === 'hijo')
-      .map(([id, u]) => `<option value="${id}">${u.name}</option>`)
-      .join('');
   }
 }
 
@@ -116,14 +96,11 @@ function renderApp() {
   if (roleEl) roleEl.innerText = user.role.toUpperCase();
 
   const parentBtn = document.getElementById('tabParentBtn');
-  const quickAdd = document.getElementById('quickAddContainer');
 
   if (user.role === 'padre') {
     if (parentBtn) parentBtn.classList.remove('hidden');
-    if (quickAdd) quickAdd.classList.remove('hidden');
   } else {
     if (parentBtn) parentBtn.classList.add('hidden');
-    if (quickAdd) quickAdd.classList.add('hidden');
     const parentTab = document.getElementById('parentTab');
     if (parentTab && !parentTab.classList.contains('hidden')) {
       switchTab('tasks');
@@ -273,62 +250,18 @@ async function approveTask(taskId, assignedTo, points) {
   }
 }
 
-async function quickPoints(pts) {
-  const user = state.users[state.currentUser];
-  if (user) {
-    user.points += pts;
-    renderApp();
-    if (supabaseClient) {
-      await supabaseClient.from('users').update({ points: user.points }).eq('id', user.id);
-    }
-  }
-}
-
-async function addNewTask(e) {
-  e.preventDefault();
-  const title = document.getElementById('newTaskTitle').value;
-  const points = parseInt(document.getElementById('newTaskPoints').value);
-  const assigned_to = document.getElementById('newTaskAssignee').value;
-
-  const newTask = {
-    id: Date.now(),
-    title,
-    points,
-    assigned_to,
-    status: 'pendiente',
-    category: 'Hogar'
-  };
-
-  state.tasks.push(newTask);
-  renderApp();
-
-  if (supabaseClient) {
-    await supabaseClient.from('tasks').insert([newTask]);
-  }
-
-  document.getElementById('newTaskTitle').value = '';
-  document.getElementById('newTaskPoints').value = '';
-}
-
-async function addNewReward(e) {
-  e.preventDefault();
-  const title = document.getElementById('newRewardTitle').value;
-  const cost = parseInt(document.getElementById('newRewardCost').value);
-  const icon = document.getElementById('newRewardIcon').value || '🎁';
-
-  const newReward = { id: Date.now(), title, cost, icon };
-  state.rewards.push(newReward);
-  renderApp();
-
-  if (supabaseClient) {
-    await supabaseClient.from('rewards').insert([newReward]);
-  }
-
-  document.getElementById('newRewardTitle').value = '';
-  document.getElementById('newRewardCost').value = '';
-  document.getElementById('newRewardIcon').value = '';
-}
-
 function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// Inicialización de arranque seguro
+function startApp() {
+  renderAll();
+  loadFromSupabase();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp);
+} else {
+  startApp();
 }
