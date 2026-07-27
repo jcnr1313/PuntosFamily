@@ -15,6 +15,7 @@ let isManagerUnlocked = false;
 
 let state = {
   currentUser: 'joan',
+  previousUser: 'joan',
   currentTaskFilter: 'positive',
   users: {
     'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null },
@@ -84,7 +85,6 @@ function saveLocalStorage() {
   }));
 }
 
-// Descargar la información desde Supabase
 async function fetchCloudData() {
   if (!supabaseClient) return;
   try {
@@ -95,6 +95,7 @@ async function fetchCloudData() {
           state.users[rUser.id].points = rUser.points ?? state.users[rUser.id].points;
           if (rUser.avatar) state.users[rUser.id].avatar = rUser.avatar;
           if (rUser.name) state.users[rUser.id].name = rUser.name;
+          if (rUser.role) state.users[rUser.id].role = rUser.role;
           if (rUser.streak_type) state.users[rUser.id].streakType = rUser.streak_type;
           if (rUser.streak_days) state.users[rUser.id].streakDays = rUser.streak_days;
           if (rUser.total_completed) state.users[rUser.id].totalCompleted = rUser.total_completed;
@@ -108,22 +109,21 @@ async function fetchCloudData() {
   }
 }
 
-// Sincronizar un usuario concreto a la nube
 async function syncUserToCloud(user) {
   if (!supabaseClient) return;
   try {
-    const { error } = await supabaseClient.from('users').upsert({
+    await supabaseClient.from('users').upsert({
       id: user.id,
       name: user.name,
+      role: user.role,
       avatar: user.avatar,
       points: user.points,
       streak_type: user.streakType,
       streak_days: user.streakDays,
       total_completed: user.totalCompleted
     });
-    if (error) console.error("Error al subir usuario a Supabase:", error);
   } catch (err) {
-    console.warn("Error al conectar con Supabase", err);
+    console.warn("Error al guardar en Supabase", err);
   }
 }
 
@@ -160,12 +160,31 @@ function initUserSelect() {
   }
 }
 
+// CONTROL DE CAMBIO DE USUARIO CON PIN DE SEGURIDAD
 function switchUser() {
   const select = document.getElementById('userSelect');
-  if (select) {
-    state.currentUser = select.value;
-    renderApp();
+  if (!select) return;
+
+  const targetUserId = select.value;
+  const targetUser = state.users[targetUserId];
+
+  // Si intentan cambiar a un perfil de padre, pedir PIN
+  if (targetUser && targetUser.role === 'padre') {
+    const pinEntered = prompt(`El perfil de ${targetUser.name} requiere PIN parental:`);
+    if (pinEntered === parentPin) {
+      state.previousUser = targetUserId;
+      state.currentUser = targetUserId;
+    } else {
+      if (pinEntered !== null) alert("PIN incorrecto. Acceso denegado.");
+      select.value = state.previousUser;
+      return;
+    }
+  } else {
+    state.previousUser = targetUserId;
+    state.currentUser = targetUserId;
   }
+
+  renderApp();
 }
 
 function renderApp() {
@@ -354,29 +373,49 @@ function renderTasks() {
   }).join('');
 }
 
+// CONTROL DE ASIGNACIÓN DE PUNTOS SOLO PARA PADRES
 async function applyAction(actionId) {
+  const activeUser = state.users[state.currentUser];
+
+  // Si el usuario actual es un hijo, denegar la acción
+  if (!activeUser || activeUser.role !== 'padre') {
+    alert("🔒 Solo Papá o Mamá pueden asignar o restar puntos.");
+    return;
+  }
+
   const action = state.actions.find(a => a.id === actionId);
-  const user = state.users[state.currentUser];
+  if (!action) return;
 
-  if (action && user) {
-    user.points += action.points;
-    if (user.points < 0) user.points = 0;
+  // Preguntar a qué hijo asignar los puntos
+  const targetChildId = prompt("¿A quién quieres aplicar esta tarea?\nEscribe '1' para Joan o '2' para Martina:");
+  let child = null;
 
-    user.totalCompleted = (user.totalCompleted || 0) + 1;
+  if (targetChildId === '1') child = state.users['joan'];
+  else if (targetChildId === '2') child = state.users['martina'];
+  else {
+    if (targetChildId !== null) alert("Opción no válida.");
+    return;
+  }
+
+  if (child) {
+    child.points += action.points;
+    if (child.points < 0) child.points = 0;
+
+    child.totalCompleted = (child.totalCompleted || 0) + 1;
     if (action.type === 'positive') {
-      if (user.streakType === 'positive') user.streakDays += 1;
-      else { user.streakType = 'positive'; user.streakDays = 1; }
+      if (child.streakType === 'positive') child.streakDays += 1;
+      else { child.streakType = 'positive'; child.streakDays = 1; }
     } else {
-      if (user.streakType === 'negative') user.streakDays += 1;
-      else { user.streakType = 'negative'; user.streakDays = 1; }
+      if (child.streakType === 'negative') child.streakDays += 1;
+      else { child.streakType = 'negative'; child.streakDays = 1; }
     }
 
-    const log = `${user.name}: ${action.title} (${action.points > 0 ? '+' : ''}${action.points} pts)`;
+    const log = `${activeUser.name} registró para ${child.name}: ${action.title} (${action.points > 0 ? '+' : ''}${action.points} pts)`;
     state.history.unshift(log);
 
     saveLocalStorage();
     renderApp();
-    await syncUserToCloud(user);
+    await syncUserToCloud(child);
   }
 }
 
@@ -689,7 +728,6 @@ function deleteReward(id) {
   }
 }
 
-// Modificado para sincronizar foto y nombre a la nube
 async function changeUserAvatar(userId) {
   const user = state.users[userId];
   if (!user) return;
