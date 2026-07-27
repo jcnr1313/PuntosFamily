@@ -13,36 +13,52 @@ let state = {
   currentUser: 'joan',
   currentTaskFilter: 'positive',
   users: {
-    'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0 },
-    'martina': { id: 'martina', name: 'Martina', role: 'hijo', avatar: '👧', points: 0 },
-    'papa': { id: 'papa', name: 'Papá', role: 'padre', avatar: '🧔', points: 0 },
-    'mama': { id: 'mama', name: 'Mamá', role: 'padre', avatar: '👩', points: 0 }
+    'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null },
+    'martina': { id: 'martina', name: 'Martina', role: 'hijo', avatar: '👧', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null },
+    'papa': { id: 'papa', name: 'Papá', role: 'padre', avatar: '🧔', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null },
+    'mama': { id: 'mama', name: 'Mamá', role: 'padre', avatar: '👩', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null }
   },
   actions: [
-    { id: 1, title: 'Poner la mesa', points: 15, type: 'positive', icon: '🍽️' },
-    { id: 2, title: 'Pasear al perro', points: 20, type: 'positive', icon: '🐾' },
-    { id: 3, title: 'Limpiar la habitación', points: 25, type: 'positive', icon: '🛏️' },
-    { id: 4, title: 'Deberes hechos', points: 30, type: 'positive', icon: '📖' },
-    { id: 5, title: 'Pasar la aspiradora', points: 20, type: 'positive', icon: '💨' },
-    { id: 6, title: 'Regar plantas', points: 10, type: 'positive', icon: '💧' },
-    { id: 7, title: 'Dejó las luces encendidas', points: -5, type: 'negative', icon: '⚡' },
-    { id: 8, title: 'No tiró de la cadena', points: -10, type: 'negative', icon: '⚠️' },
-    { id: 9, title: 'Llegó tarde a cenar', points: -15, type: 'negative', icon: '⏰' },
-    { id: 10, title: 'Gritar', points: -20, type: 'negative', icon: '🔊' },
-    { id: 11, title: 'Suelo desordenado', points: -10, type: 'negative', icon: '🗑️' },
-    { id: 12, title: 'Demasiada TV', points: -15, type: 'negative', icon: '📺' }
+    // Tareas Positivas
+    { id: 1, title: 'Hacer caso a la primera', points: 25, type: 'positive', icon: '✋' },
+    { id: 2, title: 'Limpiar a los animales', points: 25, type: 'positive', icon: '🦜🐹' },
+    { id: 3, title: 'Limpiar y ordenar la habitación', points: 30, type: 'positive', icon: '🏡' },
+    { id: 4, title: 'Tirar la basura', points: 10, type: 'positive', icon: '🗑️' },
+    { id: 5, title: 'Ropa recogida', points: 15, type: 'positive', icon: '👕' },
+    { id: 6, title: 'Poner la mesa', points: 15, type: 'positive', icon: '🍽️' },
+    { id: 7, title: 'Limpiar la habitación', points: 25, type: 'positive', icon: '🛏️' },
+    { id: 8, title: 'Deberes hechos', points: 30, type: 'positive', icon: '📖' },
+    { id: 9, title: 'Pasar la aspiradora', points: 20, type: 'positive', icon: '💨' },
+    { id: 10, title: 'Regar plantas', points: 10, type: 'positive', icon: '💧' },
+    
+    // Penalizaciones
+    { id: 11, title: 'No recoger el cuarto ni limpiarlo', points: -30, type: 'negative', icon: '🏡' },
+    { id: 12, title: 'No hacer caso a la primera', points: -25, type: 'negative', icon: '✋' },
+    { id: 13, title: 'Dejó las luces encendidas', points: -5, type: 'negative', icon: '⚡' },
+    { id: 14, title: 'No tiró de la cadena', points: -10, type: 'negative', icon: '⚠️' },
+    { id: 15, title: 'Llegó tarde a cenar', points: -15, type: 'negative', icon: '⏰' },
+    { id: 16, title: 'Gritar', points: -20, type: 'negative', icon: '🔊' },
+    { id: 17, title: 'Demasiada TV', points: -15, type: 'negative', icon: '📺' },
+    { id: 18, title: 'No limpiar a los animales', points: -25, type: 'negative', icon: '🦜🐹' },
+    { id: 19, title: 'No pasar la aspiradora', points: -20, type: 'negative', icon: '💨' },
+    { id: 20, title: 'No hacer los deberes', points: -30, type: 'negative', icon: '📖' },
+    { id: 21, title: 'No poner la mesa', points: -15, type: 'negative', icon: '🍽️' },
+    { id: 22, title: 'No recoger la ropa', points: -15, type: 'negative', icon: '👕' },
+    { id: 23, title: 'No tirar la basura', points: -10, type: 'negative', icon: '🗑️' }
   ],
   rewards: [
-    { id: 1, title: '30 min de Consola', cost: 50, icon: '🎮' },
-    { id: 2, title: 'Elegir la cena', cost: 80, icon: '🍕' },
-    { id: 3, title: 'Ir al parque / Cine', cost: 120, icon: '🍿' },
-    { id: 4, title: 'Día libre de tareas', cost: 150, icon: '⭐' }
+    { id: 1, title: 'Elegir la cena', cost: 80, icon: '🍕' },
+    { id: 2, title: 'Día libre de tareas', cost: 150, icon: '⭐' },
+    { id: 3, title: 'Ir al cine', cost: 350, icon: '🎬' },
+    { id: 4, title: '1h de tablet', cost: 250, icon: '📱' },
+    { id: 5, title: '1h de consola', cost: 250, icon: '🎁' },
+    { id: 6, title: '1 partida de bolos', cost: 300, icon: '🎳' }
   ],
   redemptions: [],
   history: []
 };
 
-// Helper para Renderizar Avatares
+// Helper Avatares
 function renderAvatarHtml(avatarStr, sizeClasses = "w-full h-full text-2xl") {
   if (!avatarStr) return `<span class="${sizeClasses} flex items-center justify-center">👤</span>`;
   if (avatarStr.startsWith('http://') || avatarStr.startsWith('https://') || avatarStr.startsWith('data:image')) {
@@ -95,12 +111,14 @@ function renderApp() {
   if (pointsEl) pointsEl.innerText = `${user.points} ⭐`;
 
   renderLeaderboard();
+  renderPodium();
+  renderUserStats();
   renderTasks();
   renderRewards();
   renderManagerPanel();
 }
 
-// Clasificación
+// Clasificación Animada (Líder con Copa)
 function renderLeaderboard() {
   const container = document.getElementById('leaderboardList');
   if (!container) return;
@@ -108,24 +126,124 @@ function renderLeaderboard() {
   const sorted = Object.values(state.users).sort((a, b) => b.points - a.points);
 
   container.innerHTML = sorted.map((u, index) => {
-    const posLabel = index === 0 ? '🥇 1st' : index === 1 ? '🥈 2nd' : index === 2 ? '🥉 3rd' : `${index + 1}th`;
-    const ringColor = index === 0 ? 'border-amber-400 ring-2 ring-amber-400/30' : 'border-zinc-700/80';
+    const isLeader = index === 0;
+    const posLabel = isLeader ? '🏆 LÍDER' : index === 1 ? '🥈 2º' : index === 2 ? '🥉 3º' : `${index + 1}º`;
+    const ringColor = isLeader ? 'border-amber-400 ring-4 ring-amber-400/40 animate-pulse' : 'border-zinc-700/80';
+    const leaderBg = isLeader ? 'bg-gradient-to-b from-amber-500/20 via-zinc-950 to-zinc-950 border-amber-500/50 shadow-xl shadow-amber-500/10' : 'bg-zinc-950/40 border-white/5';
 
     return `
-      <div class="flex flex-col items-center text-center bg-zinc-950/40 p-3 rounded-2xl border border-white/5 backdrop-blur-sm">
-        <div class="relative">
+      <div class="flex flex-col items-center text-center ${leaderBg} p-3 rounded-2xl border backdrop-blur-sm relative overflow-hidden">
+        ${isLeader ? `<div class="absolute top-1 right-1 text-xs animate-trophy">🏆</div>` : ''}
+        <div class="relative mt-1">
           <div class="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center border-2 ${ringColor} overflow-hidden shadow-inner">
             ${renderAvatarHtml(u.avatar, "text-3xl")}
           </div>
-          <span class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-zinc-900 text-[9px] font-black px-2 py-0.5 rounded-full border border-zinc-700 text-amber-300 shadow">
+          <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-zinc-900 text-[9px] font-black px-2 py-0.5 rounded-full border border-zinc-700 text-amber-300 shadow whitespace-nowrap">
             ${posLabel}
           </span>
         </div>
-        <p class="font-bold text-xs pt-2.5 truncate w-full text-zinc-100">${u.name}</p>
+        <p class="font-bold text-xs pt-3 truncate w-full text-zinc-100">${u.name}</p>
         <p class="text-xs font-black text-blue-200 mt-0.5">${u.points} pts</p>
       </div>
     `;
   }).join('');
+}
+
+// Podio Final de Mes
+function renderPodium() {
+  const container = document.getElementById('podiumList');
+  if (!container) return;
+
+  const sorted = Object.values(state.users).sort((a, b) => b.points - a.points);
+  const first = sorted[0];
+  const second = sorted[1];
+  const third = sorted[2];
+
+  if (!first) return;
+
+  container.innerHTML = `
+    <!-- 2º Puesto -->
+    ${second ? `
+      <div class="flex flex-col items-center">
+        <div class="w-10 h-10 rounded-full bg-zinc-900 border-2 border-slate-300 flex items-center justify-center overflow-hidden shadow-md">
+          ${renderAvatarHtml(second.avatar, "text-lg")}
+        </div>
+        <span class="text-[10px] font-extrabold text-slate-300 mt-1">${second.name}</span>
+        <div class="w-20 bg-gradient-to-t from-slate-800 to-slate-700 rounded-t-xl h-16 mt-1 flex flex-col justify-end items-center pb-2 border-t border-slate-400">
+          <span class="text-xs font-black text-white">🥈 2º</span>
+          <span class="text-[10px] font-bold text-slate-300">${second.points} pts</span>
+        </div>
+      </div>
+    ` : ''}
+
+    <!-- 1º Puesto -->
+    <div class="flex flex-col items-center">
+      <div class="relative">
+        <span class="absolute -top-3 left-1/2 -translate-x-1/2 text-base animate-trophy">👑</span>
+        <div class="w-14 h-14 rounded-full bg-amber-950/80 border-2 border-amber-400 flex items-center justify-center overflow-hidden shadow-lg shadow-amber-500/20">
+          ${renderAvatarHtml(first.avatar, "text-2xl")}
+        </div>
+      </div>
+      <span class="text-xs font-black text-amber-300 mt-1">${first.name}</span>
+      <div class="w-24 bg-gradient-to-t from-amber-600 to-amber-500 rounded-t-xl h-24 mt-1 flex flex-col justify-end items-center pb-2 border-t-2 border-amber-300 shadow-xl shadow-amber-500/20">
+        <span class="text-sm font-black text-zinc-950">🏆 1º</span>
+        <span class="text-xs font-black text-zinc-900">${first.points} pts</span>
+      </div>
+    </div>
+
+    <!-- 3º Puesto -->
+    ${third ? `
+      <div class="flex flex-col items-center">
+        <div class="w-10 h-10 rounded-full bg-zinc-900 border-2 border-amber-700 flex items-center justify-center overflow-hidden shadow-md">
+          ${renderAvatarHtml(third.avatar, "text-lg")}
+        </div>
+        <span class="text-[10px] font-extrabold text-amber-600 mt-1">${third.name}</span>
+        <div class="w-20 bg-gradient-to-t from-amber-900 to-amber-800 rounded-t-xl h-12 mt-1 flex flex-col justify-end items-center pb-2 border-t border-amber-600">
+          <span class="text-xs font-black text-white">🥉 3º</span>
+          <span class="text-[10px] font-bold text-amber-300">${third.points} pts</span>
+        </div>
+      </div>
+    ` : ''}
+  `;
+}
+
+// Estadísticas e Racha
+function renderUserStats() {
+  const container = document.getElementById('userStatsGrid');
+  const nameLabel = document.getElementById('statsUserName');
+  const user = state.users[state.currentUser];
+
+  if (!container || !user) return;
+  if (nameLabel) nameLabel.innerText = user.name;
+
+  let streakBadge = '💤 Sin Racha';
+  let streakColor = 'text-zinc-400 border-zinc-800 bg-zinc-950';
+
+  if (user.streakType === 'positive') {
+    streakBadge = `🔥 Racha Positiva (${user.streakDays} días)`;
+    streakColor = 'text-emerald-400 border-emerald-500/30 bg-emerald-950/30';
+  } else if (user.streakType === 'negative') {
+    streakBadge = `⚠️ Racha de Penalizaciones (${user.streakDays} días)`;
+    streakColor = 'text-red-400 border-red-500/30 bg-red-950/30';
+  } else if (user.streakType === 'idle') {
+    streakBadge = `💤 Sin actividad (${user.streakDays} días)`;
+    streakColor = 'text-amber-400 border-amber-500/30 bg-amber-950/30';
+  }
+
+  container.innerHTML = `
+    <div class="col-span-2 ${streakColor} p-3 rounded-2xl border flex justify-between items-center">
+      <span class="font-bold">Estado de Racha</span>
+      <span class="font-black text-xs">${streakBadge}</span>
+    </div>
+    <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800/80 flex flex-col justify-center">
+      <span class="text-zinc-500 text-[10px]">Tareas Completadas</span>
+      <span class="text-lg font-black text-white mt-0.5">${user.totalCompleted || 0}</span>
+    </div>
+    <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800/80 flex flex-col justify-center">
+      <span class="text-zinc-500 text-[10px]">Puntos Acumulados</span>
+      <span class="text-lg font-black text-amber-400 mt-0.5">${user.points} ⭐</span>
+    </div>
+  `;
 }
 
 // Tareas
@@ -151,7 +269,7 @@ function renderTasks() {
   const filtered = state.actions.filter(a => a.type === state.currentTaskFilter);
 
   if (filtered.length === 0) {
-    container.innerHTML = `<p class="col-span-2 text-center text-xs text-zinc-500 py-6">No hay tareas en esta sección.</p>`;
+    container.innerHTML = `<p class="col-span-2 text-center text-xs text-zinc-500 py-6">No hay tareas creadas.</p>`;
     return;
   }
 
@@ -182,6 +300,16 @@ async function applyAction(actionId) {
     user.points += action.points;
     if (user.points < 0) user.points = 0;
 
+    // Actualizar Racha y Métricas
+    user.totalCompleted = (user.totalCompleted || 0) + 1;
+    if (action.type === 'positive') {
+      if (user.streakType === 'positive') user.streakDays += 1;
+      else { user.streakType = 'positive'; user.streakDays = 1; }
+    } else {
+      if (user.streakType === 'negative') user.streakDays += 1;
+      else { user.streakType = 'negative'; user.streakDays = 1; }
+    }
+
     const log = `${user.name}: ${action.title} (${action.points > 0 ? '+' : ''}${action.points} pts)`;
     state.history.unshift(log);
 
@@ -202,7 +330,7 @@ function updateActivityLog() {
   if (countEl) countEl.innerText = state.history.length;
 
   if (state.history.length === 0) {
-    container.innerHTML = 'Aún no hay movimientos esta semana.';
+    container.innerHTML = 'Aún no hay movimientos este mes.';
     return;
   }
 
@@ -281,7 +409,7 @@ function unlockManager() {
     document.getElementById('pinInput').value = '';
     renderManagerPanel();
   } else {
-    alert("PIN incorrecto. Inténtalo de nuevo.");
+    alert("PIN incorrecto.");
     document.getElementById('pinInput').value = '';
   }
 }
@@ -298,7 +426,7 @@ function changePinPrompt() {
     const newPin = prompt("Introduce el nuevo PIN de 4 dígitos:");
     if (newPin && newPin.length === 4) {
       parentPin = newPin;
-      alert("¡PIN actualizado con éxito!");
+      alert("¡PIN actualizado!");
     } else {
       alert("El PIN debe tener 4 dígitos.");
     }
@@ -307,18 +435,18 @@ function changePinPrompt() {
   }
 }
 
-// PANEL DE GESTOR
+// PANEL DE GESTOR COMPLETO
 function renderManagerPanel() {
   if (!isManagerUnlocked) return;
 
-  // 1. Histórico de Canjes
+  // Histórico de Canjes
   const redemptionsContainer = document.getElementById('redemptionsList');
   const redemptionsCount = document.getElementById('redemptionsCount');
   if (redemptionsContainer) {
     if (redemptionsCount) redemptionsCount.innerText = state.redemptions.length;
 
     if (state.redemptions.length === 0) {
-      redemptionsContainer.innerHTML = `<p class="text-center text-xs text-zinc-500 py-3">No hay canjes registrados aún.</p>`;
+      redemptionsContainer.innerHTML = `<p class="text-center text-xs text-zinc-500 py-3">No hay canjes este mes.</p>`;
     } else {
       redemptionsContainer.innerHTML = state.redemptions.map(item => `
         <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between gap-2">
@@ -337,7 +465,7 @@ function renderManagerPanel() {
     }
   }
 
-  // 2. Personalizar Avatares
+  // Personalizar Avatares
   const avatarContainer = document.getElementById('avatarCustomizerList');
   if (avatarContainer) {
     avatarContainer.innerHTML = Object.values(state.users).map(u => `
@@ -355,7 +483,7 @@ function renderManagerPanel() {
     `).join('');
   }
 
-  // 3. Control rápido de puntos
+  // Control rápido de puntos
   const pointsContainer = document.getElementById('manualPointsControl');
   if (pointsContainer) {
     const kids = Object.values(state.users).filter(u => u.role === 'hijo');
@@ -378,22 +506,23 @@ function renderManagerPanel() {
     `).join('');
   }
 
-  // 4. Administrar Premios Existentes (Edición de Icono + Eliminación)
+  // Editar Catálogo de Premios (Texto + Puntos + Emoji + Borrar)
   const rewardsContainer = document.getElementById('manageRewardsList');
   if (rewardsContainer) {
     rewardsContainer.innerHTML = state.rewards.map(r => `
-      <div class="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800/80 flex justify-between items-center">
-        <div class="flex items-center gap-2.5">
-          <button onclick="changeRewardIcon(${r.id})" title="Cambiar emoji" class="text-xl hover:scale-110 transition bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">
-            ${r.icon || '🎁'}
-          </button>
-          <span class="text-xs text-zinc-200 font-medium">${r.title} (${r.cost} ⭐)</span>
+      <div class="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800/80 flex justify-between items-center gap-2">
+        <div class="flex items-center gap-2 truncate">
+          <span class="text-xl bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">${r.icon || '🎁'}</span>
+          <div class="truncate">
+            <p class="text-xs text-zinc-100 font-bold truncate">${r.title}</p>
+            <p class="text-[10px] text-amber-400 font-bold">${r.cost} ⭐</p>
+          </div>
         </div>
-        <div class="flex items-center gap-1.5">
-          <button onclick="changeRewardIcon(${r.id})" class="text-[11px] text-amber-400 hover:bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20 transition font-bold">
-            Emoji
+        <div class="flex items-center gap-1">
+          <button onclick="editReward(${r.id})" class="text-[11px] text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1.5 rounded-lg border border-amber-500/20 font-bold">
+            ✏️ Editar
           </button>
-          <button onclick="deleteReward(${r.id})" class="text-[11px] text-red-400 hover:bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20 transition font-bold">
+          <button onclick="deleteReward(${r.id})" class="text-[11px] text-red-400 bg-red-500/10 hover:bg-red-500/20 px-2.5 py-1.5 rounded-lg border border-red-500/20 font-bold">
             🗑️
           </button>
         </div>
@@ -401,22 +530,23 @@ function renderManagerPanel() {
     `).join('');
   }
 
-  // 5. Administrar Tareas Existentes (Edición de Icono + Eliminación)
+  // Editar Tareas y Penalizaciones (Texto + Puntos + Emoji + Borrar)
   const actionsContainer = document.getElementById('manageActionsList');
   if (actionsContainer) {
     actionsContainer.innerHTML = state.actions.map(a => `
-      <div class="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800/80 flex justify-between items-center">
-        <div class="flex items-center gap-2.5">
-          <button onclick="changeActionIcon(${a.id})" title="Cambiar emoji" class="text-xl hover:scale-110 transition bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">
-            ${a.icon || '📌'}
-          </button>
-          <span class="text-xs text-zinc-200 font-medium">${a.title} (${a.points > 0 ? '+' : ''}${a.points} pts)</span>
+      <div class="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800/80 flex justify-between items-center gap-2">
+        <div class="flex items-center gap-2 truncate">
+          <span class="text-xl bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">${a.icon || '📌'}</span>
+          <div class="truncate">
+            <p class="text-xs text-zinc-100 font-bold truncate">${a.title}</p>
+            <p class="text-[10px] ${a.points > 0 ? 'text-emerald-400' : 'text-red-400'} font-bold">${a.points > 0 ? '+' : ''}${a.points} pts</p>
+          </div>
         </div>
-        <div class="flex items-center gap-1.5">
-          <button onclick="changeActionIcon(${a.id})" class="text-[11px] text-blue-400 hover:bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-500/20 transition font-bold">
-            Emoji
+        <div class="flex items-center gap-1">
+          <button onclick="editAction(${a.id})" class="text-[11px] text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1.5 rounded-lg border border-blue-500/20 font-bold">
+            ✏️ Editar
           </button>
-          <button onclick="deleteAction(${a.id})" class="text-[11px] text-red-400 hover:bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20 transition font-bold">
+          <button onclick="deleteAction(${a.id})" class="text-[11px] text-red-400 bg-red-500/10 hover:bg-red-500/20 px-2.5 py-1.5 rounded-lg border border-red-500/20 font-bold">
             🗑️
           </button>
         </div>
@@ -425,28 +555,46 @@ function renderManagerPanel() {
   }
 }
 
-// Cambiar icono de premio
-function changeRewardIcon(rewardId) {
+// Editar Premio Completo
+function editReward(rewardId) {
   const reward = state.rewards.find(r => r.id === rewardId);
   if (!reward) return;
 
-  const newIcon = prompt(`Introduce el nuevo emoji para el premio "${reward.title}":`, reward.icon || '🎁');
-  if (newIcon !== null && newIcon.trim() !== '') {
-    reward.icon = newIcon.trim();
-    renderApp();
-  }
+  const newTitle = prompt("Nuevo nombre del premio:", reward.title);
+  if (newTitle === null || newTitle.trim() === "") return;
+
+  const newCostStr = prompt("Nuevos puntos necesarios:", reward.cost);
+  if (newCostStr === null || isNaN(parseInt(newCostStr))) return;
+
+  const newIcon = prompt("Nuevo emoji:", reward.icon || '🎁');
+
+  reward.title = newTitle.trim();
+  reward.cost = Math.abs(parseInt(newCostStr));
+  if (newIcon && newIcon.trim() !== "") reward.icon = newIcon.trim();
+
+  renderApp();
 }
 
-// Cambiar icono de tarea
-function changeActionIcon(actionId) {
+// Editar Tarea/Penalización Completa
+function editAction(actionId) {
   const action = state.actions.find(a => a.id === actionId);
   if (!action) return;
 
-  const newIcon = prompt(`Introduce el nuevo emoji para "${action.title}":`, action.icon || '⭐');
-  if (newIcon !== null && newIcon.trim() !== '') {
-    action.icon = newIcon.trim();
-    renderApp();
-  }
+  const newTitle = prompt("Nuevo nombre de la tarea/penalización:", action.title);
+  if (newTitle === null || newTitle.trim() === "") return;
+
+  const newPointsStr = prompt("Nuevos puntos (usa signo - si es penalización):", action.points);
+  if (newPointsStr === null || isNaN(parseInt(newPointsStr))) return;
+
+  const newIcon = prompt("Nuevo emoji:", action.icon || '⭐');
+
+  const pts = parseInt(newPointsStr);
+  action.title = newTitle.trim();
+  action.points = pts;
+  action.type = pts < 0 ? 'negative' : 'positive';
+  if (newIcon && newIcon.trim() !== "") action.icon = newIcon.trim();
+
+  renderApp();
 }
 
 function addNewReward() {
@@ -455,7 +603,7 @@ function addNewReward() {
   const cost = parseInt(document.getElementById('newRewardCost').value);
 
   if (!title || isNaN(cost) || cost <= 0) {
-    alert("Por favor introduce un nombre válido y los puntos necesarios.");
+    alert("Introduce un nombre y los puntos válidos.");
     return;
   }
 
@@ -474,7 +622,7 @@ function addNewReward() {
 }
 
 function deleteReward(id) {
-  if (confirm("¿Estás seguro de eliminar este premio del catálogo?")) {
+  if (confirm("¿Seguro de eliminar este premio?")) {
     state.rewards = state.rewards.filter(r => r.id !== id);
     renderApp();
   }
@@ -484,7 +632,7 @@ function changeUserAvatar(userId) {
   const user = state.users[userId];
   if (!user) return;
 
-  const input = prompt(`Cambiar avatar de ${user.name}.\nPuedes escribir un emoji (ej: 🦸‍♂️) o pegar el enlace/URL de una imagen:`, user.avatar);
+  const input = prompt(`Cambiar avatar de ${user.name}.\nPuedes escribir un emoji o pegar una URL de foto:`, user.avatar);
   
   if (input !== null && input.trim() !== '') {
     user.avatar = input.trim();
@@ -507,7 +655,7 @@ async function modifyPoints(userId, delta) {
 }
 
 function deleteAction(id) {
-  if (confirm("¿Estás seguro de que quieres eliminar esta tarea/penalización?")) {
+  if (confirm("¿Seguro de eliminar esta tarea?")) {
     state.actions = state.actions.filter(a => a.id !== id);
     renderApp();
   }
@@ -523,15 +671,14 @@ function addNewAction() {
 
   const finalPoints = type === 'negative' ? -Math.abs(points) : Math.abs(points);
 
-  const newObj = {
+  state.actions.unshift({
     id: Date.now(),
     title,
     points: finalPoints,
     type,
     icon
-  };
+  });
 
-  state.actions.unshift(newObj);
   document.getElementById('newActionTitle').value = '';
   document.getElementById('newActionIcon').value = '';
   document.getElementById('newActionPoints').value = '';
@@ -539,10 +686,16 @@ function addNewAction() {
   renderApp();
 }
 
-function resetWeeklyPoints() {
-  if (confirm("¿Reiniciar la puntuación de la semana a 0 para todos?")) {
-    Object.keys(state.users).forEach(k => state.users[k].points = 0);
+function resetMonthlyPoints() {
+  if (confirm("¿Reiniciar la puntuación mensual a 0 para todos?")) {
+    Object.keys(state.users).forEach(k => {
+      state.users[k].points = 0;
+      state.users[k].streakDays = 0;
+      state.users[k].streakType = 'none';
+      state.users[k].totalCompleted = 0;
+    });
     state.history = [];
+    state.redemptions = [];
     renderApp();
     updateActivityLog();
   }
