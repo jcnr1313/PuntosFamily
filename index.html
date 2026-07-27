@@ -17,6 +17,20 @@
         extend: {
           colors: {
             brand: '#3b82f6',
+          },
+          keyframes: {
+            trophyBounce: {
+              '0%, 100%': { transform: 'translateY(0) scale(1)' },
+              '50%': { transform: 'translateY(-6px) scale(1.15)' }
+            },
+            glowPulse: {
+              '0%, 100%': { opacity: '0.6' },
+              '50%': { opacity: '1' }
+            }
+          },
+          animation: {
+            trophy: 'trophyBounce 2s infinite ease-in-out',
+            glow: 'glowPulse 2s infinite ease-in-out'
           }
         }
       }
@@ -33,7 +47,7 @@
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen pb-28 font-sans antialiased selection:bg-blue-500 selection:text-white">
 
-  <!-- Header Pro -->
+  <!-- Header -->
   <header class="p-4 bg-zinc-900/90 backdrop-blur-2xl border-b border-zinc-800/80 sticky top-0 z-40">
     <div class="max-w-md mx-auto flex justify-between items-center">
       <div>
@@ -59,18 +73,44 @@
   <!-- Contenido Principal -->
   <main class="max-w-md mx-auto p-4 space-y-6">
 
-    <!-- PESTAÑA: INICIO / CLASIFICACIÓN -->
+    <!-- PESTAÑA: INICIO / CLASIFICACIÓN Y ESTADÍSTICAS -->
     <section id="tab-home" class="space-y-4">
       <div class="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 rounded-[2rem] p-6 text-white shadow-2xl shadow-blue-950/40 relative overflow-hidden">
         <div class="flex justify-between items-start">
           <div>
-            <span class="text-[10px] uppercase tracking-widest font-black bg-white/20 px-3 py-1 rounded-full backdrop-blur-md">Ranking Semanal</span>
-            <h2 class="text-2xl font-black tracking-tight mt-2">Clasificación</h2>
+            <span class="text-[10px] uppercase tracking-widest font-black bg-white/20 px-3 py-1 rounded-full backdrop-blur-md">Ranking Mensual</span>
+            <h2 class="text-2xl font-black tracking-tight mt-2">Clasificación del Mes</h2>
           </div>
-          <span class="text-5xl drop-shadow-md">🏆</span>
+          <span class="text-5xl animate-trophy drop-shadow-lg">🏆</span>
         </div>
 
         <div id="leaderboardList" class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6">
+          <!-- Dinámico -->
+        </div>
+      </div>
+
+      <!-- Podio Final de Mes -->
+      <div class="bg-zinc-900/90 rounded-[2rem] p-5 border border-amber-500/30 space-y-3 shadow-lg relative overflow-hidden">
+        <div class="flex justify-between items-center">
+          <h3 class="font-bold text-sm text-amber-400 flex items-center gap-2">
+            <span>🏛️</span> Podio Final de Mes
+          </h3>
+          <span class="text-[10px] font-black bg-amber-400/10 text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-400/20">Cierre Mensual</span>
+        </div>
+        <div id="podiumList" class="flex justify-center items-end gap-3 pt-2 pb-1">
+          <!-- Dinámico -->
+        </div>
+      </div>
+
+      <!-- Estadísticas y Racha del Usuario Seleccionado -->
+      <div class="bg-zinc-900/90 rounded-[2rem] p-5 border border-zinc-800/80 space-y-3 shadow-lg">
+        <div class="flex justify-between items-center">
+          <h3 class="font-bold text-sm text-zinc-200 flex items-center gap-2">
+            <span>📊</span> Estadísticas y Racha
+          </h3>
+          <span id="statsUserName" class="text-xs font-black text-blue-400"></span>
+        </div>
+        <div id="userStatsGrid" class="grid grid-cols-2 gap-2 text-xs">
           <!-- Dinámico -->
         </div>
       </div>
@@ -84,14 +124,13 @@
           <span id="activityCount" class="text-xs font-black bg-zinc-800 text-zinc-400 px-2.5 py-0.5 rounded-full">0</span>
         </div>
         <div id="activityList" class="space-y-2 text-xs text-zinc-500 text-center py-4">
-          Aún no hay movimientos esta semana.
+          Aún no hay movimientos este mes.
         </div>
       </div>
     </section>
 
     <!-- PESTAÑA: TAREAS (Ganar / Penalizaciones) -->
     <section id="tab-tasks" class="space-y-4 hidden">
-      <!-- Selector Ganar / Penalización -->
       <div class="grid grid-cols-2 gap-2 bg-zinc-900 p-1.5 rounded-2xl border border-zinc-800/80">
         <button id="btnTaskPositive" onclick="toggleTaskType('positive')" class="py-3 rounded-xl text-xs font-black transition-all bg-zinc-800 text-white shadow-md flex items-center justify-center gap-2">
           <span class="text-base">✨</span> Ganar Puntos
@@ -101,7 +140,6 @@
         </button>
       </div>
 
-      <!-- Grid Tareas -->
       <div id="tasksGrid" class="grid grid-cols-2 gap-3.5">
         <!-- Dinámico -->
       </div>
@@ -138,12 +176,12 @@
         </button>
       </div>
 
-      <!-- Contenido Gestor (Oculto hasta PIN correcto) -->
+      <!-- Contenido Gestor -->
       <div id="pinUnlockedContent" class="space-y-5 hidden">
         <div class="flex justify-between items-center">
           <div>
             <h2 class="text-lg font-black text-white">Gestor Familiar</h2>
-            <p class="text-xs text-zinc-400">Personaliza avatares, ajusta puntos, tareas y premios.</p>
+            <p class="text-xs text-zinc-400">Edita títulos, puntos, avatares y catálogo completo.</p>
           </div>
           <button onclick="lockManager()" class="text-xs font-bold text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-xl">🔒 Bloquear</button>
         </div>
@@ -177,22 +215,21 @@
           </div>
         </div>
 
-        <!-- Gestión de Premios / Catálogo -->
+        <!-- Gestión de Premios / Catálogo Completo -->
         <div class="bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800/80 space-y-4">
-          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-400">Administrar Premios del Catálogo</h3>
+          <h3 class="font-bold text-xs uppercase tracking-wider text-amber-400">Editar Catálogo de Premios</h3>
           
-          <!-- Lista de Premios con cambio de Icono y Borrar -->
-          <div id="manageRewardsList" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <div id="manageRewardsList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
             <!-- Dinámico -->
           </div>
 
           <!-- Crear Nuevo Premio -->
-          <div class="pt-2 border-t border-zinc-800 space-y-2">
+          <div class="pt-3 border-t border-zinc-800 space-y-2">
             <p class="text-xs font-bold text-zinc-300">Añadir Nuevo Premio</p>
-            <input id="newRewardTitle" type="text" placeholder="Ej: Salir al cine" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500">
+            <input id="newRewardTitle" type="text" placeholder="Ej: Ir a los bolos" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500">
             <div class="flex gap-2">
-              <input id="newRewardIcon" type="text" placeholder="Emoji (ej: 🎬)" class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500">
-              <input id="newRewardCost" type="number" placeholder="Puntos (ej: 100)" class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500">
+              <input id="newRewardIcon" type="text" placeholder="Emoji (ej: 🎳)" class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500">
+              <input id="newRewardCost" type="number" placeholder="Puntos (ej: 300)" class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500">
             </div>
             <button onclick="addNewReward()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-extrabold rounded-xl transition shadow-lg shadow-amber-500/20">
               + Añadir Premio
@@ -200,10 +237,10 @@
           </div>
         </div>
 
-        <!-- Administración de Tareas -->
+        <!-- Administración de Tareas y Penalizaciones -->
         <div class="bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800/80 space-y-3">
-          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-400">Administrar Tareas Existentes</h3>
-          <div id="manageActionsList" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-blue-400">Editar Tareas y Penalizaciones</h3>
+          <div id="manageActionsList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
             <!-- Dinámico -->
           </div>
         </div>
@@ -239,18 +276,18 @@
           <button onclick="changePinPrompt()" class="text-blue-400 font-bold hover:underline">Cambiar PIN</button>
         </div>
         <div class="flex justify-between items-center py-2 border-b border-zinc-800">
-          <span class="text-zinc-300 font-medium">Reinicio Semanal</span>
-          <span class="text-emerald-400 font-bold">Activado</span>
+          <span class="text-zinc-300 font-medium">Ciclo de Puntos</span>
+          <span class="text-blue-400 font-bold">Mensual</span>
         </div>
-        <button onclick="resetWeeklyPoints()" class="w-full py-3 bg-red-500/10 border border-red-500/20 text-red-400 font-extrabold rounded-xl hover:bg-red-500/20 transition">
-          Reiniciar Puntos Semanales a 0
+        <button onclick="resetMonthlyPoints()" class="w-full py-3 bg-red-500/10 border border-red-500/20 text-red-400 font-extrabold rounded-xl hover:bg-red-500/20 transition">
+          Reiniciar Puntos Mensuales a 0
         </button>
       </div>
     </section>
 
   </main>
 
-  <!-- Navegación Inferior Estilo App -->
+  <!-- Navegación Inferior -->
   <nav class="fixed bottom-0 left-0 right-0 bg-zinc-900/90 backdrop-blur-2xl border-t border-zinc-800/80 p-2 z-50">
     <div class="max-w-md mx-auto grid grid-cols-5 gap-1 text-center">
       <button onclick="setActiveTab('home')" id="nav-home" class="flex flex-col items-center py-1.5 text-blue-500 font-bold">
@@ -276,6 +313,6 @@
     </div>
   </nav>
 
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>
