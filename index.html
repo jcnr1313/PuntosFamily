@@ -133,6 +133,158 @@
       </div>
     </section>
 
+    <!-- PESTAÑA: ARCADE / MINIJUEGOS Y GUÍA -->
+    <section id="tab-arcade" class="space-y-6 tab-content hidden">
+
+      <!-- GUÍA Y EXPLICACIÓN DE RECOMPENSAS / MISIONES / JEFE FINAL -->
+      <div class="bg-zinc-900/90 rounded-[2rem] p-6 border border-zinc-800/80 space-y-6 shadow-xl">
+
+        <!-- Cabecera -->
+        <div class="border-b border-zinc-800 pb-3">
+          <h2 class="text-2xl font-black text-amber-400 flex items-center gap-2">
+            🏆 GUÍA Y RECOMPENSAS 🏆
+          </h2>
+          <p class="text-zinc-400 text-xs mt-1">
+            Aprende cómo ganar puntos, vencer al Jefe Final y divertirte en los minijuegos.
+          </p>
+        </div>
+
+        <!-- 1. Misiones -->
+        <div>
+          <h3 class="text-sm font-black text-emerald-400 mb-2 flex items-center gap-1.5 uppercase tracking-wider">
+            📜 1. Misiones y Tareas
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
+              <h4 class="font-bold text-emerald-300">☀️ Misiones Diarias</h4>
+              <p class="text-zinc-400 text-[11px] my-1">Tareas de rutina cotidiana (hacer la cama, recoger, estudiar).</p>
+              <span class="inline-block bg-emerald-500/10 text-emerald-400 font-extrabold text-[10px] px-2 py-0.5 rounded-md border border-emerald-500/20">+10 a +30 Pts</span>
+            </div>
+
+            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
+              <h4 class="font-bold text-blue-300">🗓️ Misiones Semanales</h4>
+              <p class="text-zinc-400 text-[11px] my-1">Desafíos que requieren constancia continua durante la semana.</p>
+              <span class="inline-block bg-blue-500/10 text-blue-400 font-extrabold text-[10px] px-2 py-0.5 rounded-md border border-blue-500/20">+100 Pts + Medalla</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Jefe Final -->
+        <div class="bg-gradient-to-br from-red-950/60 via-zinc-950 to-zinc-950 p-4 rounded-2xl border border-red-500/40">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-sm font-black text-red-400 flex items-center gap-1.5 uppercase tracking-wider">
+              👾 2. El Jefe Final (Boss Fight)
+            </h3>
+            <span class="bg-red-500/20 text-red-300 font-bold text-[10px] px-2 py-0.5 rounded-full border border-red-500/30">Familiar</span>
+          </div>
+          <p class="text-xs text-zinc-300 mb-2">
+            Un desafío cooperativo semanal con una gran barra de vida (HP) que solo podréis vencer juntos.
+          </p>
+          <div class="bg-zinc-900/90 p-3 rounded-xl text-[11px] text-zinc-400 space-y-1.5 border border-zinc-800">
+            <p>• <strong>¿Cómo atacar?</strong> Cada tarea o misión completada le resta HP al Jefe Final.</p>
+            <p>• <strong>Objetivo:</strong> Reducir su vida a 0 antes del domingo por la noche.</p>
+            <p>• <strong>🏆 Gran Premio:</strong> Recompensa grupal (cine, cena especial o súper lote de puntos).</p>
+          </div>
+        </div>
+
+        <!-- 3. Minijuegos Info -->
+        <div>
+          <h3 class="text-sm font-black text-amber-400 mb-2 flex items-center gap-1.5 uppercase tracking-wider">
+            🎮 3. Reglas de los Minijuegos
+          </h3>
+          <p class="text-xs text-zinc-400 mb-3">Arriesga tus puntos acumulados para multiplicar tu saldo o ganar insignias y emojis.</p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-blue-400">🎲 Dado Misterioso</span>
+                <span class="text-[10px] font-black bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full">10 Pts</span>
+              </div>
+              <p class="text-zinc-400 text-[11px]">Sacas 6 = +50 Pts + Emoji 🎲. Sacas 4/5 = +20 Pts. Sacas 1-3 = Medalla 🛡️.</p>
+            </div>
+
+            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-purple-400">🎡 Ruleta Suerte</span>
+                <span class="text-[10px] font-black bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded-full">15 Pts</span>
+              </div>
+              <p class="text-zinc-400 text-[11px]">Bote = +100 Pts 💰. Épica = Medalla 💎. Casilla Puntos = +30 Pts.</p>
+            </div>
+
+            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-indigo-400">🎟️ Rasca y Gana</span>
+                <span class="text-[10px] font-black bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full">20 Pts</span>
+              </div>
+              <p class="text-zinc-400 text-[11px]">Común (60%) = +10 Pts. Raro (30%) = +50 Pts. Épico (9%) = Emoji 🦄. Legendario (1%) = +200 Pts.</p>
+            </div>
+
+            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-amber-400">🎰 Tragaperras</span>
+                <span class="text-[10px] font-black bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full">25 Pts</span>
+              </div>
+              <p class="text-zinc-400 text-[11px]">👑 👑 👑 = Jackpot (+300 Pts + Emoji 👑). Tres Iguales = +75 Pts.</p>
+            </div>
+
+            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 sm:col-span-2">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-emerald-400">📦 Cajas Sorpresa</span>
+                <span class="text-[10px] font-black bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full">30 Pts</span>
+              </div>
+              <p class="text-zinc-400 text-[11px]">Bronce = 15 Pts + Sticker 🎁 | Plata = Emoji Rayo ⚡ | Oro = +150 Pts 🏆</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BOTONERA DE JUEGO INTERACTIVA (ARCADE) -->
+      <div class="bg-zinc-900/90 rounded-[2rem] p-6 border border-zinc-800/80 space-y-4 shadow-xl">
+        <h3 class="text-base font-black text-white flex items-center justify-between">
+          <span>🎮 JUGAR AHORA</span>
+          <span class="text-xs font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-full" id="userPointsArcadeTab">0 Pts</span>
+        </h3>
+
+        <!-- Mensaje de Resultado -->
+        <div id="resultado-juego" class="hidden p-4 rounded-2xl text-center font-bold text-xs transition-all shadow-md"></div>
+
+        <!-- Botones de Acción -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <button onclick="jugar('dado')" class="p-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-blue-600/20 active:scale-95 transition">
+            <span class="text-2xl">🎲</span>
+            <span class="text-xs">Dado</span>
+            <span class="text-[10px] font-medium opacity-80">10 Pts</span>
+          </button>
+
+          <button onclick="jugar('ruleta')" class="p-3.5 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-purple-600/20 active:scale-95 transition">
+            <span class="text-2xl">🎡</span>
+            <span class="text-xs">Ruleta</span>
+            <span class="text-[10px] font-medium opacity-80">15 Pts</span>
+          </button>
+
+          <button onclick="jugar('rasca')" class="p-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-indigo-600/20 active:scale-95 transition">
+            <span class="text-2xl">🎟️</span>
+            <span class="text-xs">Rasca</span>
+            <span class="text-[10px] font-medium opacity-80">20 Pts</span>
+          </button>
+
+          <button onclick="jugar('slots')" class="p-3.5 bg-amber-600 hover:bg-amber-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-amber-600/20 active:scale-95 transition">
+            <span class="text-2xl">🎰</span>
+            <span class="text-xs">Slots</span>
+            <span class="text-[10px] font-medium opacity-80">25 Pts</span>
+          </button>
+
+          <button onclick="jugar('caja')" class="p-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-emerald-600/20 active:scale-95 transition sm:col-span-2">
+            <span class="text-2xl">📦</span>
+            <span class="text-xs">Caja Sorpresa</span>
+            <span class="text-[10px] font-medium opacity-80">30 Pts</span>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
     <!-- PESTAÑA: TAREAS (Ganar / Penalizaciones) -->
     <section id="tab-tasks" class="space-y-4 tab-content hidden">
       <div class="grid grid-cols-2 gap-2 bg-zinc-900 p-1.5 rounded-2xl border border-zinc-800/80">
@@ -291,28 +443,32 @@
 
   </main>
 
-  <!-- Navegación Inferior -->
+  <!-- Navegación Inferior (6 Pestañas) -->
   <nav class="fixed bottom-0 left-0 right-0 bg-zinc-900/90 backdrop-blur-2xl border-t border-zinc-800/80 p-2 z-50">
-    <div class="max-w-md mx-auto grid grid-cols-5 gap-1 text-center">
+    <div class="max-w-md mx-auto grid grid-cols-6 gap-0.5 text-center">
       <button onclick="setActiveTab('home')" id="nav-home" class="flex flex-col items-center py-1.5 text-blue-500 font-bold">
-        <span class="text-2xl">🏠</span>
-        <span class="text-[10px]">Inicio</span>
+        <span class="text-xl">🏠</span>
+        <span class="text-[9px]">Inicio</span>
+      </button>
+      <button onclick="setActiveTab('arcade')" id="nav-arcade" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium">
+        <span class="text-xl">🎮</span>
+        <span class="text-[9px]">Arcade</span>
       </button>
       <button onclick="setActiveTab('tasks')" id="nav-tasks" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium">
-        <span class="text-2xl">📋</span>
-        <span class="text-[10px]">Tareas</span>
+        <span class="text-xl">📋</span>
+        <span class="text-[9px]">Tareas</span>
       </button>
       <button onclick="setActiveTab('rewards')" id="nav-rewards" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium">
-        <span class="text-2xl">🎁</span>
-        <span class="text-[10px]">Premios</span>
+        <span class="text-xl">🎁</span>
+        <span class="text-[9px]">Premios</span>
       </button>
       <button onclick="setActiveTab('manager')" id="nav-manager" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium">
-        <span class="text-2xl">🎛️</span>
-        <span class="text-[10px]">Gestor</span>
+        <span class="text-xl">🎛️</span>
+        <span class="text-[9px]">Gestor</span>
       </button>
       <button onclick="setActiveTab('settings')" id="nav-settings" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium">
-        <span class="text-2xl">⚙️</span>
-        <span class="text-[10px]">Ajustes</span>
+        <span class="text-xl">⚙️</span>
+        <span class="text-[9px]">Ajustes</span>
       </button>
     </div>
   </nav>
