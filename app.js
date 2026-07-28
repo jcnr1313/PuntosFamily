@@ -438,7 +438,7 @@ async function spinRoulette() {
   renderApp();
 }
 
-// --- NUEVA SECCIÓN DEDICADA EXCLUSIVAMENTE A MINIJUEGOS ---
+// --- SECCIÓN DEDICADA A MINIJUEGOS ---
 function renderMinigamesSection() {
   let container = document.getElementById('tab-minigames');
   if (!container) return;
@@ -472,7 +472,7 @@ function renderMinigamesSection() {
         </button>
       </div>
 
-      <!-- 2. DADO DE LA SUERTE (NUEVO) -->
+      <!-- 2. DADO DE LA SUERTE -->
       <div class="bg-zinc-900 p-4 rounded-3xl border border-blue-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🎲</div>
         <h3 class="text-sm font-black text-blue-300">Dado de la Suerte</h3>
@@ -484,7 +484,7 @@ function renderMinigamesSection() {
         </button>
       </div>
 
-      <!-- 3. COFRES DEL TESORO (NUEVO) -->
+      <!-- 3. COFRES MISTERIOSOS -->
       <div class="bg-zinc-900 p-4 rounded-3xl border border-emerald-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🧰</div>
         <h3 class="text-sm font-black text-emerald-300">Cofres Misteriosos</h3>
@@ -521,7 +521,7 @@ function renderMinigamesSection() {
   `;
 }
 
-// --- FUNCIONES DE LOS NUEVOS MINIJUEGOS ---
+// --- FUNCIONES DE MINIJUEGOS ---
 
 // Lanzar Dado
 async function playDiceRoll() {
@@ -533,10 +533,10 @@ async function playDiceRoll() {
   const roll = Math.floor(Math.random() * 6) + 1;
   let wonPts = 0;
 
-  if (roll === 6) wonPts = 30; // Jackpot
+  if (roll === 6) wonPts = 30;
   else if (roll === 5) wonPts = 15;
-  else if (roll === 4 || roll === 3) wonPts = 5; // Recupera lo invertido
-  else wonPts = 0; // Sacó 1 o 2
+  else if (roll === 4 || roll === 3) wonPts = 5;
+  else wonPts = 0;
 
   if (wonPts > 0) user.points += wonPts;
 
@@ -607,8 +607,6 @@ function renderRouletteBanner() {
     </div>
   `;
 }
-
-// --- RENDERS DE LAS DEMÁS FUNCIONES ---
 
 // Banner Doble XP
 function renderDoubleXpBanner() {
