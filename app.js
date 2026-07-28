@@ -40,9 +40,9 @@ let state = {
   parentPin: '1234',
   currentTaskFilter: 'positive',
   lootboxCost: 30,
-  doubleXpActive: false, // Nuevo: Evento 2x Puntos
-  dailyQuest: { title: 'Haz 2 tareas hoy', rewardPts: 15, date: null, completedBy: [] }, // Nuevo: Misión diaria
-  familyGoal: { title: '👾 El Dragón de la Desorden (Meta Familiar)', targetPoints: 500 },
+  doubleXpActive: false,
+  dailyQuest: { title: 'Haz 2 tareas hoy', rewardPts: 15, date: null, completedBy: [] },
+  familyGoal: { title: '👾 El Dragón del Desorden (Meta Familiar)', targetPoints: 500 },
   users: {
     'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
     'martina': { id: 'martina', name: 'Martina', role: 'hijo', avatar: '👧', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
@@ -349,7 +349,7 @@ function renderAvatarHtml(avatarStr, sizeClasses = "w-full h-full text-2xl") {
 }
 
 function setActiveTab(tab) {
-  const tabs = ['home', 'tasks', 'rewards', 'manager', 'settings'];
+  const tabs = ['home', 'tasks', 'rewards', 'minigames', 'manager', 'settings'];
   tabs.forEach(t => {
     const section = document.getElementById(`tab-${t}`);
     const navBtn = document.getElementById(`nav-${t}`);
@@ -401,7 +401,7 @@ function handleUserSelectChange(selectElement) {
   renderApp();
 }
 
-// --- LOGICA DE RULETA SEMANAL ---
+// --- LÓGICA DE RULETA SEMANAL ---
 function canSpinRoulette(user) {
   if (user.role !== 'hijo') return false;
   if (!user.lastRouletteDate) return true;
@@ -438,6 +438,148 @@ async function spinRoulette() {
   renderApp();
 }
 
+// --- NUEVA SECCIÓN DEDICADA EXCLUSIVAMENTE A MINIJUEGOS ---
+function renderMinigamesSection() {
+  let container = document.getElementById('tab-minigames');
+  if (!container) return;
+
+  const user = state.users[state.currentUser];
+  const lootCost = state.lootboxCost || 30;
+  const rouletteAvailable = canSpinRoulette(user);
+
+  container.innerHTML = `
+    <div class="space-y-4 pb-20">
+      <div class="bg-gradient-to-r from-purple-900/60 to-indigo-950 p-4 rounded-3xl border border-purple-500/30 text-center shadow-xl">
+        <h2 class="text-lg font-black text-white flex items-center justify-center gap-2">
+          <span>🎮</span> ZONA DE MINIJUEGOS <span>🎰</span>
+        </h2>
+        <p class="text-xs text-purple-200 mt-1">¡Juega, prueba tu suerte y consigue premios o puntos extra!</p>
+        <div class="mt-2 inline-block bg-zinc-950/80 px-3 py-1 rounded-full border border-amber-500/30 text-amber-400 text-xs font-black">
+          Tus Puntos: ${user ? user.points : 0} ⭐
+        </div>
+      </div>
+
+      <!-- 1. LA RULETA SEMANAL -->
+      <div class="bg-zinc-900 p-4 rounded-3xl border border-pink-500/30 shadow-lg flex flex-col items-center text-center">
+        <div class="text-4xl mb-2 animate-spin-slow">🎡</div>
+        <h3 class="text-sm font-black text-pink-300">Ruleta Semanal Gratuita</h3>
+        <p class="text-[11px] text-zinc-400 mt-1">Gira una vez por semana gratis para conseguir puntos.</p>
+        <button 
+          onclick="spinRoulette()" 
+          ${!rouletteAvailable ? 'disabled' : ''} 
+          class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-extrabold text-xs rounded-xl shadow-md disabled:opacity-40 active:scale-95 transition">
+          ${rouletteAvailable ? '¡Girar Ruleta Gratis! 🚀' : 'Ya tiraste esta semana ⏳'}
+        </button>
+      </div>
+
+      <!-- 2. DADO DE LA SUERTE (NUEVO) -->
+      <div class="bg-zinc-900 p-4 rounded-3xl border border-blue-500/30 shadow-lg flex flex-col items-center text-center">
+        <div class="text-4xl mb-2">🎲</div>
+        <h3 class="text-sm font-black text-blue-300">Dado de la Suerte</h3>
+        <p class="text-[11px] text-zinc-400 mt-1">Apuesta 5 puntos y lanza el dado. ¡Multiplica tus puntos según la cara que salga!</p>
+        <button 
+          onclick="playDiceRoll()" 
+          class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-extrabold text-xs rounded-xl shadow-md active:scale-95 transition">
+          Lanzar Dado (5 ⭐)
+        </button>
+      </div>
+
+      <!-- 3. COFRES DEL TESORO (NUEVO) -->
+      <div class="bg-zinc-900 p-4 rounded-3xl border border-emerald-500/30 shadow-lg flex flex-col items-center text-center">
+        <div class="text-4xl mb-2">🧰</div>
+        <h3 class="text-sm font-black text-emerald-300">Cofres Misteriosos</h3>
+        <p class="text-[11px] text-zinc-400 mt-1">Por 15 puntos, elige 1 de los 3 cofres y descubre qué recompensa oculta contiene.</p>
+        <div class="flex justify-center gap-3 mt-3 w-full">
+          <button onclick="playTreasureChest(1)" class="flex-1 py-3 bg-zinc-950 hover:bg-emerald-950/50 border border-emerald-500/40 rounded-2xl text-2xl active:scale-90 transition">📦</button>
+          <button onclick="playTreasureChest(2)" class="flex-1 py-3 bg-zinc-950 hover:bg-emerald-950/50 border border-emerald-500/40 rounded-2xl text-2xl active:scale-90 transition">🎁</button>
+          <button onclick="playTreasureChest(3)" class="flex-1 py-3 bg-zinc-950 hover:bg-emerald-950/50 border border-emerald-500/40 rounded-2xl text-2xl active:scale-90 transition">🧰</button>
+        </div>
+      </div>
+
+      <!-- 4. CAJA SORPRESA MÁGICA -->
+      <div class="bg-zinc-900 p-4 rounded-3xl border border-amber-500/30 shadow-lg flex flex-col items-center text-center">
+        <div class="text-4xl mb-2">🎁</div>
+        <h3 class="text-sm font-black text-amber-300">Caja Sorpresa Mágica</h3>
+        <p class="text-[11px] text-zinc-400 mt-1">¡Abre una caja mágica y consigue vales especiales o super botes de puntos!</p>
+        <button 
+          onclick="triggerLootbox()" 
+          class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-zinc-950 font-black text-xs rounded-xl shadow-md active:scale-95 transition">
+          Abrir Caja (${lootCost} ⭐)
+        </button>
+      </div>
+
+      <!-- 5. RASCA Y GANA DORADO -->
+      <div class="bg-zinc-900 p-4 rounded-3xl border border-yellow-500/30 shadow-lg flex flex-col items-center text-center">
+        <div class="text-4xl mb-2">🎟️</div>
+        <h3 class="text-sm font-black text-yellow-300">Rasca y Gana Dorado</h3>
+        <p class="text-[11px] text-zinc-400 mt-1">Rascar una tarjeta por 10 puntos para ganar premios directos.</p>
+        <div id="scratchCardArea" class="mt-3 w-full bg-gradient-to-br from-amber-400 to-yellow-600 rounded-2xl p-3 cursor-pointer active:scale-95 transition-transform border border-yellow-200 shadow-md flex items-center justify-center min-h-[50px]" onclick="playScratchCard()">
+          <span id="scratchText" class="text-zinc-950 font-black text-xs uppercase">¡Clic para rascar (10 ⭐)! 🪙</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// --- FUNCIONES DE LOS NUEVOS MINIJUEGOS ---
+
+// Lanzar Dado
+async function playDiceRoll() {
+  const user = state.users[state.currentUser];
+  if (!user || user.points < 5) return alert("¡Necesitas al menos 5 puntos para tirar el dado!");
+  if (!confirm("¿Deseas gastar 5 puntos para tirar el dado? 🎲")) return;
+
+  user.points -= 5;
+  const roll = Math.floor(Math.random() * 6) + 1;
+  let wonPts = 0;
+
+  if (roll === 6) wonPts = 30; // Jackpot
+  else if (roll === 5) wonPts = 15;
+  else if (roll === 4 || roll === 3) wonPts = 5; // Recupera lo invertido
+  else wonPts = 0; // Sacó 1 o 2
+
+  if (wonPts > 0) user.points += wonPts;
+
+  state.history.unshift(`🎲 ${user.name} tiró el dado, sacó un ${roll} y obtuvo +${wonPts} pts`);
+  playSound(wonPts > 0 ? 'reward' : 'negative');
+  triggerHaptic();
+
+  alert(`🎲 ¡Has sacado un ${roll}!\n\n${wonPts > 0 ? `¡Has ganado +${wonPts} Puntos! 🎉` : '¡Sigue intentándolo! 😅'}`);
+  checkAchievements(user);
+  await saveLocalStorage();
+  renderApp();
+}
+
+// Abrir Cofre Misterioso
+async function playTreasureChest(chestIndex) {
+  const user = state.users[state.currentUser];
+  if (!user || user.points < 15) return alert("¡Necesitas al menos 15 puntos para abrir un cofre!");
+  if (!confirm(`¿Quieres abrir el Cofre #${chestIndex} por 15 puntos? 🧰`)) return;
+
+  user.points -= 15;
+
+  const rewardsList = [
+    { name: "¡Ganaste +25 Puntos!", pts: 25 },
+    { name: "¡Super Premio! +40 Puntos", pts: 40 },
+    { name: "Vale por 30 min de juego", pts: 0 },
+    { name: "Comodín: Elegir qué cenar", pts: 0 },
+    { name: "¡El cofre estaba vacío!", pts: 0 }
+  ];
+
+  const won = rewardsList[Math.floor(Math.random() * rewardsList.length)];
+  if (won.pts > 0) user.points += won.pts;
+
+  state.history.unshift(`🧰 ${user.name} abrió el cofre #${chestIndex} y encontró: ${won.name}`);
+  playSound('reward');
+  triggerHaptic();
+
+  alert(`🧰 ¡ABRISTE EL COFRE #${chestIndex}! 🧰\n\nPremio: ${won.name}`);
+  checkAchievements(user);
+  await saveLocalStorage();
+  renderApp();
+}
+
+// Banner promocional en el inicio para acceder a minijuegos
 function renderRouletteBanner() {
   const user = state.users[state.currentUser];
   let container = document.getElementById('rouletteBannerContainer');
@@ -452,27 +594,23 @@ function renderRouletteBanner() {
     else homeTab.insertBefore(container, homeTab.firstChild);
   }
 
-  if (canSpinRoulette(user)) {
-    container.innerHTML = `
-      <div onclick="spinRoulette()" class="mb-4 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 p-3 rounded-[1.75rem] border border-pink-400/40 shadow-lg shadow-pink-500/20 flex items-center justify-between cursor-pointer active:scale-95 transition-all animate-pulse">
-        <div class="flex items-center gap-3">
-          <div class="text-3xl">🎡</div>
-          <div>
-            <h3 class="text-xs font-black text-white">¡Tiro Semanal Disponible!</h3>
-            <p class="text-[10px] text-pink-200 font-bold">Gira la ruleta y gana puntos extra</p>
-          </div>
+  container.innerHTML = `
+    <div onclick="setActiveTab('minigames')" class="mb-4 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 p-3 rounded-[1.75rem] border border-pink-400/40 shadow-lg shadow-pink-500/20 flex items-center justify-between cursor-pointer active:scale-95 transition-all animate-pulse">
+      <div class="flex items-center gap-3">
+        <div class="text-3xl">🎮</div>
+        <div>
+          <h3 class="text-xs font-black text-white">¡Zona de MiniJuegos!</h3>
+          <p class="text-[10px] text-pink-200 font-bold">Ruleta, Dados, Cofres, Rasca y más</p>
         </div>
-        <span class="bg-white/20 text-white text-xs font-black px-3 py-1.5 rounded-xl">Girar</span>
       </div>
-    `;
-  } else {
-    container.innerHTML = '';
-  }
+      <span class="bg-white/20 text-white text-xs font-black px-3 py-1.5 rounded-xl">Jugar</span>
+    </div>
+  `;
 }
 
-// --- RENDERS DE LAS NUEVAS FUNCIONES ---
+// --- RENDERS DE LAS DEMÁS FUNCIONES ---
 
-// 1. BANNER DOBLE XP
+// Banner Doble XP
 function renderDoubleXpBanner() {
   let container = document.getElementById('doubleXpBanner');
   if (!container) {
@@ -501,7 +639,7 @@ function renderDoubleXpBanner() {
   }
 }
 
-// 2. MISIONES DIARIAS (DAILY QUEST)
+// Daily Quest Widget
 function renderDailyQuestWidget() {
   let container = document.getElementById('dailyQuestWidget');
   if (!container) {
@@ -566,7 +704,7 @@ async function claimDailyQuest() {
   renderApp();
 }
 
-// 3. JEFE FINAL CO-OP (REVISION DE META FAMILIAR)
+// Meta Familiar Co-Op
 function renderFamilyGoal() {
   let container = document.getElementById('familyGoalWidget');
   if (!container) {
@@ -606,32 +744,7 @@ function renderFamilyGoal() {
   `;
 }
 
-// 4. RASCA Y GANA EN PREMIOS
-function renderScratchCardWidget() {
-  let container = document.getElementById('scratchCardContainer');
-  if (!container) {
-    const rewardsTab = document.getElementById('tab-rewards');
-    if (!rewardsTab) return;
-    container = document.createElement('div');
-    container.id = 'scratchCardContainer';
-    rewardsTab.insertBefore(container, rewardsTab.firstChild);
-  }
-
-  container.className = "mb-4 bg-gradient-to-r from-amber-900/40 via-yellow-900/40 to-zinc-950 p-4 rounded-[1.75rem] border border-amber-500/40 shadow-lg text-center";
-  container.innerHTML = `
-    <div class="flex items-center justify-between mb-2">
-      <div class="flex items-center gap-2">
-        <span class="text-2xl">🎟️</span>
-        <h4 class="text-xs font-black text-amber-300">Rasca y Gana Dorado</h4>
-      </div>
-      <span class="text-[10px] text-zinc-400 font-bold">10 ⭐ por rasca</span>
-    </div>
-    <div id="scratchCardArea" class="bg-gradient-to-br from-amber-400 to-yellow-600 rounded-2xl p-4 cursor-pointer active:scale-95 transition-transform border-2 border-yellow-200 shadow-md flex items-center justify-center min-h-[70px]" onclick="playScratchCard()">
-      <span id="scratchText" class="text-zinc-950 font-black text-xs uppercase tracking-wider">¡Haz clic aquí para rascar por 10 pts! 🪙</span>
-    </div>
-  `;
-}
-
+// Rasca y Gana
 async function playScratchCard() {
   const user = state.users[state.currentUser];
   if (!user || user.points < 10) return alert("¡Necesitas al menos 10 puntos para rascar una tarjeta!");
@@ -686,7 +799,7 @@ function renderApp() {
   try { renderPodium(); } catch (e) {}
   try { renderUserStats(); } catch (e) {}
   try { renderTasks(); } catch (e) {}
-  try { renderScratchCardWidget(); } catch (e) {}
+  try { renderMinigamesSection(); } catch (e) {}
   try { renderRewards(); } catch (e) {}
   try { updateActivityLog(); } catch (e) {}
   try { renderManagerPanel(); } catch (e) {}
@@ -968,22 +1081,6 @@ function renderRewards() {
   if (!container) return;
 
   const user = state.users[state.currentUser];
-  const lootCost = state.lootboxCost || 30;
-
-  const lootboxCard = `
-    <div class="col-span-full bg-gradient-to-r from-amber-950/60 via-purple-950/60 to-zinc-900 p-4 rounded-[1.75rem] border border-amber-500/40 flex items-center justify-between shadow-lg mb-2">
-      <div class="flex items-center gap-3">
-        <div class="text-4xl animate-bounce">🎁</div>
-        <div>
-          <h4 class="font-extrabold text-xs text-amber-300">Caja Sorpresa Mágica</h4>
-          <p class="text-[11px] text-zinc-300">¡Gana premios aleatorios o bonus de puntos!</p>
-        </div>
-      </div>
-      <button onclick="triggerLootbox()" class="py-2.5 px-4 bg-gradient-to-r from-amber-500 to-amber-600 text-zinc-950 rounded-xl text-xs font-black shadow-md active:scale-95 transition">
-        Abrir (${lootCost} ⭐)
-      </button>
-    </div>
-  `;
 
   const rewardsHtml = state.rewards.map(reward => {
     const canAfford = user && user.points >= reward.cost;
@@ -1005,7 +1102,7 @@ function renderRewards() {
     `;
   }).join('');
 
-  container.innerHTML = lootboxCard + rewardsHtml;
+  container.innerHTML = rewardsHtml;
 }
 
 async function triggerLootbox() {
