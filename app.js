@@ -496,19 +496,31 @@ function renderMinigamesSection() {
         </div>
       </div>
 
-      <!-- 4. CAJA SORPRESA MÁGICA -->
+      <!-- 4. LA TORRE DE LA SUERTE (NUEVO MINIJUEGO) -->
+      <div class="bg-zinc-900 p-4 rounded-3xl border border-red-500/30 shadow-lg flex flex-col items-center text-center">
+        <div class="text-4xl mb-2">🏰</div>
+        <h3 class="text-sm font-black text-red-300">La Torre del Riesgo</h3>
+        <p class="text-[11px] text-zinc-400 mt-1">Apuesta 10 puntos y sube escalones. ¡Cuanto más alto subas más puntos ganas, pero si sale la Calavera lo pierdes todo!</p>
+        <button 
+          onclick="openTowerGameModal()" 
+          class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-red-600 to-orange-500 text-white font-extrabold text-xs rounded-xl shadow-md active:scale-95 transition">
+          Entrar a la Torre (10 ⭐)
+        </button>
+      </div>
+
+      <!-- 5. CAJA SORPRESA MÁGICA VISUAL (NUEVO MINIJUEGO INTERACTIVO) -->
       <div class="bg-zinc-900 p-4 rounded-3xl border border-amber-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🎁</div>
         <h3 class="text-sm font-black text-amber-300">Caja Sorpresa Mágica</h3>
         <p class="text-[11px] text-zinc-400 mt-1">¡Abre una caja mágica y consigue vales especiales o super botes de puntos!</p>
         <button 
-          onclick="triggerLootbox()" 
+          onclick="openLootboxModal()" 
           class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-zinc-950 font-black text-xs rounded-xl shadow-md active:scale-95 transition">
           Abrir Caja (${lootCost} ⭐)
         </button>
       </div>
 
-      <!-- 5. RASCA Y GANA DORADO -->
+      <!-- 6. RASCA Y GANA DORADO -->
       <div class="bg-zinc-900 p-4 rounded-3xl border border-yellow-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🎟️</div>
         <h3 class="text-sm font-black text-yellow-300">Rasca y Gana Dorado</h3>
@@ -521,9 +533,111 @@ function renderMinigamesSection() {
   `;
 }
 
-// --- FUNCIONES DE MINIJUEGOS ---
+// --- FUNCIONES Y MODALES DE LOS NUEVOS MINIJUEGOS ---
 
-// Lanzar Dado
+// MINIJUEGO 1 NUEVO: LA TORRE DEL RIESGO
+let towerCurrentStep = 0;
+let towerAccumulatedPoints = 0;
+
+function openTowerGameModal() {
+  const user = state.users[state.currentUser];
+  if (!user || user.points < 10) return alert("¡Necesitas al menos 10 puntos para entrar a la Torre!");
+  if (!confirm("¿Deseas apostar 10 puntos para escalar La Torre del Riesgo? 🏰")) return;
+
+  user.points -= 10;
+  towerCurrentStep = 0;
+  towerAccumulatedPoints = 10;
+
+  const modal = document.createElement('div');
+  modal.id = 'towerModal';
+  modal.className = "fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in";
+  
+  modal.innerHTML = `
+    <div class="bg-zinc-900 border border-red-500/40 w-full max-w-sm rounded-3xl p-5 text-center flex flex-col items-center gap-4 shadow-2xl relative">
+      <h3 class="text-lg font-black text-white flex items-center gap-2">🏰 La Torre del Riesgo</h3>
+      <p class="text-xs text-zinc-400">Puntos acumulados: <span id="towerAcumPts" class="text-amber-400 font-extrabold text-sm">10 ⭐</span></p>
+
+      <div class="w-full flex flex-col-reverse gap-2 my-2">
+        <div id="step-3" class="p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-xs font-bold text-zinc-500 flex justify-between items-center"><span>Piso 3</span><span>50 ⭐</span></div>
+        <div id="step-2" class="p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-xs font-bold text-zinc-500 flex justify-between items-center"><span>Piso 2</span><span>25 ⭐</span></div>
+        <div id="step-1" class="p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-xs font-bold text-zinc-500 flex justify-between items-center"><span>Piso 1</span><span>15 ⭐</span></div>
+      </div>
+
+      <div id="towerStatusMsg" class="text-xs font-extrabold text-amber-300 min-h-[1.5rem]">¡Haz clic en 'Subir Piso' para arriesgarte!</div>
+
+      <div class="flex gap-2 w-full mt-2">
+        <button id="btnTowerClimb" onclick="climbTowerStep()" class="flex-1 py-3 bg-gradient-to-r from-red-500 to-orange-500 text-white font-black text-xs rounded-xl active:scale-95 shadow-lg">Subir Piso 🚀</button>
+        <button id="btnTowerCashout" onclick="cashoutTower()" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl active:scale-95 shadow-lg">Plantarse 💰</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+async function climbTowerStep() {
+  towerCurrentStep++;
+  const isTrap = Math.random() < 0.35; // 35% de probabilidad de caer
+  const statusMsg = document.getElementById('towerStatusMsg');
+  const btnClimb = document.getElementById('btnTowerClimb');
+  const btnCash = document.getElementById('btnTowerCashout');
+
+  if (isTrap) {
+    playSound('negative');
+    triggerHaptic();
+    if (statusMsg) statusMsg.innerHTML = "💀 ¡OH NO! Has encontrado una trampa y perdiste los puntos apostados.";
+    if (btnClimb) btnClimb.disabled = true;
+    if (btnCash) btnCash.disabled = true;
+
+    const currentEl = document.getElementById(`step-${towerCurrentStep}`);
+    if (currentEl) currentEl.className = "p-3 bg-red-950/80 border-2 border-red-500 rounded-xl text-xs font-black text-red-200 flex justify-between items-center animate-bounce";
+
+    state.history.unshift(`🏰 ${state.users[state.currentUser].name} cayó en la Torre del Riesgo en el Piso ${towerCurrentStep}`);
+    await saveLocalStorage();
+
+    setTimeout(() => {
+      document.getElementById('towerModal')?.remove();
+      renderApp();
+    }, 2500);
+  } else {
+    playSound('positive');
+    triggerHaptic();
+
+    if (towerCurrentStep === 1) towerAccumulatedPoints = 15;
+    else if (towerCurrentStep === 2) towerAccumulatedPoints = 25;
+    else if (towerCurrentStep === 3) towerAccumulatedPoints = 50;
+
+    const acumEl = document.getElementById('towerAcumPts');
+    if (acumEl) acumEl.innerText = `${towerAccumulatedPoints} ⭐`;
+
+    const currentEl = document.getElementById(`step-${towerCurrentStep}`);
+    if (currentEl) currentEl.className = "p-3 bg-emerald-950/90 border-2 border-emerald-400 rounded-xl text-xs font-black text-emerald-200 flex justify-between items-center shadow-lg shadow-emerald-500/20";
+
+    if (towerCurrentStep >= 3) {
+      if (statusMsg) statusMsg.innerHTML = "👑 ¡HAS LLEGADO A LA CIMA DE LA TORRE!";
+      if (btnClimb) btnClimb.classList.add('hidden');
+    } else {
+      if (statusMsg) statusMsg.innerHTML = `¡Piso ${towerCurrentStep} superado! ¿Deseas arriesgarte o plantarte?`;
+    }
+  }
+}
+
+async function cashoutTower() {
+  const user = state.users[state.currentUser];
+  user.points += towerAccumulatedPoints;
+
+  playSound('reward');
+  triggerHaptic();
+  showPointsAnimation(towerAccumulatedPoints, user.name, "¡Recompensa de La Torre!");
+
+  state.history.unshift(`🏰 ${user.name} se plantó en la Torre del Riesgo con +${towerAccumulatedPoints} pts`);
+  
+  checkAchievements(user);
+  await saveLocalStorage();
+  document.getElementById('towerModal')?.remove();
+  renderApp();
+}
+
+// MINIJUEGOS EXISTENTES DADO Y COFRES
 async function playDiceRoll() {
   const user = state.users[state.currentUser];
   if (!user || user.points < 5) return alert("¡Necesitas al menos 5 puntos para tirar el dado!");
@@ -550,7 +664,6 @@ async function playDiceRoll() {
   renderApp();
 }
 
-// Abrir Cofre Misterioso
 async function playTreasureChest(chestIndex) {
   const user = state.users[state.currentUser];
   if (!user || user.points < 15) return alert("¡Necesitas al menos 15 puntos para abrir un cofre!");
@@ -579,7 +692,74 @@ async function playTreasureChest(chestIndex) {
   renderApp();
 }
 
-// Banner promocional en el inicio para acceder a minijuegos
+// MINIJUEGO INTERACTIVO: ABRIR CAJA MÁGICA CON VISUAL MODAL
+function openLootboxModal() {
+  const user = state.users[state.currentUser];
+  const cost = state.lootboxCost || 30;
+
+  if (!user || user.points < cost) {
+    alert(`¡Necesitas al menos ${cost} puntos para abrir la Caja Sorpresa!`);
+    return;
+  }
+  if (!confirm(`¿Quieres gastar ${cost} puntos para abrir la Caja Sorpresa Mágica? 🎁`)) return;
+
+  user.points -= cost;
+
+  const prizes = [
+    { name: "15 min extra de consola", icon: "🎮", pts: 0 },
+    { name: "Elegir el postre hoy", icon: "🍦", pts: 0 },
+    { name: "¡Super Bote! +50 Puntos", icon: "💰", pts: 50 },
+    { name: "¡Bonus! +20 Puntos", icon: "⭐", pts: 20 },
+    { name: "Vale 1 abrazo gigante", icon: "🤗", pts: 0 },
+    { name: "Día libre de tirar la basura", icon: "🎉", pts: 0 }
+  ];
+
+  const won = prizes[Math.floor(Math.random() * prizes.length)];
+
+  const modal = document.createElement('div');
+  modal.className = "fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in";
+  modal.innerHTML = `
+    <div class="bg-zinc-900 border border-amber-500/40 w-full max-w-sm rounded-3xl p-6 text-center flex flex-col items-center gap-4 shadow-2xl relative">
+      <h3 class="text-lg font-black text-amber-400 uppercase tracking-wider">Caja Sorpresa Mágica</h3>
+      
+      <div id="boxAnim" class="text-7xl my-4 animate-bounce cursor-pointer">🎁</div>
+      <div id="boxText" class="text-xs font-bold text-zinc-300">¡Haciendo magia para abrir tu caja...!</div>
+
+      <button id="btnCloseLoot" onclick="this.closest('.fixed').remove()" class="hidden mt-2 py-2.5 px-6 bg-amber-500 text-zinc-950 font-black text-xs rounded-xl shadow-lg">
+        ¡Guardar Premio!
+      </button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  setTimeout(async () => {
+    const boxAnim = document.getElementById('boxAnim');
+    const boxText = document.getElementById('boxText');
+    const btnClose = document.getElementById('btnCloseLoot');
+
+    if (boxAnim) {
+      boxAnim.classList.remove('animate-bounce');
+      boxAnim.innerHTML = won.icon;
+      boxAnim.className = "text-8xl my-2 animate-pulse";
+    }
+    if (boxText) {
+      boxText.innerHTML = `<span class="text-base font-black text-amber-300">${won.name}</span>`;
+    }
+    if (btnClose) btnClose.classList.remove('hidden');
+
+    if (won.pts > 0) user.points += won.pts;
+
+    state.history.unshift(`${user.name} abrió la Caja Sorpresa y ganó: ${won.name}`);
+    playSound('reward');
+    triggerHaptic();
+
+    checkAchievements(user);
+    await saveLocalStorage();
+    renderApp();
+  }, 1800);
+}
+
+// BANNERS Y COMPONENTES
 function renderRouletteBanner() {
   const user = state.users[state.currentUser];
   let container = document.getElementById('rouletteBannerContainer');
@@ -600,7 +780,7 @@ function renderRouletteBanner() {
         <div class="text-3xl">🎮</div>
         <div>
           <h3 class="text-xs font-black text-white">¡Zona de MiniJuegos!</h3>
-          <p class="text-[10px] text-pink-200 font-bold">Ruleta, Dados, Cofres, Rasca y más</p>
+          <p class="text-[10px] text-pink-200 font-bold">Ruleta, Dados, Torre, Cofres y más</p>
         </div>
       </div>
       <span class="bg-white/20 text-white text-xs font-black px-3 py-1.5 rounded-xl">Jugar</span>
@@ -608,7 +788,6 @@ function renderRouletteBanner() {
   `;
 }
 
-// Banner Doble XP
 function renderDoubleXpBanner() {
   let container = document.getElementById('doubleXpBanner');
   if (!container) {
@@ -637,7 +816,6 @@ function renderDoubleXpBanner() {
   }
 }
 
-// Daily Quest Widget
 function renderDailyQuestWidget() {
   let container = document.getElementById('dailyQuestWidget');
   if (!container) {
@@ -702,7 +880,6 @@ async function claimDailyQuest() {
   renderApp();
 }
 
-// Meta Familiar Co-Op
 function renderFamilyGoal() {
   let container = document.getElementById('familyGoalWidget');
   if (!container) {
@@ -742,7 +919,6 @@ function renderFamilyGoal() {
   `;
 }
 
-// Rasca y Gana
 async function playScratchCard() {
   const user = state.users[state.currentUser];
   if (!user || user.points < 10) return alert("¡Necesitas al menos 10 puntos para rascar una tarjeta!");
@@ -1103,40 +1279,6 @@ function renderRewards() {
   container.innerHTML = rewardsHtml;
 }
 
-async function triggerLootbox() {
-  const user = state.users[state.currentUser];
-  const cost = state.lootboxCost || 30;
-  
-  if (!user || user.points < cost) {
-    alert(`¡Necesitas al menos ${cost} puntos para abrir la Caja Sorpresa!`);
-    return;
-  }
-  if (!confirm(`¿Quieres gastar ${cost} puntos para abrir la Caja Sorpresa? 🎁`)) return;
-
-  user.points -= cost;
-
-  const prizes = [
-    { name: "15 min extra de consola", icon: "🎮", pts: 0 },
-    { name: "Elegir el postre hoy", icon: "🍦", pts: 0 },
-    { name: "¡Super Bote! +50 Puntos", icon: "💰", pts: 50 },
-    { name: "¡Bonus! +20 Puntos", icon: "⭐", pts: 20 },
-    { name: "Vale 1 abrazo gigante", icon: "🤗", pts: 0 },
-    { name: "Día libre de tirar la basura", icon: "🎉", pts: 0 }
-  ];
-
-  const won = prizes[Math.floor(Math.random() * prizes.length)];
-  if (won.pts > 0) user.points += won.pts;
-
-  state.history.unshift(`${user.name} abrió la Caja Sorpresa y ganó: ${won.name}`);
-  playSound('reward');
-  triggerHaptic();
-
-  alert(`🎁 ¡CAJA SORPRESA! 🎁\n\nHas ganado: ${won.icon} ${won.name}`);
-  checkAchievements(user);
-  await saveLocalStorage();
-  renderApp();
-}
-
 async function claimReward(rewardId) {
   const reward = state.rewards.find(r => r.id === rewardId);
   const user = state.users[state.currentUser];
@@ -1221,7 +1363,7 @@ function renderManagerPanel() {
   const lootboxControl = document.getElementById('lootboxControlWidget');
   if (!lootboxControl) {
     const settingsPanel = document.getElementById('pinUnlockedContent');
-    const firstSection = settingsPanel.querySelector('.space-y-4');
+    const firstSection = settingsPanel ? settingsPanel.querySelector('.space-y-4') : null;
     if (firstSection) {
       const div = document.createElement('div');
       div.id = 'lootboxControlWidget';
