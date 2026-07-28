@@ -13,17 +13,29 @@ function getSupabaseClient() {
 
 let isManagerUnlocked = false;
 
+// --- SISTEMA DE LOGROS (VIDEOJUEGOS) ---
+const ACHIEVEMENTS = [
+  { id: 'first_task', title: 'Primeros Pasos', desc: 'Completa tu primera tarea', icon: '🥉', check: (u) => u.totalCompleted >= 1 },
+  { id: 'tasks_10', title: 'Ayudante Frecuente', desc: 'Completa 10 tareas', icon: '🥈', check: (u) => u.totalCompleted >= 10 },
+  { id: 'tasks_50', title: 'Máquina de Ayudar', desc: 'Completa 50 tareas', icon: '🥇', check: (u) => u.totalCompleted >= 50 },
+  { id: 'streak_3', title: 'Racha de Fuego', desc: '3 días de racha positiva', icon: '🔥', check: (u) => u.streakType === 'positive' && u.streakDays >= 3 },
+  { id: 'streak_7', title: 'Semana Perfecta', desc: '7 días de racha positiva', icon: '🌟', check: (u) => u.streakType === 'positive' && u.streakDays >= 7 },
+  { id: 'points_200', title: 'Ahorrador Novato', desc: 'Acumula 200 puntos', icon: '💸', check: (u) => u.points >= 200 },
+  { id: 'points_500', title: 'Ahorrador Experto', desc: 'Acumula 500 puntos', icon: '💰', check: (u) => u.points >= 500 }
+];
+
 let state = {
   currentUser: 'joan',
   previousUser: 'joan',
   parentPin: '1234',
   currentTaskFilter: 'positive',
+  lootboxCost: 30, // Nuevo: Coste de la caja sorpresa editable
   familyGoal: { title: '🍕 Fiesta de Pizza Familiar', targetPoints: 500 },
   users: {
-    'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null },
-    'martina': { id: 'martina', name: 'Martina', role: 'hijo', avatar: '👧', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null },
-    'papa': { id: 'papa', name: 'Papá', role: 'padre', avatar: '🐍', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null },
-    'mama': { id: 'mama', name: 'Mamá', role: 'padre', avatar: '👩', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null }
+    'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
+    'martina': { id: 'martina', name: 'Martina', role: 'hijo', avatar: '👧', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
+    'papa': { id: 'papa', name: 'Papá', role: 'padre', avatar: '🐍', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
+    'mama': { id: 'mama', name: 'Mamá', role: 'padre', avatar: '👩', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] }
   },
   actions: [
     { id: 1, title: 'Leer 30 min', points: 20, type: 'positive', icon: '📖' },
@@ -97,15 +109,16 @@ function playSound(type) {
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
       osc.start();
       osc.stop(ctx.currentTime + 0.35);
-    } else if (type === 'reward') {
+    } else if (type === 'reward' || type === 'achievement') {
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(440, ctx.currentTime);
       osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.15);
       osc.frequency.setValueAtTime(880, ctx.currentTime + 0.3);
+      if(type === 'achievement') osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.45);
       gain.gain.setValueAtTime(0.25, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.45);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + (type==='achievement'?0.6:0.45));
       osc.start();
-      osc.stop(ctx.currentTime + 0.45);
+      osc.stop(ctx.currentTime + (type==='achievement'?0.6:0.45));
     }
   } catch (e) {}
 }
@@ -130,7 +143,7 @@ function getUserLevel(totalCompleted) {
   return { level, xpPercent, rankName };
 }
 
-// --- ANIMACIÓN DE PUNTOS Y CELEBRACIÓN ---
+// --- ANIMACIONES (PUNTOS Y LOGROS) ---
 function showPointsAnimation(points, childName, title) {
   const isPositive = points > 0;
   playSound(isPositive ? 'positive' : 'negative');
@@ -168,18 +181,53 @@ function showPointsAnimation(points, childName, title) {
   }, 1800);
 }
 
+function showAchievementToast(ach) {
+  playSound('achievement');
+  const toast = document.createElement('div');
+  toast.className = "fixed top-6 left-1/2 -translate-x-1/2 z-[60] bg-gradient-to-r from-amber-500 to-yellow-400 text-zinc-950 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-4 border-2 border-yellow-200 transition-all duration-500 transform -translate-y-20 opacity-0";
+  toast.innerHTML = `
+    <div class="text-4xl animate-pulse">${ach.icon}</div>
+    <div class="flex flex-col">
+      <span class="text-[10px] font-black uppercase tracking-widest opacity-80">¡Logro Desbloqueado!</span>
+      <span class="font-extrabold text-base leading-tight">${ach.title}</span>
+    </div>
+  `;
+  document.body.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.classList.remove('-translate-y-20', 'opacity-0');
+    toast.classList.add('translate-y-0', 'opacity-100');
+  });
+
+  setTimeout(() => {
+    toast.classList.remove('translate-y-0', 'opacity-100');
+    toast.classList.add('-translate-y-20', 'opacity-0');
+    setTimeout(() => toast.remove(), 500);
+  }, 4000);
+}
+
+function checkAchievements(user) {
+  if (!user.unlockedAchievements) user.unlockedAchievements = [];
+  let changed = false;
+  
+  ACHIEVEMENTS.forEach(ach => {
+    if (!user.unlockedAchievements.includes(ach.id) && ach.check(user)) {
+      user.unlockedAchievements.push(ach.id);
+      changed = true;
+      state.history.unshift(`🏆 ${user.name} desbloqueó el logro: ${ach.title}`);
+      setTimeout(() => showAchievementToast(ach), 500); // Retraso leve para no pisar la animación de puntos
+    }
+  });
+  return changed;
+}
+
+// --- SINCRONIZACIÓN Y GUARDADO ---
 function loadLocalStorage() {
   try {
     const savedState = localStorage.getItem('family_points_state');
     if (savedState) {
       const parsed = JSON.parse(savedState);
-      if (parsed.users) state.users = { ...state.users, ...parsed.users };
-      if (parsed.parentPin) state.parentPin = parsed.parentPin;
-      if (parsed.actions) state.actions = parsed.actions;
-      if (parsed.rewards) state.rewards = parsed.rewards;
-      if (parsed.redemptions) state.redemptions = parsed.redemptions;
-      if (parsed.history) state.history = parsed.history;
-      if (parsed.familyGoal) state.familyGoal = parsed.familyGoal;
+      mergeStateData(parsed);
     }
   } catch (e) {
     console.warn("Aviso LocalStorage:", e);
@@ -188,19 +236,32 @@ function loadLocalStorage() {
 
 async function saveLocalStorage() {
   try {
-    localStorage.setItem('family_points_state', JSON.stringify({
-      users: state.users,
-      parentPin: state.parentPin,
-      actions: state.actions,
-      rewards: state.rewards,
-      redemptions: state.redemptions,
-      history: state.history,
-      familyGoal: state.familyGoal
-    }));
+    localStorage.setItem('family_points_state', JSON.stringify(state));
   } catch (e) {
     console.warn("Aviso guardando LocalStorage:", e);
   }
   await syncFullStateToCloud();
+}
+
+function mergeStateData(remote) {
+  if (remote.lootboxCost !== undefined) state.lootboxCost = remote.lootboxCost;
+  if (remote.parentPin) state.parentPin = remote.parentPin;
+  if (remote.actions && remote.actions.length > 0) state.actions = remote.actions;
+  if (remote.rewards && remote.rewards.length > 0) state.rewards = remote.rewards;
+  if (remote.redemptions) state.redemptions = remote.redemptions;
+  if (remote.history) state.history = remote.history;
+  if (remote.familyGoal) state.familyGoal = remote.familyGoal;
+  
+  if (remote.users) {
+    for (const key in remote.users) {
+      state.users[key] = {
+        ...state.users[key],
+        ...remote.users[key],
+        unlockedAchievements: remote.users[key].unlockedAchievements || state.users[key].unlockedAchievements || [],
+        lastRouletteDate: remote.users[key].lastRouletteDate || state.users[key].lastRouletteDate || null
+      };
+    }
+  }
 }
 
 async function fetchCloudData() {
@@ -213,32 +274,16 @@ async function fetchCloudData() {
       .eq('id', 'main_config')
       .maybeSingle();
 
-    if (error) {
-      console.warn("⚠️ Error leyendo de Supabase:", error.message);
-      return;
-    }
+    if (error) return;
 
     if (data && data.data && Object.keys(data.data).length > 0) {
-      const remote = data.data;
-      if (remote.users) state.users = { ...state.users, ...remote.users };
-      if (remote.parentPin) state.parentPin = remote.parentPin;
-      if (remote.actions && remote.actions.length > 0) state.actions = remote.actions;
-      if (remote.rewards && remote.rewards.length > 0) state.rewards = remote.rewards;
-      if (remote.redemptions) state.redemptions = remote.redemptions;
-      if (remote.history) state.history = remote.history;
-      if (remote.familyGoal) state.familyGoal = remote.familyGoal;
-
-      try {
-        localStorage.setItem('family_points_state', JSON.stringify(state));
-      } catch (err) {}
-      
+      mergeStateData(data.data);
+      try { localStorage.setItem('family_points_state', JSON.stringify(state)); } catch (err) {}
       renderApp();
     } else {
       await syncFullStateToCloud();
     }
-  } catch (err) {
-    console.warn("❌ Error de red con Supabase:", err);
-  }
+  } catch (err) {}
 }
 
 async function syncFullStateToCloud() {
@@ -252,51 +297,30 @@ async function syncFullStateToCloud() {
       rewards: state.rewards,
       redemptions: state.redemptions,
       history: state.history,
-      familyGoal: state.familyGoal
+      familyGoal: state.familyGoal,
+      lootboxCost: state.lootboxCost
     };
-
-    const { error } = await client
-      .from('app_state')
-      .upsert({ id: 'main_config', data: payload, updated_at: new Date().toISOString() });
-
-    if (error) {
-      console.error("❌ Error guardando en Supabase:", error.message);
-    }
-  } catch (err) {
-    console.warn("❌ Error de red con Supabase:", err);
-  }
+    await client.from('app_state').upsert({ id: 'main_config', data: payload, updated_at: new Date().toISOString() });
+  } catch (err) {}
 }
 
 function setupRealtimeListener() {
   const client = getSupabaseClient();
   if (!client) return;
-
   try {
     client
       .channel('public:app_state')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state' }, payload => {
         if (payload.new && payload.new.data) {
-          const remote = payload.new.data;
-          if (remote.users) state.users = { ...state.users, ...remote.users };
-          if (remote.parentPin) state.parentPin = remote.parentPin;
-          if (remote.actions && remote.actions.length > 0) state.actions = remote.actions;
-          if (remote.rewards && remote.rewards.length > 0) state.rewards = remote.rewards;
-          if (remote.redemptions) state.redemptions = remote.redemptions;
-          if (remote.history) state.history = remote.history;
-          if (remote.familyGoal) state.familyGoal = remote.familyGoal;
-
-          try {
-            localStorage.setItem('family_points_state', JSON.stringify(state));
-          } catch (err) {}
+          mergeStateData(payload.new.data);
+          try { localStorage.setItem('family_points_state', JSON.stringify(state)); } catch (err) {}
           renderApp();
         }
-      })
-      .subscribe();
-  } catch (e) {
-    console.warn("Realtime no disponible:", e);
-  }
+      }).subscribe();
+  } catch (e) {}
 }
 
+// --- UTILIDADES UI ---
 function renderAvatarHtml(avatarStr, sizeClasses = "w-full h-full text-2xl") {
   if (!avatarStr) return `<span class="${sizeClasses} flex items-center justify-center">👤</span>`;
   if (avatarStr.startsWith('http://') || avatarStr.startsWith('https://') || avatarStr.startsWith('data:image')) {
@@ -338,7 +362,6 @@ function initUserSelect() {
 
 function handleUserSelectChange(selectElement) {
   if (!selectElement) return;
-
   const targetUserId = selectElement.value;
   const targetUser = state.users[targetUserId];
 
@@ -356,10 +379,83 @@ function handleUserSelectChange(selectElement) {
     state.previousUser = targetUserId;
     state.currentUser = targetUserId;
   }
-
   renderApp();
 }
 
+// --- LOGICA DE RULETA SEMANAL ---
+function canSpinRoulette(user) {
+  if (user.role !== 'hijo') return false;
+  if (!user.lastRouletteDate) return true;
+  
+  const lastDate = new Date(user.lastRouletteDate);
+  const now = new Date();
+  
+  // Calcular el último Lunes a las 00:00:00
+  const day = now.getDay() || 7; // Convertimos Domingo(0) a 7
+  const monday = new Date(now);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(now.getDate() - day + 1);
+  
+  // Si tiró antes del último lunes, puede volver a tirar
+  return lastDate < monday;
+}
+
+async function spinRoulette() {
+  const user = state.users[state.currentUser];
+  if (!user || user.role !== 'hijo') return;
+  if (!canSpinRoulette(user)) return alert("¡Ya has tirado la ruleta esta semana! Vuelve el lunes que viene.");
+
+  const prizes = [10, 15, 20, 25, 50, 100];
+  const wonPoints = prizes[Math.floor(Math.random() * prizes.length)];
+
+  user.points += wonPoints;
+  user.lastRouletteDate = new Date().toISOString();
+  state.history.unshift(`🎡 ${user.name} giró la ruleta semanal y ganó +${wonPoints} pts`);
+
+  playSound('reward');
+  triggerHaptic();
+  showPointsAnimation(wonPoints, user.name, "¡Premio de la Ruleta Semanal!");
+
+  checkAchievements(user);
+  await saveLocalStorage();
+  renderApp();
+}
+
+function renderRouletteBanner() {
+  const user = state.users[state.currentUser];
+  let container = document.getElementById('rouletteBannerContainer');
+  
+  // Buscamos o creamos el contenedor en el tab-home
+  if (!container) {
+    const homeTab = document.getElementById('tab-home');
+    if (!homeTab) return;
+    container = document.createElement('div');
+    container.id = 'rouletteBannerContainer';
+    // Insertarlo después del Family Goal
+    const goalWidget = document.getElementById('familyGoalWidget');
+    if (goalWidget) goalWidget.after(container);
+    else homeTab.insertBefore(container, homeTab.firstChild);
+  }
+
+  if (canSpinRoulette(user)) {
+    container.innerHTML = `
+      <div onclick="spinRoulette()" class="mb-4 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 p-3 rounded-[1.75rem] border border-pink-400/40 shadow-lg shadow-pink-500/20 flex items-center justify-between cursor-pointer active:scale-95 transition-all animate-pulse">
+        <div class="flex items-center gap-3">
+          <div class="text-3xl">🎡</div>
+          <div>
+            <h3 class="text-xs font-black text-white">¡Tiro Semanal Disponible!</h3>
+            <p class="text-[10px] text-pink-200 font-bold">Gira la ruleta y gana puntos extra</p>
+          </div>
+        </div>
+        <span class="bg-white/20 text-white text-xs font-black px-3 py-1.5 rounded-xl">Girar</span>
+      </div>
+    `;
+  } else {
+    container.innerHTML = '';
+  }
+}
+
+// --- RENDERIZADO PRINCIPAL ---
 function renderApp() {
   const user = state.users[state.currentUser];
   if (!user) return;
@@ -374,10 +470,11 @@ function renderApp() {
     if (pointsEl) pointsEl.innerText = `${user.points} ⭐`;
   } catch (e) {}
 
+  try { renderFamilyGoal(); } catch (e) {}
+  try { renderRouletteBanner(); } catch (e) {}
   try { renderLeaderboard(); } catch (e) {}
   try { renderPodium(); } catch (e) {}
   try { renderUserStats(); } catch (e) {}
-  try { renderFamilyGoal(); } catch (e) {}
   try { renderTasks(); } catch (e) {}
   try { renderRewards(); } catch (e) {}
   try { updateActivityLog(); } catch (e) {}
@@ -407,7 +504,7 @@ function renderFamilyGoal() {
       <div class="flex items-center gap-2">
         <span class="text-xl">🤝</span>
         <div>
-          <h3 class="text-xs font-black text-blue-200">Meta Familiar Cooperativa</h3>
+          <h3 class="text-xs font-black text-blue-200">Meta Familiar</h3>
           <p class="text-[11px] text-zinc-300 font-bold">${goal.title}</p>
         </div>
       </div>
@@ -523,12 +620,18 @@ function renderUserStats() {
   } else if (user.streakType === 'negative') {
     streakBadge = `⚠️ Racha de Penalizaciones (${user.streakDays} días)`;
     streakColor = 'text-red-400 border-red-500/30 bg-red-950/30';
-  } else if (user.streakType === 'idle') {
-    streakBadge = `💤 Sin actividad (${user.streakDays} días)`;
-    streakColor = 'text-amber-400 border-amber-500/30 bg-amber-950/30';
   }
 
   const lvlInfo = getUserLevel(user.totalCompleted);
+
+  // Renderizar Medallas
+  const unlockedMeds = user.unlockedAchievements || [];
+  const medalsHtml = unlockedMeds.length === 0 
+    ? '<span class="text-[10px] text-zinc-500">Aún no hay medallas</span>'
+    : unlockedMeds.map(id => {
+        const ach = ACHIEVEMENTS.find(a => a.id === id);
+        return ach ? `<div title="${ach.title}\n${ach.desc}" class="text-2xl hover:scale-125 transition-transform cursor-help">${ach.icon}</div>` : '';
+      }).join('');
 
   container.innerHTML = `
     <div class="col-span-2 bg-gradient-to-r from-purple-950/40 to-indigo-950/40 border border-purple-500/30 p-3.5 rounded-2xl flex flex-col gap-2">
@@ -541,6 +644,14 @@ function renderUserStats() {
       </div>
       <div class="w-full bg-zinc-900/90 h-2.5 rounded-full overflow-hidden border border-white/10 p-0.5">
         <div class="bg-gradient-to-r from-purple-500 to-indigo-400 h-full rounded-full transition-all duration-300" style="width: ${lvlInfo.xpPercent}%"></div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN MEDALLERO -->
+    <div class="col-span-2 bg-zinc-950 p-3 rounded-2xl border border-zinc-800/80 flex flex-col gap-2">
+      <span class="font-bold text-[10px] text-zinc-400 uppercase tracking-wider">Logros y Medallas 🏆</span>
+      <div class="flex flex-wrap gap-2 items-center min-h-[32px]">
+        ${medalsHtml}
       </div>
     </div>
 
@@ -581,7 +692,7 @@ function renderTasks() {
   const filtered = state.actions.filter(a => a.type === state.currentTaskFilter);
 
   if (filtered.length === 0) {
-    container.innerHTML = `<p class="col-span-2 text-center text-xs text-zinc-500 py-6">No hay tareas creadas en esta sección.</p>`;
+    container.innerHTML = `<p class="col-span-2 text-center text-xs text-zinc-500 py-6">No hay tareas creadas.</p>`;
     return;
   }
 
@@ -610,7 +721,7 @@ async function applyAction(actionId) {
   if (activeUser && activeUser.role !== 'padre') {
     const pinEntered = prompt("🔒 Introduce el PIN parental para confirmar la tarea:");
     if (pinEntered !== state.parentPin) {
-      if (pinEntered !== null) alert("PIN incorrecto. No se asignaron puntos.");
+      if (pinEntered !== null) alert("PIN incorrecto.");
       return;
     }
   }
@@ -642,10 +753,10 @@ async function applyAction(actionId) {
     }
 
     const performerName = activeUser ? activeUser.name : 'Padre/Madre';
-    const log = `${performerName} registró para ${child.name}: ${action.title} (${action.points > 0 ? '+' : ''}${action.points} pts)`;
-    state.history.unshift(log);
+    state.history.unshift(`${performerName} registró para ${child.name}: ${action.title} (${action.points > 0 ? '+' : ''}${action.points} pts)`);
 
     showPointsAnimation(action.points, child.name, action.title);
+    checkAchievements(child); // Comprueba logros después de sumar puntos
 
     await saveLocalStorage();
     renderApp();
@@ -676,6 +787,7 @@ function renderRewards() {
   if (!container) return;
 
   const user = state.users[state.currentUser];
+  const lootCost = state.lootboxCost || 30; // Usar coste dinámico
 
   const lootboxCard = `
     <div class="col-span-full bg-gradient-to-r from-amber-950/60 via-purple-950/60 to-zinc-900 p-4 rounded-[1.75rem] border border-amber-500/40 flex items-center justify-between shadow-lg mb-2">
@@ -687,7 +799,7 @@ function renderRewards() {
         </div>
       </div>
       <button onclick="triggerLootbox()" class="py-2.5 px-4 bg-gradient-to-r from-amber-500 to-amber-600 text-zinc-950 rounded-xl text-xs font-black shadow-md active:scale-95 transition">
-        Abrir (30 ⭐)
+        Abrir (${lootCost} ⭐)
       </button>
     </div>
   `;
@@ -717,13 +829,15 @@ function renderRewards() {
 
 async function triggerLootbox() {
   const user = state.users[state.currentUser];
-  if (!user || user.points < 30) {
-    alert("¡Necesitas al menos 30 puntos para abrir la Caja Sorpresa!");
+  const cost = state.lootboxCost || 30;
+  
+  if (!user || user.points < cost) {
+    alert(`¡Necesitas al menos ${cost} puntos para abrir la Caja Sorpresa!`);
     return;
   }
-  if (!confirm("¿Quieres gastar 30 puntos para abrir la Caja Sorpresa? 🎁")) return;
+  if (!confirm(`¿Quieres gastar ${cost} puntos para abrir la Caja Sorpresa? 🎁`)) return;
 
-  user.points -= 30;
+  user.points -= cost;
 
   const prizes = [
     { name: "15 min extra de consola", icon: "🎮", pts: 0 },
@@ -742,6 +856,7 @@ async function triggerLootbox() {
   triggerHaptic();
 
   alert(`🎁 ¡CAJA SORPRESA! 🎁\n\nHas ganado: ${won.icon} ${won.name}`);
+  checkAchievements(user);
   await saveLocalStorage();
   renderApp();
 }
@@ -754,22 +869,10 @@ async function claimReward(rewardId) {
     user.points -= reward.cost;
 
     let dateStr = "";
-    try {
-      dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-    } catch (e) {
-      dateStr = new Date().toISOString().slice(0, 10);
-    }
+    try { dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); } 
+    catch (e) { dateStr = new Date().toISOString().slice(0, 10); }
 
-    state.redemptions.unshift({
-      id: Date.now(),
-      userName: user.name,
-      userAvatar: user.avatar,
-      rewardTitle: reward.title,
-      rewardIcon: reward.icon || '🎁',
-      cost: reward.cost,
-      date: dateStr
-    });
-
+    state.redemptions.unshift({ id: Date.now(), userName: user.name, userAvatar: user.avatar, rewardTitle: reward.title, rewardIcon: reward.icon || '🎁', cost: reward.cost, date: dateStr });
     state.history.unshift(`${user.name} canjeó: ${reward.title} (-${reward.cost} pts)`);
 
     playSound('reward');
@@ -811,31 +914,62 @@ function changePinPrompt() {
       state.parentPin = newPin;
       saveLocalStorage();
       alert("¡PIN actualizado con éxito!");
-    } else {
-      alert("El PIN debe ser un número de exactamente 4 dígitos.");
-    }
-  } else if (current !== null) {
-    alert("PIN incorrecto.");
+    } else { alert("El PIN debe ser un número de exactamente 4 dígitos."); }
+  } else if (current !== null) { alert("PIN incorrecto."); }
+}
+
+async function editLootboxCost() {
+  const current = state.lootboxCost || 30;
+  const nuevoStr = prompt("Introduce el nuevo coste en puntos de la Caja Sorpresa:", current);
+  const parsed = parseInt(nuevoStr);
+  
+  if (nuevoStr !== null && !isNaN(parsed) && parsed > 0) {
+    state.lootboxCost = parsed;
+    await saveLocalStorage();
+    renderApp();
+  } else if (nuevoStr !== null) {
+    alert("Introduce un número válido mayor a 0.");
   }
 }
 
 function renderManagerPanel() {
   if (!isManagerUnlocked) return;
 
-  const redemptionsContainer = document.getElementById('redemptionsList');
-  const redemptionsCount = document.getElementById('redemptionsCount');
-  if (redemptionsContainer) {
-    if (redemptionsCount) redemptionsCount.innerText = state.redemptions.length;
+  // Renderizar control de Caja Sorpresa
+  const lootboxControl = document.getElementById('lootboxControlWidget');
+  if (!lootboxControl) {
+    const settingsPanel = document.getElementById('pinUnlockedContent');
+    const firstSection = settingsPanel.querySelector('.space-y-4'); // Buscar primer bloque de ajustes
+    if (firstSection) {
+      const div = document.createElement('div');
+      div.id = 'lootboxControlWidget';
+      firstSection.prepend(div); // Insertarlo al principio de la configuración
+    }
+  }
+  const lcWidget = document.getElementById('lootboxControlWidget');
+  if (lcWidget) {
+    lcWidget.innerHTML = `
+      <div class="bg-gradient-to-r from-amber-950/40 to-zinc-950 p-3 rounded-2xl border border-amber-500/20 flex justify-between items-center mb-4">
+        <span class="text-xs font-bold text-white flex items-center gap-2">🎁 Coste Caja Sorpresa</span>
+        <div class="flex items-center gap-2">
+          <span class="text-amber-400 font-black text-sm">${state.lootboxCost || 30} ⭐</span>
+          <button onclick="editLootboxCost()" class="text-[11px] text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20 font-bold active:scale-95">Editar</button>
+        </div>
+      </div>
+    `;
+  }
 
-    if (state.redemptions.length === 0) {
-      redemptionsContainer.innerHTML = `<p class="text-center text-xs text-zinc-500 py-3">No hay canjes registrados.</p>`;
-    } else {
+  // Historial de Canjes
+  const redemptionsContainer = document.getElementById('redemptionsList');
+  if (redemptionsContainer) {
+    const redemptionsCount = document.getElementById('redemptionsCount');
+    if (redemptionsCount) redemptionsCount.innerText = state.redemptions.length;
+    if (state.redemptions.length === 0) redemptionsContainer.innerHTML = `<p class="text-center text-xs text-zinc-500 py-3">No hay canjes registrados.</p>`;
+    else {
       redemptionsContainer.innerHTML = state.redemptions.map(item => `
         <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between gap-2">
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">
-              ${renderAvatarHtml(item.userAvatar, "text-sm")}
-            </div>
+            <div class="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">${renderAvatarHtml(item.userAvatar, "text-sm")}</div>
             <div>
               <p class="font-bold text-xs text-white">${item.userName} <span class="text-zinc-400 font-normal">canjeó</span> ${item.rewardIcon} ${item.rewardTitle}</p>
               <p class="text-[10px] text-zinc-500">${item.date}</p>
@@ -847,36 +981,29 @@ function renderManagerPanel() {
     }
   }
 
+  // Personalizar Avatares
   const avatarContainer = document.getElementById('avatarCustomizerList');
   if (avatarContainer) {
     avatarContainer.innerHTML = Object.values(state.users).map(u => `
       <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between gap-2">
         <div class="flex items-center gap-2.5">
-          <div class="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">
-            ${renderAvatarHtml(u.avatar, "text-xl")}
-          </div>
+          <div class="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">${renderAvatarHtml(u.avatar, "text-xl")}</div>
           <span class="font-bold text-xs text-white">${u.name}</span>
         </div>
-        <button onclick="changeUserAvatar('${u.id}')" class="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl font-bold active:scale-95">
-          Cambiar Foto / Emoji
-        </button>
+        <button onclick="changeUserAvatar('${u.id}')" class="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl font-bold active:scale-95">Cambiar Foto / Emoji</button>
       </div>
     `).join('');
   }
 
+  // Ajuste manual de puntos
   const pointsContainer = document.getElementById('manualPointsControl');
   if (pointsContainer) {
     const kids = Object.values(state.users).filter(u => u.role === 'hijo');
     pointsContainer.innerHTML = kids.map(kid => `
       <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex justify-between items-center">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">
-            ${renderAvatarHtml(kid.avatar, "text-base")}
-          </div>
-          <div>
-            <p class="font-bold text-xs text-white">${kid.name}</p>
-            <span class="text-[11px] text-amber-400 font-bold">${kid.points} pts</span>
-          </div>
+          <div class="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">${renderAvatarHtml(kid.avatar, "text-base")}</div>
+          <div><p class="font-bold text-xs text-white">${kid.name}</p><span class="text-[11px] text-amber-400 font-bold">${kid.points} pts</span></div>
         </div>
         <div class="flex items-center gap-1.5">
           <button onclick="modifyPoints('${kid.id}', -10)" class="bg-zinc-900 text-red-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800 active:scale-95">-10</button>
@@ -886,16 +1013,14 @@ function renderManagerPanel() {
     `).join('');
   }
 
+  // Gestor de Premios
   const rewardsContainer = document.getElementById('manageRewardsList');
   if (rewardsContainer) {
     rewardsContainer.innerHTML = state.rewards.map(r => `
       <div class="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800/80 flex justify-between items-center gap-2">
         <div class="flex items-center gap-2 truncate">
           <span class="text-xl bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">${r.icon || '🎁'}</span>
-          <div class="truncate">
-            <p class="text-xs text-zinc-100 font-bold truncate">${r.title}</p>
-            <p class="text-[10px] text-amber-400 font-bold">${r.cost} ⭐</p>
-          </div>
+          <div class="truncate"><p class="text-xs text-zinc-100 font-bold truncate">${r.title}</p><p class="text-[10px] text-amber-400 font-bold">${r.cost} ⭐</p></div>
         </div>
         <div class="flex items-center gap-1">
           <button onclick="editReward(${r.id})" class="text-[11px] text-amber-400 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20 font-bold active:scale-95">✏️</button>
@@ -905,16 +1030,14 @@ function renderManagerPanel() {
     `).join('');
   }
 
+  // Gestor de Acciones/Tareas
   const actionsContainer = document.getElementById('manageActionsList');
   if (actionsContainer) {
     actionsContainer.innerHTML = state.actions.map(a => `
       <div class="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800/80 flex justify-between items-center gap-2">
         <div class="flex items-center gap-2 truncate">
           <span class="text-xl bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">${a.icon || '📌'}</span>
-          <div class="truncate">
-            <p class="text-xs text-zinc-100 font-bold truncate">${a.title}</p>
-            <p class="text-[10px] ${a.points > 0 ? 'text-emerald-400' : 'text-red-400'} font-bold">${a.points > 0 ? '+' : ''}${a.points} pts</p>
-          </div>
+          <div class="truncate"><p class="text-xs text-zinc-100 font-bold truncate">${a.title}</p><p class="text-[10px] ${a.points > 0 ? 'text-emerald-400' : 'text-red-400'} font-bold">${a.points > 0 ? '+' : ''}${a.points} pts</p></div>
         </div>
         <div class="flex items-center gap-1">
           <button onclick="editAction(${a.id})" class="text-[11px] text-blue-400 bg-blue-500/10 px-2.5 py-1.5 rounded-lg border border-blue-500/20 font-bold active:scale-95">✏️</button>
@@ -928,20 +1051,15 @@ function renderManagerPanel() {
 async function editReward(rewardId) {
   const reward = state.rewards.find(r => r.id === rewardId);
   if (!reward) return;
-
   const newTitle = prompt("Nuevo nombre del premio:", reward.title);
   if (newTitle === null || newTitle.trim() === "") return;
-
   const newCostStr = prompt("Nuevos puntos necesarios:", reward.cost);
   const parsedCost = parseInt(newCostStr);
   if (newCostStr === null || isNaN(parsedCost)) return;
-
   const newIcon = prompt("Nuevo emoji:", reward.icon || '🎁');
-
   reward.title = newTitle.trim();
   reward.cost = Math.abs(parsedCost);
   if (newIcon && newIcon.trim() !== "") reward.icon = newIcon.trim();
-
   await saveLocalStorage();
   renderApp();
 }
@@ -949,21 +1067,16 @@ async function editReward(rewardId) {
 async function editAction(actionId) {
   const action = state.actions.find(a => a.id === actionId);
   if (!action) return;
-
   const newTitle = prompt("Nuevo nombre de la tarea/penalización:", action.title);
   if (newTitle === null || newTitle.trim() === "") return;
-
   const newPointsStr = prompt("Nuevos puntos (usa signo - si es penalización):", action.points);
   const parsedPoints = parseInt(newPointsStr);
   if (newPointsStr === null || isNaN(parsedPoints)) return;
-
   const newIcon = prompt("Nuevo emoji:", action.icon || '⭐');
-
   action.title = newTitle.trim();
   action.points = parsedPoints;
   action.type = parsedPoints < 0 ? 'negative' : 'positive';
   if (newIcon && newIcon.trim() !== "") action.icon = newIcon.trim();
-
   await saveLocalStorage();
   renderApp();
 }
@@ -972,27 +1085,14 @@ async function addNewReward() {
   const titleEl = document.getElementById('newRewardTitle');
   const iconEl = document.getElementById('newRewardIcon');
   const costEl = document.getElementById('newRewardCost');
-
   const title = titleEl ? titleEl.value.trim() : '';
   const icon = (iconEl && iconEl.value.trim()) || '🎁';
   const cost = parseInt(costEl ? costEl.value : '');
-
-  if (!title || isNaN(cost) || cost <= 0) {
-    alert("Por favor, introduce un nombre y una cantidad de puntos válida.");
-    return;
-  }
-
-  state.rewards.push({
-    id: Date.now(),
-    title,
-    icon,
-    cost
-  });
-
+  if (!title || isNaN(cost) || cost <= 0) return alert("Por favor, introduce un nombre y una cantidad válida.");
+  state.rewards.push({ id: Date.now(), title, icon, cost });
   if (titleEl) titleEl.value = '';
   if (iconEl) iconEl.value = '';
   if (costEl) costEl.value = '';
-
   await saveLocalStorage();
   renderApp();
 }
@@ -1008,9 +1108,7 @@ async function deleteReward(id) {
 async function changeUserAvatar(userId) {
   const user = state.users[userId];
   if (!user) return;
-
   const input = prompt(`Cambiar avatar de ${user.name}.\nPuedes escribir un emoji o pegar una URL de foto:`, user.avatar);
-  
   if (input !== null && input.trim() !== '') {
     user.avatar = input.trim();
     await saveLocalStorage();
@@ -1024,6 +1122,7 @@ async function modifyPoints(userId, delta) {
     user.points += delta;
     if (user.points < 0) user.points = 0;
     showPointsAnimation(delta, user.name, "Ajuste manual de puntos");
+    checkAchievements(user);
     await saveLocalStorage();
     renderApp();
   }
@@ -1042,31 +1141,16 @@ async function addNewAction() {
   const iconEl = document.getElementById('newActionIcon');
   const pointsEl = document.getElementById('newActionPoints');
   const typeEl = document.getElementById('newActionType');
-
   const title = titleEl ? titleEl.value.trim() : '';
   const icon = (iconEl && iconEl.value.trim()) || '⭐';
   const points = parseInt(pointsEl ? pointsEl.value : '');
   const type = typeEl ? typeEl.value : 'positive';
-
-  if (!title || isNaN(points)) {
-    alert("Por favor, introduce un título y los puntos válidos.");
-    return;
-  }
-
+  if (!title || isNaN(points)) return alert("Por favor, introduce un título y puntos válidos.");
   const finalPoints = type === 'negative' ? -Math.abs(points) : Math.abs(points);
-
-  state.actions.unshift({
-    id: Date.now(),
-    title,
-    points: finalPoints,
-    type,
-    icon
-  });
-
+  state.actions.unshift({ id: Date.now(), title, points: finalPoints, type, icon });
   if (titleEl) titleEl.value = '';
   if (iconEl) iconEl.value = '';
   if (pointsEl) pointsEl.value = '';
-
   await saveLocalStorage();
   renderApp();
 }
@@ -1078,6 +1162,7 @@ async function resetMonthlyPoints() {
       state.users[k].streakDays = 0;
       state.users[k].streakType = 'none';
       state.users[k].totalCompleted = 0;
+      // Nota: ¡No reiniciamos los logros para que puedan conservarlos como trofeos!
     });
     state.history = [];
     state.redemptions = [];
@@ -1086,28 +1171,17 @@ async function resetMonthlyPoints() {
   }
 }
 
-window.addEventListener('focus', () => {
-  fetchCloudData();
-});
-
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') {
-    fetchCloudData();
-  }
-});
+window.addEventListener('focus', fetchCloudData);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fetchCloudData(); });
 
 async function startApp() {
   loadLocalStorage();
   initUserSelect();
   setActiveTab('home');
   renderApp();
-  
   await fetchCloudData();
   setupRealtimeListener();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', startApp);
-} else {
-  startApp();
-}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startApp);
+else startApp();
