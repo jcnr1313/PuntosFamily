@@ -556,7 +556,7 @@ function renderRewards() {
   const user = state.users[state.currentUser];
 
   container.innerHTML = state.rewards.map(reward => {
-    const canAfford = user.points >= reward.cost;
+    const canAfford = user && user.points >= reward.cost;
 
     return `
       <div class="bg-zinc-900 p-4 rounded-[1.75rem] border border-zinc-800/80 flex flex-col justify-between space-y-3 text-center shadow-md">
