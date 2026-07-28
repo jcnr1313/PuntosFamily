@@ -190,9 +190,9 @@
         <!-- 3. Minijuegos Info -->
         <div>
           <h3 class="text-sm font-black text-amber-400 mb-2 flex items-center gap-1.5 uppercase tracking-wider">
-            🎮 3. Reglas de los Minijuegos
+            🎮 3. Reglas de los Minijuegos Arcade
           </h3>
-          <p class="text-xs text-zinc-400 mb-3">Arriesga tus puntos acumulados para multiplicar tu saldo o ganar insignias y emojis.</p>
+          <p class="text-xs text-zinc-400 mb-3">Arriesga tus puntos acumulados para multiplicar tu saldo, ganar insignias o probar tu suerte.</p>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
@@ -227,12 +227,44 @@
               <p class="text-zinc-400 text-[11px]">👑 👑 👑 = Jackpot (+300 Pts + Emoji 👑). Tres Iguales = +75 Pts.</p>
             </div>
 
-            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 sm:col-span-2">
+            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
               <div class="flex justify-between items-center mb-1">
-                <span class="font-bold text-emerald-400">📦 Cajas Sorpresa</span>
+                <span class="font-bold text-emerald-400">📦 Caja Sorpresa</span>
                 <span class="text-[10px] font-black bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full">30 Pts</span>
               </div>
               <p class="text-zinc-400 text-[11px]">Bronce = 15 Pts + Sticker 🎁 | Plata = Emoji Rayo ⚡ | Oro = +150 Pts 🏆</p>
+            </div>
+
+            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-rose-400">🧗 Escalera de la Suerte</span>
+                <span class="text-[10px] font-black bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded-full">15 Pts</span>
+              </div>
+              <p class="text-zinc-400 text-[11px]">¿Número mayor o menor? Sube 5 peldaños. Aciertas = Multiplicas | Fallas = 0 Pts.</p>
+            </div>
+
+            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-red-500">💣 Cofre Explosivo</span>
+                <span class="text-[10px] font-black bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full">20 Pts</span>
+              </div>
+              <p class="text-zinc-400 text-[11px]">9 cofres: 8 tienen tesoros acumulables (+15 Pts) y 1 explota borrando lo ganado.</p>
+            </div>
+
+            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-cyan-400">🥤 Trilogía de Vasos</span>
+                <span class="text-[10px] font-black bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded-full">10 Pts</span>
+              </div>
+              <p class="text-zinc-400 text-[11px]">3 vasos invertidos, solo 1 tiene la bola de oro. ¡33% de ganar +40 Pts al instante!</p>
+            </div>
+
+            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 sm:col-span-2">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-violet-400">🚀 Cohete a la Luna</span>
+                <span class="text-[10px] font-black bg-violet-500/10 text-violet-400 px-2 py-0.5 rounded-full">35 Pts</span>
+              </div>
+              <p class="text-zinc-400 text-[11px]">Lanza un cohete que sube de multiplicador (x1.5, x2, x5). ¡Decide cuándo saltar antes de que explote en el aire!</p>
             </div>
           </div>
         </div>
@@ -275,10 +307,34 @@
             <span class="text-[10px] font-medium opacity-80">25 Pts</span>
           </button>
 
-          <button onclick="jugar('caja')" class="p-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-emerald-600/20 active:scale-95 transition sm:col-span-2">
+          <button onclick="jugar('caja')" class="p-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-emerald-600/20 active:scale-95 transition">
             <span class="text-2xl">📦</span>
             <span class="text-xs">Caja Sorpresa</span>
             <span class="text-[10px] font-medium opacity-80">30 Pts</span>
+          </button>
+
+          <button onclick="jugar('escalera')" class="p-3.5 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-rose-600/20 active:scale-95 transition">
+            <span class="text-2xl">🧗</span>
+            <span class="text-xs">Escalera</span>
+            <span class="text-[10px] font-medium opacity-80">15 Pts</span>
+          </button>
+
+          <button onclick="jugar('cofre')" class="p-3.5 bg-red-600 hover:bg-red-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-red-600/20 active:scale-95 transition">
+            <span class="text-2xl">💣</span>
+            <span class="text-xs">Cofre Explosivo</span>
+            <span class="text-[10px] font-medium opacity-80">20 Pts</span>
+          </button>
+
+          <button onclick="jugar('vasos')" class="p-3.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-cyan-600/20 active:scale-95 transition">
+            <span class="text-2xl">🥤</span>
+            <span class="text-xs">Tres Vasos</span>
+            <span class="text-[10px] font-medium opacity-80">10 Pts</span>
+          </button>
+
+          <button onclick="jugar('cohete')" class="p-3.5 bg-violet-600 hover:bg-violet-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-violet-600/20 active:scale-95 transition col-span-2 sm:col-span-1">
+            <span class="text-2xl">🚀</span>
+            <span class="text-xs">Cohete Lunar</span>
+            <span class="text-[10px] font-medium opacity-80">35 Pts</span>
           </button>
         </div>
       </div>
