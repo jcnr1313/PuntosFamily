@@ -13,6 +13,16 @@ function getSupabaseClient() {
 
 let isManagerUnlocked = false;
 
+// --- FRASES MOTIVACIONALES (ANUNCIADOR ARCADE) ---
+const MOTIVATIONAL_QUOTES = [
+  "¡EN RACHA IMPARABLE! 🔥",
+  "¡TRABAJO DE NIVEL LEYENDA! 👑",
+  "¡ENERGÍA AL MÁXIMO! ⚡",
+  "¡PUNTOS EXTRA CONSEGUIDOS! 🎯",
+  "¡IMPRESIONANTE ESFUERZO! 🚀",
+  "¡ERES UN SUPERHÉROE DEL HOGAR! 🌟"
+];
+
 // --- SISTEMA DE LOGROS (VIDEOJUEGOS) ---
 const ACHIEVEMENTS = [
   { id: 'first_task', title: 'Primeros Pasos', desc: 'Completa tu primera tarea', icon: '🥉', check: (u) => u.totalCompleted >= 1 },
@@ -29,8 +39,10 @@ let state = {
   previousUser: 'joan',
   parentPin: '1234',
   currentTaskFilter: 'positive',
-  lootboxCost: 30, // Nuevo: Coste de la caja sorpresa editable
-  familyGoal: { title: '🍕 Fiesta de Pizza Familiar', targetPoints: 500 },
+  lootboxCost: 30,
+  doubleXpActive: false, // Nuevo: Evento 2x Puntos
+  dailyQuest: { title: 'Haz 2 tareas hoy', rewardPts: 15, date: null, completedBy: [] }, // Nuevo: Misión diaria
+  familyGoal: { title: '👾 El Dragón de la Desorden (Meta Familiar)', targetPoints: 500 },
   users: {
     'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
     'martina': { id: 'martina', name: 'Martina', role: 'hijo', avatar: '👧', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
@@ -143,7 +155,7 @@ function getUserLevel(totalCompleted) {
   return { level, xpPercent, rankName };
 }
 
-// --- ANIMACIONES (PUNTOS Y LOGROS) ---
+// --- ANIMACIONES (PUNTOS, LOGROS Y FRASES) ---
 function showPointsAnimation(points, childName, title) {
   const isPositive = points > 0;
   playSound(isPositive ? 'positive' : 'negative');
@@ -152,6 +164,8 @@ function showPointsAnimation(points, childName, title) {
   const overlay = document.createElement('div');
   overlay.className = "fixed inset-0 pointer-events-none z-50 flex items-center justify-center p-4 transition-all duration-500";
   
+  const randomQuote = isPositive ? MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)] : '¡CUIDADO! PENALIZACIÓN';
+
   const content = document.createElement('div');
   content.className = `transform scale-50 opacity-0 transition-all duration-300 ease-out p-6 rounded-3xl border text-center shadow-2xl backdrop-blur-md flex flex-col items-center justify-center gap-2 ${
     isPositive 
@@ -160,6 +174,7 @@ function showPointsAnimation(points, childName, title) {
   }`;
 
   content.innerHTML = `
+    <div class="text-xs font-black tracking-widest text-amber-300 animate-pulse">${randomQuote}</div>
     <div class="text-5xl animate-bounce mb-1">${isPositive ? '🎉' : '⚠️'}</div>
     <div class="text-xs font-bold uppercase tracking-wider text-zinc-400">${childName}</div>
     <div class="text-4xl font-black ${isPositive ? 'text-emerald-400' : 'text-red-400'}">${isPositive ? '+' : ''}${points} PTS</div>
@@ -178,7 +193,7 @@ function showPointsAnimation(points, childName, title) {
     content.classList.remove('scale-100', 'opacity-100');
     content.classList.add('scale-75', 'opacity-0');
     setTimeout(() => overlay.remove(), 300);
-  }, 1800);
+  }, 2000);
 }
 
 function showAchievementToast(ach) {
@@ -215,7 +230,7 @@ function checkAchievements(user) {
       user.unlockedAchievements.push(ach.id);
       changed = true;
       state.history.unshift(`🏆 ${user.name} desbloqueó el logro: ${ach.title}`);
-      setTimeout(() => showAchievementToast(ach), 500); // Retraso leve para no pisar la animación de puntos
+      setTimeout(() => showAchievementToast(ach), 500);
     }
   });
   return changed;
@@ -245,6 +260,8 @@ async function saveLocalStorage() {
 
 function mergeStateData(remote) {
   if (remote.lootboxCost !== undefined) state.lootboxCost = remote.lootboxCost;
+  if (remote.doubleXpActive !== undefined) state.doubleXpActive = remote.doubleXpActive;
+  if (remote.dailyQuest) state.dailyQuest = remote.dailyQuest;
   if (remote.parentPin) state.parentPin = remote.parentPin;
   if (remote.actions && remote.actions.length > 0) state.actions = remote.actions;
   if (remote.rewards && remote.rewards.length > 0) state.rewards = remote.rewards;
@@ -298,7 +315,9 @@ async function syncFullStateToCloud() {
       redemptions: state.redemptions,
       history: state.history,
       familyGoal: state.familyGoal,
-      lootboxCost: state.lootboxCost
+      lootboxCost: state.lootboxCost,
+      doubleXpActive: state.doubleXpActive,
+      dailyQuest: state.dailyQuest
     };
     await client.from('app_state').upsert({ id: 'main_config', data: payload, updated_at: new Date().toISOString() });
   } catch (err) {}
@@ -390,13 +409,11 @@ function canSpinRoulette(user) {
   const lastDate = new Date(user.lastRouletteDate);
   const now = new Date();
   
-  // Calcular el último Lunes a las 00:00:00
-  const day = now.getDay() || 7; // Convertimos Domingo(0) a 7
+  const day = now.getDay() || 7;
   const monday = new Date(now);
   monday.setHours(0, 0, 0, 0);
   monday.setDate(now.getDate() - day + 1);
   
-  // Si tiró antes del último lunes, puede volver a tirar
   return lastDate < monday;
 }
 
@@ -425,13 +442,11 @@ function renderRouletteBanner() {
   const user = state.users[state.currentUser];
   let container = document.getElementById('rouletteBannerContainer');
   
-  // Buscamos o creamos el contenedor en el tab-home
   if (!container) {
     const homeTab = document.getElementById('tab-home');
     if (!homeTab) return;
     container = document.createElement('div');
     container.id = 'rouletteBannerContainer';
-    // Insertarlo después del Family Goal
     const goalWidget = document.getElementById('familyGoalWidget');
     if (goalWidget) goalWidget.after(container);
     else homeTab.insertBefore(container, homeTab.firstChild);
@@ -455,6 +470,199 @@ function renderRouletteBanner() {
   }
 }
 
+// --- RENDERS DE LAS NUEVAS FUNCIONES ---
+
+// 1. BANNER DOBLE XP
+function renderDoubleXpBanner() {
+  let container = document.getElementById('doubleXpBanner');
+  if (!container) {
+    const homeTab = document.getElementById('tab-home');
+    if (!homeTab) return;
+    container = document.createElement('div');
+    container.id = 'doubleXpBanner';
+    homeTab.prepend(container);
+  }
+
+  if (state.doubleXpActive) {
+    container.innerHTML = `
+      <div class="mb-4 bg-gradient-to-r from-amber-500 via-red-500 to-pink-500 p-3 rounded-2xl border-2 border-yellow-300 shadow-xl flex items-center justify-between animate-bounce">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🔥</span>
+          <div>
+            <h4 class="text-xs font-black text-white uppercase tracking-wider">¡EVENTO DOBLE XP ACTIVADO!</h4>
+            <p class="text-[10px] text-yellow-100 font-bold">¡Todas las tareas valen el DOBLE de puntos!</p>
+          </div>
+        </div>
+        <span class="bg-black/30 text-yellow-300 text-xs font-black px-2.5 py-1 rounded-xl">x2 PTS</span>
+      </div>
+    `;
+  } else {
+    container.innerHTML = '';
+  }
+}
+
+// 2. MISIONES DIARIAS (DAILY QUEST)
+function renderDailyQuestWidget() {
+  let container = document.getElementById('dailyQuestWidget');
+  if (!container) {
+    const homeTab = document.getElementById('tab-home');
+    if (!homeTab) return;
+    container = document.createElement('div');
+    container.id = 'dailyQuestWidget';
+    const goalWidget = document.getElementById('familyGoalWidget');
+    if (goalWidget) goalWidget.after(container);
+    else homeTab.appendChild(container);
+  }
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (!state.dailyQuest || state.dailyQuest.date !== todayStr) {
+    state.dailyQuest = {
+      title: 'Haz al menos 2 tareas hoy',
+      rewardPts: 15,
+      date: todayStr,
+      completedBy: []
+    };
+  }
+
+  const user = state.users[state.currentUser];
+  const isDone = user && state.dailyQuest.completedBy.includes(user.id);
+
+  container.className = "mb-4 bg-gradient-to-r from-amber-950/70 to-zinc-950 p-4 rounded-3xl border border-amber-500/30 shadow-lg";
+  container.innerHTML = `
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="text-3xl">⚔️</div>
+        <div>
+          <span class="text-[9px] font-black uppercase text-amber-400 tracking-wider">Misión Diaria de Hoy</span>
+          <h4 class="text-xs font-black text-white">${state.dailyQuest.title}</h4>
+          <p class="text-[10px] text-zinc-400">Recompensa: <span class="text-amber-400 font-bold">+${state.dailyQuest.rewardPts} ⭐</span></p>
+        </div>
+      </div>
+      <button 
+        onclick="claimDailyQuest()"
+        ${isDone || user.role !== 'hijo' ? 'disabled' : ''}
+        class="py-2 px-3 rounded-xl text-xs font-extrabold ${isDone ? 'bg-zinc-800 text-zinc-500 border border-zinc-700' : 'bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-md active:scale-95 transition'}">
+        ${isDone ? '¡Hecha! ✅' : 'Reclamar'}
+      </button>
+    </div>
+  `;
+}
+
+async function claimDailyQuest() {
+  const user = state.users[state.currentUser];
+  if (!user || user.role !== 'hijo') return;
+  if (state.dailyQuest.completedBy.includes(user.id)) return;
+
+  user.points += state.dailyQuest.rewardPts;
+  state.dailyQuest.completedBy.push(user.id);
+  state.history.unshift(`⚔️ ${user.name} completó la Misión Diaria (+${state.dailyQuest.rewardPts} pts)`);
+
+  playSound('reward');
+  triggerHaptic();
+  showPointsAnimation(state.dailyQuest.rewardPts, user.name, "¡Misión Diaria Completada!");
+
+  checkAchievements(user);
+  await saveLocalStorage();
+  renderApp();
+}
+
+// 3. JEFE FINAL CO-OP (REVISION DE META FAMILIAR)
+function renderFamilyGoal() {
+  let container = document.getElementById('familyGoalWidget');
+  if (!container) {
+    const homeTab = document.getElementById('tab-home');
+    if (!homeTab) return;
+    container = document.createElement('div');
+    container.id = 'familyGoalWidget';
+    homeTab.insertBefore(container, homeTab.firstChild);
+  }
+
+  const goal = state.familyGoal || { title: '👾 El Dragón del Desorden (Meta Co-op)', targetPoints: 500 };
+  const totalKidsPoints = Object.values(state.users)
+    .filter(u => u.role === 'hijo')
+    .reduce((acc, u) => acc + u.points, 0);
+
+  const percent = Math.min(100, Math.round((totalKidsPoints / goal.targetPoints) * 100));
+  const hpLeft = Math.max(0, goal.targetPoints - totalKidsPoints);
+
+  container.className = "mb-4 bg-gradient-to-r from-red-950/80 via-purple-950/80 to-zinc-950 p-4 rounded-3xl border border-red-500/40 shadow-xl shadow-red-500/10";
+  container.innerHTML = `
+    <div class="flex justify-between items-center mb-2">
+      <div class="flex items-center gap-2.5">
+        <span class="text-3xl animate-bounce">👾</span>
+        <div>
+          <span class="text-[9px] font-black uppercase tracking-wider text-red-400">Jefe Final Co-Op</span>
+          <h3 class="text-xs font-black text-white">${goal.title}</h3>
+        </div>
+      </div>
+      <div class="text-right">
+        <span class="text-xs font-black text-red-400 bg-red-500/20 px-2.5 py-1 rounded-full border border-red-400/30">HP: ${hpLeft}/${goal.targetPoints}</span>
+      </div>
+    </div>
+    <div class="w-full bg-zinc-900/90 h-3.5 rounded-full overflow-hidden border border-red-500/30 p-0.5">
+      <div class="bg-gradient-to-r from-red-600 via-orange-500 to-amber-400 h-full rounded-full transition-all duration-500 shadow-md shadow-red-500/50" style="width: ${percent}%"></div>
+    </div>
+    <p class="text-[10px] text-zinc-400 font-bold mt-1.5 text-center">¡Suma puntos con tus hermanos para derrotarlo juntos! (${percent}% derrotado)</p>
+  `;
+}
+
+// 4. RASCA Y GANA EN PREMIOS
+function renderScratchCardWidget() {
+  let container = document.getElementById('scratchCardContainer');
+  if (!container) {
+    const rewardsTab = document.getElementById('tab-rewards');
+    if (!rewardsTab) return;
+    container = document.createElement('div');
+    container.id = 'scratchCardContainer';
+    rewardsTab.insertBefore(container, rewardsTab.firstChild);
+  }
+
+  container.className = "mb-4 bg-gradient-to-r from-amber-900/40 via-yellow-900/40 to-zinc-950 p-4 rounded-[1.75rem] border border-amber-500/40 shadow-lg text-center";
+  container.innerHTML = `
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">🎟️</span>
+        <h4 class="text-xs font-black text-amber-300">Rasca y Gana Dorado</h4>
+      </div>
+      <span class="text-[10px] text-zinc-400 font-bold">10 ⭐ por rasca</span>
+    </div>
+    <div id="scratchCardArea" class="bg-gradient-to-br from-amber-400 to-yellow-600 rounded-2xl p-4 cursor-pointer active:scale-95 transition-transform border-2 border-yellow-200 shadow-md flex items-center justify-center min-h-[70px]" onclick="playScratchCard()">
+      <span id="scratchText" class="text-zinc-950 font-black text-xs uppercase tracking-wider">¡Haz clic aquí para rascar por 10 pts! 🪙</span>
+    </div>
+  `;
+}
+
+async function playScratchCard() {
+  const user = state.users[state.currentUser];
+  if (!user || user.points < 10) return alert("¡Necesitas al menos 10 puntos para rascar una tarjeta!");
+  
+  if (!confirm("¿Quieres gastar 10 puntos en el Rasca y Gana? 🎟️")) return;
+
+  user.points -= 10;
+
+  const prizes = [
+    { title: "¡Ganaste +15 Puntos!", pts: 15 },
+    { title: "¡Ganaste +30 Puntos!", pts: 30 },
+    { title: "¡Vale por 1 Helado!", pts: 0 },
+    { title: "¡Elegir la película de hoy!", pts: 0 },
+    { title: "¡Casi! Prueba otra vez", pts: 0 }
+  ];
+
+  const won = prizes[Math.floor(Math.random() * prizes.length)];
+  if (won.pts > 0) user.points += won.pts;
+
+  const area = document.getElementById('scratchText');
+  if (area) area.innerText = `🎉 ¡${won.title}!`;
+
+  state.history.unshift(`🎟️ ${user.name} rascó una tarjeta y obtuvo: ${won.title}`);
+  playSound('reward');
+  triggerHaptic();
+
+  checkAchievements(user);
+  await saveLocalStorage();
+  renderApp();
+}
+
 // --- RENDERIZADO PRINCIPAL ---
 function renderApp() {
   const user = state.users[state.currentUser];
@@ -470,50 +678,18 @@ function renderApp() {
     if (pointsEl) pointsEl.innerText = `${user.points} ⭐`;
   } catch (e) {}
 
+  try { renderDoubleXpBanner(); } catch (e) {}
   try { renderFamilyGoal(); } catch (e) {}
+  try { renderDailyQuestWidget(); } catch (e) {}
   try { renderRouletteBanner(); } catch (e) {}
   try { renderLeaderboard(); } catch (e) {}
   try { renderPodium(); } catch (e) {}
   try { renderUserStats(); } catch (e) {}
   try { renderTasks(); } catch (e) {}
+  try { renderScratchCardWidget(); } catch (e) {}
   try { renderRewards(); } catch (e) {}
   try { updateActivityLog(); } catch (e) {}
   try { renderManagerPanel(); } catch (e) {}
-}
-
-function renderFamilyGoal() {
-  let container = document.getElementById('familyGoalWidget');
-  if (!container) {
-    const homeTab = document.getElementById('tab-home');
-    if (!homeTab) return;
-    container = document.createElement('div');
-    container.id = 'familyGoalWidget';
-    homeTab.insertBefore(container, homeTab.firstChild);
-  }
-
-  const goal = state.familyGoal || { title: '🍕 Fiesta de Pizza Familiar', targetPoints: 500 };
-  const totalKidsPoints = Object.values(state.users)
-    .filter(u => u.role === 'hijo')
-    .reduce((acc, u) => acc + u.points, 0);
-
-  const percent = Math.min(100, Math.round((totalKidsPoints / goal.targetPoints) * 100));
-
-  container.className = "mb-4 bg-gradient-to-r from-blue-950/80 via-indigo-950/80 to-purple-950/80 p-4 rounded-3xl border border-blue-500/30 shadow-lg shadow-blue-500/10";
-  container.innerHTML = `
-    <div class="flex justify-between items-center mb-2">
-      <div class="flex items-center gap-2">
-        <span class="text-xl">🤝</span>
-        <div>
-          <h3 class="text-xs font-black text-blue-200">Meta Familiar</h3>
-          <p class="text-[11px] text-zinc-300 font-bold">${goal.title}</p>
-        </div>
-      </div>
-      <span class="text-xs font-black text-blue-400 bg-blue-500/20 px-2.5 py-1 rounded-full border border-blue-400/30">${totalKidsPoints}/${goal.targetPoints} ⭐ (${percent}%)</span>
-    </div>
-    <div class="w-full bg-zinc-900/80 h-3 rounded-full overflow-hidden border border-white/10 p-0.5">
-      <div class="bg-gradient-to-r from-blue-500 to-indigo-400 h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
-    </div>
-  `;
 }
 
 function renderLeaderboard() {
@@ -624,7 +800,6 @@ function renderUserStats() {
 
   const lvlInfo = getUserLevel(user.totalCompleted);
 
-  // Renderizar Medallas
   const unlockedMeds = user.unlockedAchievements || [];
   const medalsHtml = unlockedMeds.length === 0 
     ? '<span class="text-[10px] text-zinc-500">Aún no hay medallas</span>'
@@ -647,7 +822,6 @@ function renderUserStats() {
       </div>
     </div>
 
-    <!-- SECCIÓN MEDALLERO -->
     <div class="col-span-2 bg-zinc-950 p-3 rounded-2xl border border-zinc-800/80 flex flex-col gap-2">
       <span class="font-bold text-[10px] text-zinc-400 uppercase tracking-wider">Logros y Medallas 🏆</span>
       <div class="flex flex-wrap gap-2 items-center min-h-[32px]">
@@ -698,11 +872,13 @@ function renderTasks() {
 
   container.innerHTML = filtered.map(action => {
     const isPos = action.type === 'positive';
+    const effectivePoints = (isPos && state.doubleXpActive) ? action.points * 2 : action.points;
     const pointsClass = isPos ? 'text-emerald-400' : 'text-red-400';
-    const ptsText = isPos ? `+${action.points}` : `${action.points}`;
+    const ptsText = isPos ? `+${effectivePoints}` : `${effectivePoints}`;
 
     return `
-      <div onclick="applyAction(${action.id})" class="bg-zinc-900 hover:bg-zinc-800/90 p-4 rounded-[1.75rem] border border-zinc-800/80 cursor-pointer transition-all duration-200 active:scale-90 flex flex-col justify-between space-y-4 shadow-md group">
+      <div onclick="applyAction(${action.id})" class="bg-zinc-900 hover:bg-zinc-800/90 p-4 rounded-[1.75rem] border border-zinc-800/80 cursor-pointer transition-all duration-200 active:scale-90 flex flex-col justify-between space-y-4 shadow-md group relative">
+        ${(isPos && state.doubleXpActive) ? `<span class="absolute top-2 right-2 text-[9px] bg-red-500 text-white font-black px-2 py-0.5 rounded-full animate-pulse">2x</span>` : ''}
         <div class="w-12 h-12 rounded-2xl bg-zinc-950 flex items-center justify-center text-2xl border border-zinc-800/50 shadow-inner group-hover:rotate-12 transition-transform">
           ${action.icon || (isPos ? '⭐' : '⚠️')}
         </div>
@@ -740,7 +916,12 @@ async function applyAction(actionId) {
   }
 
   if (child) {
-    child.points += action.points;
+    let finalPoints = action.points;
+    if (action.type === 'positive' && state.doubleXpActive) {
+      finalPoints = action.points * 2;
+    }
+
+    child.points += finalPoints;
     if (child.points < 0) child.points = 0;
 
     child.totalCompleted = (child.totalCompleted || 0) + 1;
@@ -753,10 +934,10 @@ async function applyAction(actionId) {
     }
 
     const performerName = activeUser ? activeUser.name : 'Padre/Madre';
-    state.history.unshift(`${performerName} registró para ${child.name}: ${action.title} (${action.points > 0 ? '+' : ''}${action.points} pts)`);
+    state.history.unshift(`${performerName} registró para ${child.name}: ${action.title} (${finalPoints > 0 ? '+' : ''}${finalPoints} pts)`);
 
-    showPointsAnimation(action.points, child.name, action.title);
-    checkAchievements(child); // Comprueba logros después de sumar puntos
+    showPointsAnimation(finalPoints, child.name, action.title);
+    checkAchievements(child);
 
     await saveLocalStorage();
     renderApp();
@@ -787,7 +968,7 @@ function renderRewards() {
   if (!container) return;
 
   const user = state.users[state.currentUser];
-  const lootCost = state.lootboxCost || 30; // Usar coste dinámico
+  const lootCost = state.lootboxCost || 30;
 
   const lootboxCard = `
     <div class="col-span-full bg-gradient-to-r from-amber-950/60 via-purple-950/60 to-zinc-900 p-4 rounded-[1.75rem] border border-amber-500/40 flex items-center justify-between shadow-lg mb-2">
@@ -932,28 +1113,43 @@ async function editLootboxCost() {
   }
 }
 
+async function toggleDoubleXp() {
+  state.doubleXpActive = !state.doubleXpActive;
+  await saveLocalStorage();
+  renderApp();
+}
+
 function renderManagerPanel() {
   if (!isManagerUnlocked) return;
 
-  // Renderizar control de Caja Sorpresa
+  // Widget Control Caja Sorpresa y Doble XP
   const lootboxControl = document.getElementById('lootboxControlWidget');
   if (!lootboxControl) {
     const settingsPanel = document.getElementById('pinUnlockedContent');
-    const firstSection = settingsPanel.querySelector('.space-y-4'); // Buscar primer bloque de ajustes
+    const firstSection = settingsPanel.querySelector('.space-y-4');
     if (firstSection) {
       const div = document.createElement('div');
       div.id = 'lootboxControlWidget';
-      firstSection.prepend(div); // Insertarlo al principio de la configuración
+      firstSection.prepend(div);
     }
   }
   const lcWidget = document.getElementById('lootboxControlWidget');
   if (lcWidget) {
     lcWidget.innerHTML = `
-      <div class="bg-gradient-to-r from-amber-950/40 to-zinc-950 p-3 rounded-2xl border border-amber-500/20 flex justify-between items-center mb-4">
-        <span class="text-xs font-bold text-white flex items-center gap-2">🎁 Coste Caja Sorpresa</span>
-        <div class="flex items-center gap-2">
-          <span class="text-amber-400 font-black text-sm">${state.lootboxCost || 30} ⭐</span>
-          <button onclick="editLootboxCost()" class="text-[11px] text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20 font-bold active:scale-95">Editar</button>
+      <div class="space-y-2 mb-4">
+        <div class="bg-gradient-to-r from-amber-950/40 to-zinc-950 p-3 rounded-2xl border border-amber-500/20 flex justify-between items-center">
+          <span class="text-xs font-bold text-white flex items-center gap-2">🎁 Coste Caja Sorpresa</span>
+          <div class="flex items-center gap-2">
+            <span class="text-amber-400 font-black text-sm">${state.lootboxCost || 30} ⭐</span>
+            <button onclick="editLootboxCost()" class="text-[11px] text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20 font-bold active:scale-95">Editar</button>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-red-950/40 to-zinc-950 p-3 rounded-2xl border border-red-500/20 flex justify-between items-center">
+          <span class="text-xs font-bold text-white flex items-center gap-2">🔥 Evento Doble XP (2x Puntos)</span>
+          <button onclick="toggleDoubleXp()" class="text-xs font-black px-3 py-1.5 rounded-lg border transition ${state.doubleXpActive ? 'bg-red-500 text-white border-red-400 animate-pulse' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}">
+            ${state.doubleXpActive ? 'ACTIVADO 🔥' : 'DESACTIVADO'}
+          </button>
         </div>
       </div>
     `;
@@ -1162,7 +1358,6 @@ async function resetMonthlyPoints() {
       state.users[k].streakDays = 0;
       state.users[k].streakType = 'none';
       state.users[k].totalCompleted = 0;
-      // Nota: ¡No reiniciamos los logros para que puedan conservarlos como trofeos!
     });
     state.history = [];
     state.redemptions = [];
