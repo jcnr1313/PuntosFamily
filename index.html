@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html lang="es" class="dark">
 <head>
-  <!-- Consola de depuración para móvil -->
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FamilyPoints PRO</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#09090b">
 
-  <!-- Tailwind CSS y Supabase -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Consola de depuración móvil (Eruda) -->
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>eruda.init();</script>
+
+  <!-- SDK Supabase y Tailwind CSS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -37,18 +39,7 @@
       }
     }
   </script>
-  <script>
-    // Configuración obligatoria de Supabase para la Nube
-    const SUPABASE_URL = 'https://dwfpellkjknjsoownvra.supabase.co'; 
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZnBlbGxramtuanNvb3dudnJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzQwMDYsImV4cCI6MjEwMDcxMDAwNn0.x75ND4DNtptpxVtf-tK2FNr_33zxhk5SF7_-sAb8-jY';
-    
-    // Inicialización de la librería Supabase
-    if (typeof supabase !== 'undefined' && SUPABASE_URL !== 'TU_SUPABASE_URL') {
-      window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else {
-      window.supabaseClient = null;
-    }
-  </script>
+
   <style>
     .avatar-box img {
       width: 100%;
