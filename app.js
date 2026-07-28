@@ -56,6 +56,7 @@ let state = {
     { id: 116, title: 'No poner la mesa', points: -15, type: 'negative', icon: '🍽️' },
     { id: 117, title: 'No recoger la ropa', points: -15, type: 'negative', icon: '👕' },
     { id: 118, title: 'No tirar la basura', points: -10, type: 'negative', icon: '🗑️' }
+    { id: 118, title: 'Ir descalzo', points: -15, type: 'negative', icon: '🦶' }
   ],
   rewards: [
     { id: 1, title: 'Elegir la cena', cost: 80, icon: '🍕' },
