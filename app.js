@@ -364,7 +364,6 @@ async function uploadAvatarImage(userId) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Redimensionar imagen para optimizar almacenamiento en LocalStorage y Supabase
     const reader = new FileReader();
     reader.onload = (readerEvent) => {
       const img = new Image();
@@ -1496,7 +1495,23 @@ async function toggleDoubleXp() {
   renderApp();
 }
 
-// --- PANEL DE GESTIÓN PARENTAL COMPLETO ---
+async function quickAddPoints(userId, amount) {
+  const u = state.users[userId];
+  if (!u) return;
+  u.points = Math.max(0, u.points + amount);
+  state.history.unshift(`⚙️ Puntos de ${u.name} modificados en (${amount > 0 ? '+' : ''}${amount} pts)`);
+  await saveLocalStorage();
+  renderApp();
+}
+
+function toggleAccordionSection(secId) {
+  const el = document.getElementById(secId);
+  if (el) {
+    el.classList.toggle('hidden');
+  }
+}
+
+// --- PANEL DE GESTIÓN PARENTAL COMPLETO Y CORREGIDO ---
 function renderManagerPanel() {
   const container = document.getElementById('managerPanelContent');
   if (!container) return;
@@ -1506,30 +1521,78 @@ function renderManagerPanel() {
     return;
   }
 
-  const usersListHtml = Object.values(state.users).map(u => `
+  const avatarsConfigHtml = Object.values(state.users).map(u => `
     <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-700 overflow-hidden flex items-center justify-center">
           ${renderAvatarHtml(u.avatar, "text-xl")}
         </div>
-        <div>
-          <h4 class="text-xs font-bold text-white">${u.name} <span class="text-[10px] text-zinc-500">(${u.role})</span></h4>
-          <p class="text-[10px] text-amber-400 font-extrabold">${u.points} ⭐ | Tareas: ${u.totalCompleted || 0}</p>
-        </div>
+        <span class="text-xs font-bold text-white">${u.name}</span>
       </div>
-      <div class="flex gap-1.5">
-        <button onclick="editUserAvatar('${u.id}')" class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-extrabold rounded-lg">Emoji</button>
-        <button onclick="uploadAvatarImage('${u.id}')" class="px-2 py-1 bg-blue-900/80 hover:bg-blue-800 text-blue-200 text-[10px] font-extrabold rounded-lg">Foto 📷</button>
-        <button onclick="adjustUserPointsPrompt('${u.id}')" class="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-[10px] font-black rounded-lg">Puntos</button>
+      <div class="flex gap-2">
+        <button onclick="editUserAvatar('${u.id}')" class="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold rounded-xl">Emoji / Icono</button>
+        <button onclick="uploadAvatarImage('${u.id}')" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-md">Subir Foto 📷</button>
+      </div>
+    </div>
+  `).join('');
+
+  const quickPointsControlHtml = Object.values(state.users).map(u => `
+    <div class="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800 flex flex-col gap-2">
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-black text-white flex items-center gap-2">
+          ${u.name}
+          <span class="text-[10px] text-zinc-500 font-medium">(${u.role})</span>
+        </span>
+        <span class="text-xs font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">${u.points} ⭐</span>
+      </div>
+      <div class="grid grid-cols-5 gap-1.5">
+        <button onclick="quickAddPoints('${u.id}', -20)" class="py-1.5 bg-red-950/80 hover:bg-red-900 border border-red-800/60 text-red-300 font-extrabold text-xs rounded-xl active:scale-95 transition">-20</button>
+        <button onclick="quickAddPoints('${u.id}', -10)" class="py-1.5 bg-red-950/50 hover:bg-red-900/50 border border-red-800/40 text-red-400 font-extrabold text-xs rounded-xl active:scale-95 transition">-10</button>
+        <button onclick="adjustUserPointsPrompt('${u.id}')" class="py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-extrabold text-xs rounded-xl active:scale-95 transition">Editar</button>
+        <button onclick="quickAddPoints('${u.id}', 10)" class="py-1.5 bg-emerald-950/50 hover:bg-emerald-900/50 border border-emerald-800/40 text-emerald-400 font-extrabold text-xs rounded-xl active:scale-95 transition">+10</button>
+        <button onclick="quickAddPoints('${u.id}', 20)" class="py-1.5 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800/60 text-emerald-300 font-extrabold text-xs rounded-xl active:scale-95 transition">+20</button>
       </div>
     </div>
   `).join('');
 
   container.innerHTML = `
-    <div class="space-y-5 text-left">
-      <!-- 1. EVENTO Y CONFIGURACIÓN RÁPIDA -->
-      <div class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800 space-y-3">
-        <h3 class="text-xs font-black uppercase text-amber-400 tracking-wider">Ajustes del Sistema</h3>
+    <div class="space-y-4 text-left pb-16">
+      
+      <!-- TARJETA 1: PERSONALIZAR FOTOS / AVATARES -->
+      <div class="bg-zinc-900 rounded-3xl border border-zinc-800 overflow-hidden shadow-lg">
+        <button onclick="toggleAccordionSection('secAvatarsContent')" class="w-full p-4 flex items-center justify-between text-left hover:bg-zinc-800/50 transition">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🎨</span>
+            <h3 class="text-xs font-black uppercase text-zinc-200 tracking-wider">Personalizar Fotos / Avatares</h3>
+          </div>
+          <span class="text-xs text-zinc-500 font-bold">▼</span>
+        </button>
+        <div id="secAvatarsContent" class="p-4 pt-0 space-y-2 border-t border-zinc-800/50">
+          <p class="text-[11px] text-zinc-400 mb-2 pt-3">Cambia la foto o icono de los perfiles de la familia:</p>
+          ${avatarsConfigHtml}
+        </div>
+      </div>
+
+      <!-- TARJETA 2: CONTROL RÁPIDO DE PUNTOS -->
+      <div class="bg-zinc-900 rounded-3xl border border-zinc-800 overflow-hidden shadow-lg">
+        <button onclick="toggleAccordionSection('secPointsControlContent')" class="w-full p-4 flex items-center justify-between text-left hover:bg-zinc-800/50 transition">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">⚡</span>
+            <h3 class="text-xs font-black uppercase text-amber-400 tracking-wider">Control Rápido de Puntos</h3>
+          </div>
+          <span class="text-xs text-zinc-500 font-bold">▼</span>
+        </button>
+        <div id="secPointsControlContent" class="p-4 pt-0 space-y-3 border-t border-zinc-800/50">
+          <p class="text-[11px] text-zinc-400 pt-3">Suma o resta puntos de forma inmediata a cualquier miembro:</p>
+          ${quickPointsControlHtml}
+        </div>
+      </div>
+
+      <!-- TARJETA 3: AJUSTES Y CONFIGURACIÓN -->
+      <div class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800 space-y-3 shadow-lg">
+        <h3 class="text-xs font-black uppercase text-blue-400 tracking-wider flex items-center gap-2">
+          <span>⚙️</span> Ajustes Generales del Sistema
+        </h3>
         
         <div class="flex items-center justify-between bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
           <div>
@@ -1562,25 +1625,20 @@ function renderManagerPanel() {
         </div>
       </div>
 
-      <!-- 2. PRUEBA LIBRE DE SONIDOS -->
-      <div class="bg-zinc-900 p-4 rounded-3xl border border-purple-500/30 space-y-3">
-        <h3 class="text-xs font-black uppercase text-purple-300 tracking-wider">Prueba de Efectos de Sonido</h3>
+      <!-- TARJETA 4: PRUEBA LIBRE DE SONIDOS -->
+      <div class="bg-zinc-900 p-4 rounded-3xl border border-purple-500/30 space-y-3 shadow-lg">
+        <h3 class="text-xs font-black uppercase text-purple-300 tracking-wider flex items-center gap-2">
+          <span>🔊</span> Prueba de Efectos de Sonido
+        </h3>
         <p class="text-[10px] text-zinc-400">Prueba los efectos sintéticos integrados sin consumir o restar puntos.</p>
         <div class="grid grid-cols-2 gap-2">
-          <button onclick="playSound('positive')" class="py-2 bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 rounded-xl text-xs font-bold active:scale-95">Positivo 🔔</button>
-          <button onclick="playSound('negative')" class="py-2 bg-red-950/80 border border-red-500/40 text-red-300 rounded-xl text-xs font-bold active:scale-95">Penalización ⚠️</button>
-          <button onclick="playSound('reward')" class="py-2 bg-amber-950/80 border border-amber-500/40 text-amber-300 rounded-xl text-xs font-bold active:scale-95">Recompensa 🎉</button>
-          <button onclick="playSound('achievement')" class="py-2 bg-purple-950/80 border border-purple-500/40 text-purple-300 rounded-xl text-xs font-bold active:scale-95">Logro 🏆</button>
+          <button onclick="playSound('positive')" class="py-2 bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 rounded-xl text-xs font-bold active:scale-95 transition">Positivo 🔔</button>
+          <button onclick="playSound('negative')" class="py-2 bg-red-950/80 border border-red-500/40 text-red-300 rounded-xl text-xs font-bold active:scale-95 transition">Penalización ⚠️</button>
+          <button onclick="playSound('reward')" class="py-2 bg-amber-950/80 border border-amber-500/40 text-amber-300 rounded-xl text-xs font-bold active:scale-95 transition">Recompensa 🎉</button>
+          <button onclick="playSound('achievement')" class="py-2 bg-purple-950/80 border border-purple-500/40 text-purple-300 rounded-xl text-xs font-bold active:scale-95 transition">Logro 🏆</button>
         </div>
       </div>
 
-      <!-- 3. USUARIOS Y PUNTOS -->
-      <div class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800 space-y-3">
-        <h3 class="text-xs font-black uppercase text-amber-400 tracking-wider">Gestión de Usuarios</h3>
-        <div class="space-y-2">
-          ${usersListHtml}
-        </div>
-      </div>
     </div>
   `;
 }
