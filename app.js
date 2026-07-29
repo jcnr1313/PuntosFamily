@@ -279,8 +279,8 @@ function mergeStateData(remote) {
       state.users[key] = {
         ...state.users[key],
         ...remote.users[key],
-        unlockedAchievements: remote.users[key].unlockedAchievements || state.users[key].unlockedAchievements || [],
-        lastRouletteDate: remote.users[key].lastRouletteDate || state.users[key].lastRouletteDate || null
+        unlockedAchievements: remote.users[key].unlockedAchievements || (state.users[key] ? state.users[key].unlockedAchievements : []) || [],
+        lastRouletteDate: remote.users[key].lastRouletteDate || (state.users[key] ? state.users[key].lastRouletteDate : null) || null
       };
     }
   }
@@ -349,7 +349,7 @@ function setupRealtimeListener() {
 // --- UTILIDADES UI Y AVATARES (FOTOS / EMOJIS) ---
 function renderAvatarHtml(avatarStr, sizeClasses = "w-full h-full text-2xl") {
   if (!avatarStr) return `<span class="${sizeClasses} flex items-center justify-center">👤</span>`;
-  if (avatarStr.startsWith('http://') || avatarStr.startsWith('https://') || avatarStr.startsWith('data:image')) {
+  if (typeof avatarStr === 'string' && (avatarStr.startsWith('http://') || avatarStr.startsWith('https://') || avatarStr.startsWith('data:image'))) {
     return `<img src="${avatarStr}" alt="Avatar" class="w-full h-full object-cover rounded-full">`;
   }
   return `<span class="${sizeClasses} flex items-center justify-center">${avatarStr}</span>`;
@@ -424,6 +424,10 @@ function setActiveTab(tab) {
     targetSection.classList.add('animate-fade-in');
   }
   if (targetNav) targetNav.className = "flex flex-col items-center py-1.5 text-blue-500 font-bold scale-105 transition-all duration-200";
+
+  if (tab === 'manager') {
+    renderManagerPanel();
+  }
 }
 
 function initUserSelect() {
@@ -1516,12 +1520,14 @@ function renderManagerPanel() {
   const container = document.getElementById('managerPanelContent');
   if (!container) return;
 
-  if (!isManagerUnlocked) {
-    container.innerHTML = `<p class="text-xs text-zinc-500 text-center py-4">🔒 Desbloquea el panel con el PIN parental para acceder a los ajustes.</p>`;
+  const usersArray = Object.values(state.users || {});
+  
+  if (usersArray.length === 0) {
+    container.innerHTML = `<p class="text-xs text-zinc-500 text-center py-4">Cargando perfiles...</p>`;
     return;
   }
 
-  const avatarsConfigHtml = Object.values(state.users).map(u => `
+  const avatarsConfigHtml = usersArray.map(u => `
     <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-700 overflow-hidden flex items-center justify-center">
@@ -1536,7 +1542,7 @@ function renderManagerPanel() {
     </div>
   `).join('');
 
-  const quickPointsControlHtml = Object.values(state.users).map(u => `
+  const quickPointsControlHtml = usersArray.map(u => `
     <div class="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800 flex flex-col gap-2">
       <div class="flex justify-between items-center">
         <span class="text-xs font-black text-white flex items-center gap-2">
@@ -1559,31 +1565,29 @@ function renderManagerPanel() {
     <div class="space-y-4 text-left pb-16">
       
       <!-- TARJETA 1: PERSONALIZAR FOTOS / AVATARES -->
-      <div class="bg-zinc-900 rounded-3xl border border-zinc-800 overflow-hidden shadow-lg">
-        <button onclick="toggleAccordionSection('secAvatarsContent')" class="w-full p-4 flex items-center justify-between text-left hover:bg-zinc-800/50 transition">
+      <div class="bg-zinc-900 rounded-3xl border border-zinc-800 shadow-lg">
+        <div class="w-full p-4 flex items-center justify-between border-b border-zinc-800/50">
           <div class="flex items-center gap-2">
             <span class="text-lg">🎨</span>
             <h3 class="text-xs font-black uppercase text-zinc-200 tracking-wider">Personalizar Fotos / Avatares</h3>
           </div>
-          <span class="text-xs text-zinc-500 font-bold">▼</span>
-        </button>
-        <div id="secAvatarsContent" class="p-4 pt-0 space-y-2 border-t border-zinc-800/50">
-          <p class="text-[11px] text-zinc-400 mb-2 pt-3">Cambia la foto o icono de los perfiles de la familia:</p>
+        </div>
+        <div id="secAvatarsContent" class="p-4 space-y-2">
+          <p class="text-[11px] text-zinc-400 mb-2">Cambia la foto o icono de los perfiles de la familia:</p>
           ${avatarsConfigHtml}
         </div>
       </div>
 
       <!-- TARJETA 2: CONTROL RÁPIDO DE PUNTOS -->
-      <div class="bg-zinc-900 rounded-3xl border border-zinc-800 overflow-hidden shadow-lg">
-        <button onclick="toggleAccordionSection('secPointsControlContent')" class="w-full p-4 flex items-center justify-between text-left hover:bg-zinc-800/50 transition">
+      <div class="bg-zinc-900 rounded-3xl border border-zinc-800 shadow-lg">
+        <div class="w-full p-4 flex items-center justify-between border-b border-zinc-800/50">
           <div class="flex items-center gap-2">
             <span class="text-lg">⚡</span>
             <h3 class="text-xs font-black uppercase text-amber-400 tracking-wider">Control Rápido de Puntos</h3>
           </div>
-          <span class="text-xs text-zinc-500 font-bold">▼</span>
-        </button>
-        <div id="secPointsControlContent" class="p-4 pt-0 space-y-3 border-t border-zinc-800/50">
-          <p class="text-[11px] text-zinc-400 pt-3">Suma o resta puntos de forma inmediata a cualquier miembro:</p>
+        </div>
+        <div id="secPointsControlContent" class="p-4 space-y-3">
+          <p class="text-[11px] text-zinc-400">Suma o resta puntos de forma inmediata a cualquier miembro:</p>
           ${quickPointsControlHtml}
         </div>
       </div>
