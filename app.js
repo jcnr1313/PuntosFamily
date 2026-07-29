@@ -41,7 +41,10 @@ let state = {
   currentTaskFilter: 'positive',
   lootboxCost: 30,
   doubleXpActive: false,
-  dailyQuest: { title: 'Haz 2 tareas hoy', rewardPts: 15, date: null, completedBy: [] },
+  activeQuestTab: 'daily', // 'daily', 'weekly', 'monthly'
+  dailyQuest: { title: 'Haz 2 tareas hoy', targetTasks: 2, rewardPts: 15, date: null, completedBy: [] },
+  weeklyQuest: { title: 'Completa 10 tareas esta semana', targetTasks: 10, rewardPts: 50, weekId: null, completedBy: [] },
+  monthlyQuest: { title: 'Suma 30 tareas en el mes', targetTasks: 30, rewardPts: 150, monthId: null, completedBy: [] },
   familyGoal: { title: '👾 El Dragón del Desorden (Meta Familiar)', targetPoints: 500 },
   users: {
     'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
@@ -262,6 +265,8 @@ function mergeStateData(remote) {
   if (remote.lootboxCost !== undefined) state.lootboxCost = remote.lootboxCost;
   if (remote.doubleXpActive !== undefined) state.doubleXpActive = remote.doubleXpActive;
   if (remote.dailyQuest) state.dailyQuest = remote.dailyQuest;
+  if (remote.weeklyQuest) state.weeklyQuest = remote.weeklyQuest;
+  if (remote.monthlyQuest) state.monthlyQuest = remote.monthlyQuest;
   if (remote.parentPin) state.parentPin = remote.parentPin;
   if (remote.actions && remote.actions.length > 0) state.actions = remote.actions;
   if (remote.rewards && remote.rewards.length > 0) state.rewards = remote.rewards;
@@ -317,7 +322,9 @@ async function syncFullStateToCloud() {
       familyGoal: state.familyGoal,
       lootboxCost: state.lootboxCost,
       doubleXpActive: state.doubleXpActive,
-      dailyQuest: state.dailyQuest
+      dailyQuest: state.dailyQuest,
+      weeklyQuest: state.weeklyQuest,
+      monthlyQuest: state.monthlyQuest
     };
     await client.from('app_state').upsert({ id: 'main_config', data: payload, updated_at: new Date().toISOString() });
   } catch (err) {}
@@ -813,6 +820,25 @@ function renderDoubleXpBanner() {
   }
 }
 
+// --- SISTEMA DE MISIONES (DIARIAS, SEMANALES Y MENSUALES) ---
+function getWeekIdentifier(d) {
+  const date = new Date(d.getTime());
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  const week1 = new Date(date.getFullYear(), 0, 4);
+  const weekNum = Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7) + 1;
+  return `${date.getFullYear()}-W${weekNum < 10 ? '0' + weekNum : weekNum}`;
+}
+
+function getMonthIdentifier(d) {
+  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+}
+
+function switchQuestTab(type) {
+  state.activeQuestTab = type;
+  renderDailyQuestWidget();
+}
+
 function renderDailyQuestWidget() {
   let container = document.getElementById('dailyQuestWidget');
   if (!container) {
@@ -825,52 +851,125 @@ function renderDailyQuestWidget() {
     else homeTab.appendChild(container);
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const currentWeekId = getWeekIdentifier(now);
+  const currentMonthId = getMonthIdentifier(now);
+
+  // Inicialización/Renovación Misión Diaria
   if (!state.dailyQuest || state.dailyQuest.date !== todayStr) {
-    state.dailyQuest = {
-      title: 'Haz al menos 2 tareas hoy',
-      rewardPts: 15,
-      date: todayStr,
-      completedBy: []
-    };
+    state.dailyQuest = { title: 'Haz al menos 2 tareas hoy', targetTasks: 2, rewardPts: 15, date: todayStr, completedBy: [] };
+  }
+
+  // Inicialización/Renovación Misión Semanal
+  if (!state.weeklyQuest || state.weeklyQuest.weekId !== currentWeekId) {
+    state.weeklyQuest = { title: 'Completa 10 tareas esta semana', targetTasks: 10, rewardPts: 50, weekId: currentWeekId, completedBy: [] };
+  }
+
+  // Inicialización/Renovación Misión Mensual
+  if (!state.monthlyQuest || state.monthlyQuest.monthId !== currentMonthId) {
+    state.monthlyQuest = { title: 'Llega a 30 tareas en el mes', targetTasks: 30, rewardPts: 150, monthId: currentMonthId, completedBy: [] };
   }
 
   const user = state.users[state.currentUser];
-  const isDone = user && state.dailyQuest.completedBy.includes(user.id);
+  const activeType = state.activeQuestTab || 'daily';
 
-  container.className = "mb-4 bg-gradient-to-r from-amber-950/70 to-zinc-950 p-4 rounded-3xl border border-amber-500/30 shadow-lg";
+  let currentQuestData = state.dailyQuest;
+  let questLabel = 'Misión Diaria';
+  let questIcon = '⚔️';
+  let isDone = user && state.dailyQuest.completedBy.includes(user.id);
+
+  if (activeType === 'weekly') {
+    currentQuestData = state.weeklyQuest;
+    questLabel = 'Misión Semanal';
+    questIcon = '🛡️';
+    isDone = user && state.weeklyQuest.completedBy.includes(user.id);
+  } else if (activeType === 'monthly') {
+    currentQuestData = state.monthlyQuest;
+    questLabel = 'Misión Mensual';
+    questIcon = '👑';
+    isDone = user && state.monthlyQuest.completedBy.includes(user.id);
+  }
+
+  const currentProgress = user ? Math.min(user.totalCompleted || 0, currentQuestData.targetTasks || 1) : 0;
+  const targetTasks = currentQuestData.targetTasks || 1;
+  const progressPercent = Math.min(100, Math.round((currentProgress / targetTasks) * 100));
+  const canClaim = !isDone && user && user.role === 'hijo' && currentProgress >= targetTasks;
+
+  container.className = "mb-4 bg-gradient-to-r from-amber-950/70 via-zinc-950 to-purple-950/70 p-4 rounded-3xl border border-amber-500/30 shadow-lg flex flex-col gap-3";
   container.innerHTML = `
-    <div class="flex items-center justify-between">
+    <!-- Tabs Navegación de Misiones -->
+    <div class="flex items-center justify-between border-b border-zinc-800 pb-2">
+      <div class="flex gap-1.5">
+        <button onclick="switchQuestTab('daily')" class="px-2.5 py-1 rounded-xl text-[10px] font-black transition ${activeType === 'daily' ? 'bg-amber-500 text-zinc-950' : 'bg-zinc-900 text-zinc-400 hover:text-white'}">
+          Diaria ⚔️
+        </button>
+        <button onclick="switchQuestTab('weekly')" class="px-2.5 py-1 rounded-xl text-[10px] font-black transition ${activeType === 'weekly' ? 'bg-amber-500 text-zinc-950' : 'bg-zinc-900 text-zinc-400 hover:text-white'}">
+          Semanal 🛡️
+        </button>
+        <button onclick="switchQuestTab('monthly')" class="px-2.5 py-1 rounded-xl text-[10px] font-black transition ${activeType === 'monthly' ? 'bg-amber-500 text-zinc-950' : 'bg-zinc-900 text-zinc-400 hover:text-white'}">
+          Mensual 👑
+        </button>
+      </div>
+      <span class="text-[9px] font-extrabold uppercase text-amber-400 tracking-wider">${questLabel}</span>
+    </div>
+
+    <!-- Contenido de Misión -->
+    <div class="flex items-center justify-between gap-2">
       <div class="flex items-center gap-3">
-        <div class="text-3xl">⚔️</div>
+        <div class="text-3xl">${questIcon}</div>
         <div>
-          <span class="text-[9px] font-black uppercase text-amber-400 tracking-wider">Misión Diaria de Hoy</span>
-          <h4 class="text-xs font-black text-white">${state.dailyQuest.title}</h4>
-          <p class="text-[10px] text-zinc-400">Recompensa: <span class="text-amber-400 font-bold">+${state.dailyQuest.rewardPts} ⭐</span></p>
+          <h4 class="text-xs font-black text-white">${currentQuestData.title}</h4>
+          <p class="text-[10px] text-zinc-400">Recompensa: <span class="text-amber-400 font-bold">+${currentQuestData.rewardPts} ⭐</span></p>
         </div>
       </div>
       <button 
-        onclick="claimDailyQuest()"
-        ${isDone || user.role !== 'hijo' ? 'disabled' : ''}
-        class="py-2 px-3 rounded-xl text-xs font-extrabold ${isDone ? 'bg-zinc-800 text-zinc-500 border border-zinc-700' : 'bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-md active:scale-95 transition'}">
-        ${isDone ? '¡Hecha! ✅' : 'Reclamar'}
+        onclick="claimQuest('${activeType}')"
+        ${!canClaim ? 'disabled' : ''}
+        class="py-2 px-3 rounded-xl text-xs font-extrabold ${isDone ? 'bg-zinc-800 text-zinc-500 border border-zinc-700' : canClaim ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-md active:scale-95 transition animate-pulse' : 'bg-zinc-800/80 text-zinc-500'}">
+        ${isDone ? '¡Hecha! ✅' : canClaim ? 'Reclamar 🎉' : `${currentProgress}/${targetTasks}`}
       </button>
+    </div>
+
+    <!-- Barra Progreso Misión -->
+    <div class="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800 p-0.5">
+      <div class="bg-gradient-to-r from-amber-500 to-yellow-300 h-full rounded-full transition-all duration-300" style="width: ${progressPercent}%"></div>
     </div>
   `;
 }
 
-async function claimDailyQuest() {
+async function claimQuest(type) {
   const user = state.users[state.currentUser];
   if (!user || user.role !== 'hijo') return;
-  if (state.dailyQuest.completedBy.includes(user.id)) return;
 
-  user.points += state.dailyQuest.rewardPts;
-  state.dailyQuest.completedBy.push(user.id);
-  state.history.unshift(`⚔️ ${user.name} completó la Misión Diaria (+${state.dailyQuest.rewardPts} pts)`);
+  let questObj = null;
+  let questName = "";
+
+  if (type === 'daily') {
+    questObj = state.dailyQuest;
+    questName = "Misión Diaria";
+  } else if (type === 'weekly') {
+    questObj = state.weeklyQuest;
+    questName = "Misión Semanal";
+  } else if (type === 'monthly') {
+    questObj = state.monthlyQuest;
+    questName = "Misión Mensual";
+  }
+
+  if (!questObj || questObj.completedBy.includes(user.id)) return;
+
+  const currentProgress = user.totalCompleted || 0;
+  if (currentProgress < (questObj.targetTasks || 1)) {
+    return alert(`¡Aún no has completado las ${questObj.targetTasks} tareas necesarias para esta misión!`);
+  }
+
+  user.points += questObj.rewardPts;
+  questObj.completedBy.push(user.id);
+  state.history.unshift(`⚔️ ${user.name} completó la ${questName} (+${questObj.rewardPts} pts)`);
 
   playSound('reward');
   triggerHaptic();
-  showPointsAnimation(state.dailyQuest.rewardPts, user.name, "¡Misión Diaria Completada!");
+  showPointsAnimation(questObj.rewardPts, user.name, `¡${questName} Completada!`);
 
   checkAchievements(user);
   await saveLocalStorage();
