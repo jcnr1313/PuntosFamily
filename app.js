@@ -41,10 +41,7 @@ let state = {
   currentTaskFilter: 'positive',
   lootboxCost: 30,
   doubleXpActive: false,
-  activeQuestTab: 'daily',
-  dailyQuest: { title: 'Haz 2 tareas hoy', targetTasks: 2, rewardPts: 15, date: null, completedBy: [] },
-  weeklyQuest: { title: 'Completa 10 tareas esta semana', targetTasks: 10, rewardPts: 50, weekId: null, completedBy: [] },
-  monthlyQuest: { title: 'Suma 30 tareas en el mes', targetTasks: 30, rewardPts: 150, monthId: null, completedBy: [] },
+  dailyQuest: { title: 'Haz 2 tareas hoy', rewardPts: 15, date: null, completedBy: [] },
   familyGoal: { title: '👾 El Dragón del Desorden (Meta Familiar)', targetPoints: 500 },
   users: {
     'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
@@ -129,11 +126,11 @@ function playSound(type) {
       osc.frequency.setValueAtTime(440, ctx.currentTime);
       osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.15);
       osc.frequency.setValueAtTime(880, ctx.currentTime + 0.3);
-      if (type === 'achievement') osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.45);
+      if(type === 'achievement') osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.45);
       gain.gain.setValueAtTime(0.25, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + (type === 'achievement' ? 0.6 : 0.45));
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + (type==='achievement'?0.6:0.45));
       osc.start();
-      osc.stop(ctx.currentTime + (type === 'achievement' ? 0.6 : 0.45));
+      osc.stop(ctx.currentTime + (type==='achievement'?0.6:0.45));
     }
   } catch (e) {}
 }
@@ -265,8 +262,6 @@ function mergeStateData(remote) {
   if (remote.lootboxCost !== undefined) state.lootboxCost = remote.lootboxCost;
   if (remote.doubleXpActive !== undefined) state.doubleXpActive = remote.doubleXpActive;
   if (remote.dailyQuest) state.dailyQuest = remote.dailyQuest;
-  if (remote.weeklyQuest) state.weeklyQuest = remote.weeklyQuest;
-  if (remote.monthlyQuest) state.monthlyQuest = remote.monthlyQuest;
   if (remote.parentPin) state.parentPin = remote.parentPin;
   if (remote.actions && remote.actions.length > 0) state.actions = remote.actions;
   if (remote.rewards && remote.rewards.length > 0) state.rewards = remote.rewards;
@@ -279,8 +274,8 @@ function mergeStateData(remote) {
       state.users[key] = {
         ...state.users[key],
         ...remote.users[key],
-        unlockedAchievements: remote.users[key].unlockedAchievements || (state.users[key] ? state.users[key].unlockedAchievements : []) || [],
-        lastRouletteDate: remote.users[key].lastRouletteDate || (state.users[key] ? state.users[key].lastRouletteDate : null) || null
+        unlockedAchievements: remote.users[key].unlockedAchievements || state.users[key].unlockedAchievements || [],
+        lastRouletteDate: remote.users[key].lastRouletteDate || state.users[key].lastRouletteDate || null
       };
     }
   }
@@ -322,9 +317,7 @@ async function syncFullStateToCloud() {
       familyGoal: state.familyGoal,
       lootboxCost: state.lootboxCost,
       doubleXpActive: state.doubleXpActive,
-      dailyQuest: state.dailyQuest,
-      weeklyQuest: state.weeklyQuest,
-      monthlyQuest: state.monthlyQuest
+      dailyQuest: state.dailyQuest
     };
     await client.from('app_state').upsert({ id: 'main_config', data: payload, updated_at: new Date().toISOString() });
   } catch (err) {}
@@ -346,63 +339,13 @@ function setupRealtimeListener() {
   } catch (e) {}
 }
 
-// --- UTILIDADES UI Y AVATARES (FOTOS / EMOJIS) ---
+// --- UTILIDADES UI ---
 function renderAvatarHtml(avatarStr, sizeClasses = "w-full h-full text-2xl") {
   if (!avatarStr) return `<span class="${sizeClasses} flex items-center justify-center">👤</span>`;
-  if (typeof avatarStr === 'string' && (avatarStr.startsWith('http://') || avatarStr.startsWith('https://') || avatarStr.startsWith('data:image'))) {
+  if (avatarStr.startsWith('http://') || avatarStr.startsWith('https://') || avatarStr.startsWith('data:image')) {
     return `<img src="${avatarStr}" alt="Avatar" class="w-full h-full object-cover rounded-full">`;
   }
   return `<span class="${sizeClasses} flex items-center justify-center">${avatarStr}</span>`;
-}
-
-async function uploadAvatarImage(userId) {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  
-  input.onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (readerEvent) => {
-      const img = new Image();
-      img.onload = async () => {
-        const canvas = document.createElement('canvas');
-        const maxSize = 200;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxSize) {
-            height *= maxSize / width;
-            width = maxSize;
-          }
-        } else {
-          if (height > maxSize) {
-            width *= maxSize / height;
-            height = maxSize;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const resizedBase64 = canvas.toDataURL('image/jpeg', 0.8);
-        if (state.users[userId]) {
-          state.users[userId].avatar = resizedBase64;
-          await saveLocalStorage();
-          renderApp();
-        }
-      };
-      img.src = readerEvent.target.result;
-    };
-    reader.readAsDataURL(file);
-  };
-
-  input.click();
 }
 
 function setActiveTab(tab) {
@@ -424,10 +367,6 @@ function setActiveTab(tab) {
     targetSection.classList.add('animate-fade-in');
   }
   if (targetNav) targetNav.className = "flex flex-col items-center py-1.5 text-blue-500 font-bold scale-105 transition-all duration-200";
-
-  if (tab === 'manager') {
-    renderManagerPanel();
-  }
 }
 
 function initUserSelect() {
@@ -557,7 +496,7 @@ function renderMinigamesSection() {
         </div>
       </div>
 
-      <!-- 4. LA TORRE DE LA SUERTE -->
+      <!-- 4. LA TORRE DE LA SUERTE (NUEVO MINIJUEGO) -->
       <div class="bg-zinc-900 p-4 rounded-3xl border border-red-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🏰</div>
         <h3 class="text-sm font-black text-red-300">La Torre del Riesgo</h3>
@@ -569,7 +508,7 @@ function renderMinigamesSection() {
         </button>
       </div>
 
-      <!-- 5. CAJA SORPRESA MÁGICA VISUAL -->
+      <!-- 5. CAJA SORPRESA MÁGICA VISUAL (NUEVO MINIJUEGO INTERACTIVO) -->
       <div class="bg-zinc-900 p-4 rounded-3xl border border-amber-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🎁</div>
         <h3 class="text-sm font-black text-amber-300">Caja Sorpresa Mágica</h3>
@@ -594,7 +533,9 @@ function renderMinigamesSection() {
   `;
 }
 
-// --- FUNCIONES Y MODALES DE MINIJUEGOS ---
+// --- FUNCIONES Y MODALES DE LOS NUEVOS MINIJUEGOS ---
+
+// MINIJUEGO 1 NUEVO: LA TORRE DEL RIESGO
 let towerCurrentStep = 0;
 let towerAccumulatedPoints = 0;
 
@@ -635,7 +576,7 @@ function openTowerGameModal() {
 
 async function climbTowerStep() {
   towerCurrentStep++;
-  const isTrap = Math.random() < 0.35;
+  const isTrap = Math.random() < 0.35; // 35% de probabilidad de caer
   const statusMsg = document.getElementById('towerStatusMsg');
   const btnClimb = document.getElementById('btnTowerClimb');
   const btnCash = document.getElementById('btnTowerCashout');
@@ -696,6 +637,7 @@ async function cashoutTower() {
   renderApp();
 }
 
+// MINIJUEGOS EXISTENTES DADO Y COFRES
 async function playDiceRoll() {
   const user = state.users[state.currentUser];
   if (!user || user.points < 5) return alert("¡Necesitas al menos 5 puntos para tirar el dado!");
@@ -750,6 +692,7 @@ async function playTreasureChest(chestIndex) {
   renderApp();
 }
 
+// MINIJUEGO INTERACTIVO: ABRIR CAJA MÁGICA CON VISUAL MODAL
 function openLootboxModal() {
   const user = state.users[state.currentUser];
   const cost = state.lootboxCost || 30;
@@ -873,25 +816,6 @@ function renderDoubleXpBanner() {
   }
 }
 
-// --- SISTEMA DE MISIONES (DIARIAS, SEMANALES Y MENSUALES) ---
-function getWeekIdentifier(d) {
-  const date = new Date(d.getTime());
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-  const week1 = new Date(date.getFullYear(), 0, 4);
-  const weekNum = Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7) + 1;
-  return `${date.getFullYear()}-W${weekNum < 10 ? '0' + weekNum : weekNum}`;
-}
-
-function getMonthIdentifier(d) {
-  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-}
-
-function switchQuestTab(type) {
-  state.activeQuestTab = type;
-  renderDailyQuestWidget();
-}
-
 function renderDailyQuestWidget() {
   let container = document.getElementById('dailyQuestWidget');
   if (!container) {
@@ -904,119 +828,52 @@ function renderDailyQuestWidget() {
     else homeTab.appendChild(container);
   }
 
-  const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
-  const currentWeekId = getWeekIdentifier(now);
-  const currentMonthId = getMonthIdentifier(now);
-
+  const todayStr = new Date().toISOString().slice(0, 10);
   if (!state.dailyQuest || state.dailyQuest.date !== todayStr) {
-    state.dailyQuest = { title: 'Haz al menos 2 tareas hoy', targetTasks: 2, rewardPts: 15, date: todayStr, completedBy: [] };
-  }
-
-  if (!state.weeklyQuest || state.weeklyQuest.weekId !== currentWeekId) {
-    state.weeklyQuest = { title: 'Completa 10 tareas esta semana', targetTasks: 10, rewardPts: 50, weekId: currentWeekId, completedBy: [] };
-  }
-
-  if (!state.monthlyQuest || state.monthlyQuest.monthId !== currentMonthId) {
-    state.monthlyQuest = { title: 'Llega a 30 tareas en el mes', targetTasks: 30, rewardPts: 150, monthId: currentMonthId, completedBy: [] };
+    state.dailyQuest = {
+      title: 'Haz al menos 2 tareas hoy',
+      rewardPts: 15,
+      date: todayStr,
+      completedBy: []
+    };
   }
 
   const user = state.users[state.currentUser];
-  const activeType = state.activeQuestTab || 'daily';
+  const isDone = user && state.dailyQuest.completedBy.includes(user.id);
 
-  let currentQuestData = state.dailyQuest;
-  let questLabel = 'Misión Diaria';
-  let questIcon = '⚔️';
-  let isDone = user && state.dailyQuest.completedBy.includes(user.id);
-
-  if (activeType === 'weekly') {
-    currentQuestData = state.weeklyQuest;
-    questLabel = 'Misión Semanal';
-    questIcon = '🛡️';
-    isDone = user && state.weeklyQuest.completedBy.includes(user.id);
-  } else if (activeType === 'monthly') {
-    currentQuestData = state.monthlyQuest;
-    questLabel = 'Misión Mensual';
-    questIcon = '👑';
-    isDone = user && state.monthlyQuest.completedBy.includes(user.id);
-  }
-
-  const currentProgress = user ? Math.min(user.totalCompleted || 0, currentQuestData.targetTasks || 1) : 0;
-  const targetTasks = currentQuestData.targetTasks || 1;
-  const progressPercent = Math.min(100, Math.round((currentProgress / targetTasks) * 100));
-  const canClaim = !isDone && user && user.role === 'hijo' && currentProgress >= targetTasks;
-
-  container.className = "mb-4 bg-gradient-to-r from-amber-950/70 via-zinc-950 to-purple-950/70 p-4 rounded-3xl border border-amber-500/30 shadow-lg flex flex-col gap-3";
+  container.className = "mb-4 bg-gradient-to-r from-amber-950/70 to-zinc-950 p-4 rounded-3xl border border-amber-500/30 shadow-lg";
   container.innerHTML = `
-    <div class="flex items-center justify-between border-b border-zinc-800 pb-2">
-      <div class="flex gap-1.5">
-        <button onclick="switchQuestTab('daily')" class="px-2.5 py-1 rounded-xl text-[10px] font-black transition ${activeType === 'daily' ? 'bg-amber-500 text-zinc-950' : 'bg-zinc-900 text-zinc-400 hover:text-white'}">
-          Diaria ⚔️
-        </button>
-        <button onclick="switchQuestTab('weekly')" class="px-2.5 py-1 rounded-xl text-[10px] font-black transition ${activeType === 'weekly' ? 'bg-amber-500 text-zinc-950' : 'bg-zinc-900 text-zinc-400 hover:text-white'}">
-          Semanal 🛡️
-        </button>
-        <button onclick="switchQuestTab('monthly')" class="px-2.5 py-1 rounded-xl text-[10px] font-black transition ${activeType === 'monthly' ? 'bg-amber-500 text-zinc-950' : 'bg-zinc-900 text-zinc-400 hover:text-white'}">
-          Mensual 👑
-        </button>
-      </div>
-      <span class="text-[9px] font-extrabold uppercase text-amber-400 tracking-wider">${questLabel}</span>
-    </div>
-
-    <div class="flex items-center justify-between gap-2">
+    <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="text-3xl">${questIcon}</div>
+        <div class="text-3xl">⚔️</div>
         <div>
-          <h4 class="text-xs font-black text-white">${currentQuestData.title}</h4>
-          <p class="text-[10px] text-zinc-400">Recompensa: <span class="text-amber-400 font-bold">+${currentQuestData.rewardPts} ⭐</span></p>
+          <span class="text-[9px] font-black uppercase text-amber-400 tracking-wider">Misión Diaria de Hoy</span>
+          <h4 class="text-xs font-black text-white">${state.dailyQuest.title}</h4>
+          <p class="text-[10px] text-zinc-400">Recompensa: <span class="text-amber-400 font-bold">+${state.dailyQuest.rewardPts} ⭐</span></p>
         </div>
       </div>
       <button 
-        onclick="claimQuest('${activeType}')"
-        ${!canClaim ? 'disabled' : ''}
-        class="py-2 px-3 rounded-xl text-xs font-extrabold ${isDone ? 'bg-zinc-800 text-zinc-500 border border-zinc-700' : canClaim ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-md active:scale-95 transition animate-pulse' : 'bg-zinc-800/80 text-zinc-500'}">
-        ${isDone ? '¡Hecha! ✅' : canClaim ? 'Reclamar 🎉' : `${currentProgress}/${targetTasks}`}
+        onclick="claimDailyQuest()"
+        ${isDone || user.role !== 'hijo' ? 'disabled' : ''}
+        class="py-2 px-3 rounded-xl text-xs font-extrabold ${isDone ? 'bg-zinc-800 text-zinc-500 border border-zinc-700' : 'bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-md active:scale-95 transition'}">
+        ${isDone ? '¡Hecha! ✅' : 'Reclamar'}
       </button>
-    </div>
-
-    <div class="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800 p-0.5">
-      <div class="bg-gradient-to-r from-amber-500 to-yellow-300 h-full rounded-full transition-all duration-300" style="width: ${progressPercent}%"></div>
     </div>
   `;
 }
 
-async function claimQuest(type) {
+async function claimDailyQuest() {
   const user = state.users[state.currentUser];
   if (!user || user.role !== 'hijo') return;
+  if (state.dailyQuest.completedBy.includes(user.id)) return;
 
-  let questObj = null;
-  let questName = "";
-
-  if (type === 'daily') {
-    questObj = state.dailyQuest;
-    questName = "Misión Diaria";
-  } else if (type === 'weekly') {
-    questObj = state.weeklyQuest;
-    questName = "Misión Semanal";
-  } else if (type === 'monthly') {
-    questObj = state.monthlyQuest;
-    questName = "Misión Mensual";
-  }
-
-  if (!questObj || questObj.completedBy.includes(user.id)) return;
-
-  const currentProgress = user.totalCompleted || 0;
-  if (currentProgress < (questObj.targetTasks || 1)) {
-    return alert(`¡Aún no has completado las ${questObj.targetTasks} tareas necesarias para esta misión!`);
-  }
-
-  user.points += questObj.rewardPts;
-  questObj.completedBy.push(user.id);
-  state.history.unshift(`⚔️ ${user.name} completó la ${questName} (+${questObj.rewardPts} pts)`);
+  user.points += state.dailyQuest.rewardPts;
+  state.dailyQuest.completedBy.push(user.id);
+  state.history.unshift(`⚔️ ${user.name} completó la Misión Diaria (+${state.dailyQuest.rewardPts} pts)`);
 
   playSound('reward');
   triggerHaptic();
-  showPointsAnimation(questObj.rewardPts, user.name, `¡${questName} Completada!`);
+  showPointsAnimation(state.dailyQuest.rewardPts, user.name, "¡Misión Diaria Completada!");
 
   checkAchievements(user);
   await saveLocalStorage();
@@ -1499,182 +1356,264 @@ async function toggleDoubleXp() {
   renderApp();
 }
 
-async function quickAddPoints(userId, amount) {
-  const u = state.users[userId];
-  if (!u) return;
-  u.points = Math.max(0, u.points + amount);
-  state.history.unshift(`⚙️ Puntos de ${u.name} modificados en (${amount > 0 ? '+' : ''}${amount} pts)`);
+function renderManagerPanel() {
+  if (!isManagerUnlocked) return;
+
+  // Widget Control Caja Sorpresa y Doble XP
+  const lootboxControl = document.getElementById('lootboxControlWidget');
+  if (!lootboxControl) {
+    const settingsPanel = document.getElementById('pinUnlockedContent');
+    const firstSection = settingsPanel ? settingsPanel.querySelector('.space-y-4') : null;
+    if (firstSection) {
+      const div = document.createElement('div');
+      div.id = 'lootboxControlWidget';
+      firstSection.prepend(div);
+    }
+  }
+  const lcWidget = document.getElementById('lootboxControlWidget');
+  if (lcWidget) {
+    lcWidget.innerHTML = `
+      <div class="space-y-2 mb-4">
+        <div class="bg-gradient-to-r from-amber-950/40 to-zinc-950 p-3 rounded-2xl border border-amber-500/20 flex justify-between items-center">
+          <span class="text-xs font-bold text-white flex items-center gap-2">🎁 Coste Caja Sorpresa</span>
+          <div class="flex items-center gap-2">
+            <span class="text-amber-400 font-black text-sm">${state.lootboxCost || 30} ⭐</span>
+            <button onclick="editLootboxCost()" class="text-[11px] text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20 font-bold active:scale-95">Editar</button>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-red-950/40 to-zinc-950 p-3 rounded-2xl border border-red-500/20 flex justify-between items-center">
+          <span class="text-xs font-bold text-white flex items-center gap-2">🔥 Evento Doble XP (2x Puntos)</span>
+          <button onclick="toggleDoubleXp()" class="text-xs font-black px-3 py-1.5 rounded-lg border transition ${state.doubleXpActive ? 'bg-red-500 text-white border-red-400 animate-pulse' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}">
+            ${state.doubleXpActive ? 'ACTIVADO 🔥' : 'DESACTIVADO'}
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Historial de Canjes
+  const redemptionsContainer = document.getElementById('redemptionsList');
+  if (redemptionsContainer) {
+    const redemptionsCount = document.getElementById('redemptionsCount');
+    if (redemptionsCount) redemptionsCount.innerText = state.redemptions.length;
+    if (state.redemptions.length === 0) redemptionsContainer.innerHTML = `<p class="text-center text-xs text-zinc-500 py-3">No hay canjes registrados.</p>`;
+    else {
+      redemptionsContainer.innerHTML = state.redemptions.map(item => `
+        <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">${renderAvatarHtml(item.userAvatar, "text-sm")}</div>
+            <div>
+              <p class="font-bold text-xs text-white">${item.userName} <span class="text-zinc-400 font-normal">canjeó</span> ${item.rewardIcon} ${item.rewardTitle}</p>
+              <p class="text-[10px] text-zinc-500">${item.date}</p>
+            </div>
+          </div>
+          <span class="text-xs font-black text-amber-400 bg-amber-400/10 px-2 py-1 rounded-lg border border-amber-400/20">-${item.cost} ⭐</span>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Personalizar Avatares
+  const avatarContainer = document.getElementById('avatarCustomizerList');
+  if (avatarContainer) {
+    avatarContainer.innerHTML = Object.values(state.users).map(u => `
+      <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">${renderAvatarHtml(u.avatar, "text-xl")}</div>
+          <span class="font-bold text-xs text-white">${u.name}</span>
+        </div>
+        <button onclick="changeUserAvatar('${u.id}')" class="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl font-bold active:scale-95">Cambiar Foto / Emoji</button>
+      </div>
+    `).join('');
+  }
+
+  // Ajuste manual de puntos
+  const pointsContainer = document.getElementById('manualPointsControl');
+  if (pointsContainer) {
+    const kids = Object.values(state.users).filter(u => u.role === 'hijo');
+    pointsContainer.innerHTML = kids.map(kid => `
+      <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex justify-between items-center">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">${renderAvatarHtml(kid.avatar, "text-base")}</div>
+          <div><p class="font-bold text-xs text-white">${kid.name}</p><span class="text-[11px] text-amber-400 font-bold">${kid.points} pts</span></div>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button onclick="modifyPoints('${kid.id}', -10)" class="bg-zinc-900 text-red-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800 active:scale-95">-10</button>
+          <button onclick="modifyPoints('${kid.id}', 10)" class="bg-zinc-900 text-emerald-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800 active:scale-95">+10</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Gestor de Premios
+  const rewardsContainer = document.getElementById('manageRewardsList');
+  if (rewardsContainer) {
+    rewardsContainer.innerHTML = state.rewards.map(r => `
+      <div class="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800/80 flex justify-between items-center gap-2">
+        <div class="flex items-center gap-2 truncate">
+          <span class="text-xl bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">${r.icon || '🎁'}</span>
+          <div class="truncate"><p class="text-xs text-zinc-100 font-bold truncate">${r.title}</p><p class="text-[10px] text-amber-400 font-bold">${r.cost} ⭐</p></div>
+        </div>
+        <div class="flex items-center gap-1">
+          <button onclick="editReward(${r.id})" class="text-[11px] text-amber-400 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20 font-bold active:scale-95">✏️</button>
+          <button onclick="deleteReward(${r.id})" class="text-[11px] text-red-400 bg-red-500/10 px-2.5 py-1.5 rounded-lg border border-red-500/20 font-bold active:scale-95">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Gestor de Acciones/Tareas
+  const actionsContainer = document.getElementById('manageActionsList');
+  if (actionsContainer) {
+    actionsContainer.innerHTML = state.actions.map(a => `
+      <div class="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800/80 flex justify-between items-center gap-2">
+        <div class="flex items-center gap-2 truncate">
+          <span class="text-xl bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">${a.icon || '📌'}</span>
+          <div class="truncate"><p class="text-xs text-zinc-100 font-bold truncate">${a.title}</p><p class="text-[10px] ${a.points > 0 ? 'text-emerald-400' : 'text-red-400'} font-bold">${a.points > 0 ? '+' : ''}${a.points} pts</p></div>
+        </div>
+        <div class="flex items-center gap-1">
+          <button onclick="editAction(${a.id})" class="text-[11px] text-blue-400 bg-blue-500/10 px-2.5 py-1.5 rounded-lg border border-blue-500/20 font-bold active:scale-95">✏️</button>
+          <button onclick="deleteAction(${a.id})" class="text-[11px] text-red-400 bg-red-500/10 px-2.5 py-1.5 rounded-lg border border-red-500/20 font-bold active:scale-95">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+async function editReward(rewardId) {
+  const reward = state.rewards.find(r => r.id === rewardId);
+  if (!reward) return;
+  const newTitle = prompt("Nuevo nombre del premio:", reward.title);
+  if (newTitle === null || newTitle.trim() === "") return;
+  const newCostStr = prompt("Nuevos puntos necesarios:", reward.cost);
+  const parsedCost = parseInt(newCostStr);
+  if (newCostStr === null || isNaN(parsedCost)) return;
+  const newIcon = prompt("Nuevo emoji:", reward.icon || '🎁');
+  reward.title = newTitle.trim();
+  reward.cost = Math.abs(parsedCost);
+  if (newIcon && newIcon.trim() !== "") reward.icon = newIcon.trim();
   await saveLocalStorage();
   renderApp();
 }
 
-function toggleAccordionSection(secId) {
-  const el = document.getElementById(secId);
-  if (el) {
-    el.classList.toggle('hidden');
-  }
-}
-
-// --- PANEL DE GESTIÓN PARENTAL COMPLETO Y CORREGIDO ---
-function renderManagerPanel() {
-  const container = document.getElementById('managerPanelContent');
-  if (!container) return;
-
-  const usersArray = Object.values(state.users || {});
-  
-  if (usersArray.length === 0) {
-    container.innerHTML = `<p class="text-xs text-zinc-500 text-center py-4">Cargando perfiles...</p>`;
-    return;
-  }
-
-  const avatarsConfigHtml = usersArray.map(u => `
-    <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-700 overflow-hidden flex items-center justify-center">
-          ${renderAvatarHtml(u.avatar, "text-xl")}
-        </div>
-        <span class="text-xs font-bold text-white">${u.name}</span>
-      </div>
-      <div class="flex gap-2">
-        <button onclick="editUserAvatar('${u.id}')" class="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold rounded-xl">Emoji / Icono</button>
-        <button onclick="uploadAvatarImage('${u.id}')" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-md">Subir Foto 📷</button>
-      </div>
-    </div>
-  `).join('');
-
-  const quickPointsControlHtml = usersArray.map(u => `
-    <div class="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800 flex flex-col gap-2">
-      <div class="flex justify-between items-center">
-        <span class="text-xs font-black text-white flex items-center gap-2">
-          ${u.name}
-          <span class="text-[10px] text-zinc-500 font-medium">(${u.role})</span>
-        </span>
-        <span class="text-xs font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">${u.points} ⭐</span>
-      </div>
-      <div class="grid grid-cols-5 gap-1.5">
-        <button onclick="quickAddPoints('${u.id}', -20)" class="py-1.5 bg-red-950/80 hover:bg-red-900 border border-red-800/60 text-red-300 font-extrabold text-xs rounded-xl active:scale-95 transition">-20</button>
-        <button onclick="quickAddPoints('${u.id}', -10)" class="py-1.5 bg-red-950/50 hover:bg-red-900/50 border border-red-800/40 text-red-400 font-extrabold text-xs rounded-xl active:scale-95 transition">-10</button>
-        <button onclick="adjustUserPointsPrompt('${u.id}')" class="py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-extrabold text-xs rounded-xl active:scale-95 transition">Editar</button>
-        <button onclick="quickAddPoints('${u.id}', 10)" class="py-1.5 bg-emerald-950/50 hover:bg-emerald-900/50 border border-emerald-800/40 text-emerald-400 font-extrabold text-xs rounded-xl active:scale-95 transition">+10</button>
-        <button onclick="quickAddPoints('${u.id}', 20)" class="py-1.5 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800/60 text-emerald-300 font-extrabold text-xs rounded-xl active:scale-95 transition">+20</button>
-      </div>
-    </div>
-  `).join('');
-
-  container.innerHTML = `
-    <div class="space-y-4 text-left pb-16">
-      
-      <!-- TARJETA 1: PERSONALIZAR FOTOS / AVATARES -->
-      <div class="bg-zinc-900 rounded-3xl border border-zinc-800 shadow-lg">
-        <div class="w-full p-4 flex items-center justify-between border-b border-zinc-800/50">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">🎨</span>
-            <h3 class="text-xs font-black uppercase text-zinc-200 tracking-wider">Personalizar Fotos / Avatares</h3>
-          </div>
-        </div>
-        <div id="secAvatarsContent" class="p-4 space-y-2">
-          <p class="text-[11px] text-zinc-400 mb-2">Cambia la foto o icono de los perfiles de la familia:</p>
-          ${avatarsConfigHtml}
-        </div>
-      </div>
-
-      <!-- TARJETA 2: CONTROL RÁPIDO DE PUNTOS -->
-      <div class="bg-zinc-900 rounded-3xl border border-zinc-800 shadow-lg">
-        <div class="w-full p-4 flex items-center justify-between border-b border-zinc-800/50">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">⚡</span>
-            <h3 class="text-xs font-black uppercase text-amber-400 tracking-wider">Control Rápido de Puntos</h3>
-          </div>
-        </div>
-        <div id="secPointsControlContent" class="p-4 space-y-3">
-          <p class="text-[11px] text-zinc-400">Suma o resta puntos de forma inmediata a cualquier miembro:</p>
-          ${quickPointsControlHtml}
-        </div>
-      </div>
-
-      <!-- TARJETA 3: AJUSTES Y CONFIGURACIÓN -->
-      <div class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800 space-y-3 shadow-lg">
-        <h3 class="text-xs font-black uppercase text-blue-400 tracking-wider flex items-center gap-2">
-          <span>⚙️</span> Ajustes Generales del Sistema
-        </h3>
-        
-        <div class="flex items-center justify-between bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
-          <div>
-            <h4 class="text-xs font-bold text-white">Evento Doble XP</h4>
-            <p class="text-[10px] text-zinc-400">Multiplica x2 los puntos de tareas positivas</p>
-          </div>
-          <button onclick="toggleDoubleXp()" class="px-3 py-1.5 ${state.doubleXpActive ? 'bg-emerald-500 text-zinc-950' : 'bg-zinc-800 text-zinc-400'} text-xs font-black rounded-xl">
-            ${state.doubleXpActive ? 'ACTIVADO 🔥' : 'Desactivado'}
-          </button>
-        </div>
-
-        <div class="flex items-center justify-between bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
-          <div>
-            <h4 class="text-xs font-bold text-white">Precio Caja Sorpresa</h4>
-            <p class="text-[10px] text-zinc-400">Coste actual: ${state.lootboxCost || 30} ⭐</p>
-          </div>
-          <button onclick="editLootboxCost()" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-extrabold rounded-xl">
-            Cambiar
-          </button>
-        </div>
-
-        <div class="flex items-center justify-between bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
-          <div>
-            <h4 class="text-xs font-bold text-white">PIN Parental</h4>
-            <p class="text-[10px] text-zinc-400">Cambiar clave de acceso de administradores</p>
-          </div>
-          <button onclick="changePinPrompt()" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-extrabold rounded-xl">
-            Modificar PIN
-          </button>
-        </div>
-      </div>
-
-      <!-- TARJETA 4: PRUEBA LIBRE DE SONIDOS -->
-      <div class="bg-zinc-900 p-4 rounded-3xl border border-purple-500/30 space-y-3 shadow-lg">
-        <h3 class="text-xs font-black uppercase text-purple-300 tracking-wider flex items-center gap-2">
-          <span>🔊</span> Prueba de Efectos de Sonido
-        </h3>
-        <p class="text-[10px] text-zinc-400">Prueba los efectos sintéticos integrados sin consumir o restar puntos.</p>
-        <div class="grid grid-cols-2 gap-2">
-          <button onclick="playSound('positive')" class="py-2 bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 rounded-xl text-xs font-bold active:scale-95 transition">Positivo 🔔</button>
-          <button onclick="playSound('negative')" class="py-2 bg-red-950/80 border border-red-500/40 text-red-300 rounded-xl text-xs font-bold active:scale-95 transition">Penalización ⚠️</button>
-          <button onclick="playSound('reward')" class="py-2 bg-amber-950/80 border border-amber-500/40 text-amber-300 rounded-xl text-xs font-bold active:scale-95 transition">Recompensa 🎉</button>
-          <button onclick="playSound('achievement')" class="py-2 bg-purple-950/80 border border-purple-500/40 text-purple-300 rounded-xl text-xs font-bold active:scale-95 transition">Logro 🏆</button>
-        </div>
-      </div>
-
-    </div>
-  `;
-}
-
-async function editUserAvatar(userId) {
-  const u = state.users[userId];
-  if (!u) return;
-  const nuevo = prompt(`Introduce un nuevo Emoji o icono para ${u.name}:`, u.avatar);
-  if (nuevo !== null && nuevo.trim() !== '') {
-    u.avatar = nuevo.trim();
-    await saveLocalStorage();
-    renderApp();
-  }
-}
-
-async function adjustUserPointsPrompt(userId) {
-  const u = state.users[userId];
-  if (!u) return;
-  const nuevoStr = prompt(`Puntos actuales de ${u.name}: ${u.points}\nIntroduce los nuevos puntos totales:`, u.points);
-  const parsed = parseInt(nuevoStr);
-  if (nuevoStr !== null && !isNaN(parsed) && parsed >= 0) {
-    u.points = parsed;
-    state.history.unshift(`⚙️ Puntos de ${u.name} ajustados manualmente a ${parsed} pts`);
-    await saveLocalStorage();
-    renderApp();
-  }
-}
-
-// --- INICIALIZACIÓN DE LA APLICACIÓN ---
-document.addEventListener('DOMContentLoaded', () => {
-  loadLocalStorage();
-  fetchCloudData();
-  setupRealtimeListener();
+async function editAction(actionId) {
+  const action = state.actions.find(a => a.id === actionId);
+  if (!action) return;
+  const newTitle = prompt("Nuevo nombre de la tarea/penalización:", action.title);
+  if (newTitle === null || newTitle.trim() === "") return;
+  const newPointsStr = prompt("Nuevos puntos (usa signo - si es penalización):", action.points);
+  const parsedPoints = parseInt(newPointsStr);
+  if (newPointsStr === null || isNaN(parsedPoints)) return;
+  const newIcon = prompt("Nuevo emoji:", action.icon || '⭐');
+  action.title = newTitle.trim();
+  action.points = parsedPoints;
+  action.type = parsedPoints < 0 ? 'negative' : 'positive';
+  if (newIcon && newIcon.trim() !== "") action.icon = newIcon.trim();
+  await saveLocalStorage();
   renderApp();
-});
+}
+
+async function addNewReward() {
+  const titleEl = document.getElementById('newRewardTitle');
+  const iconEl = document.getElementById('newRewardIcon');
+  const costEl = document.getElementById('newRewardCost');
+  const title = titleEl ? titleEl.value.trim() : '';
+  const icon = (iconEl && iconEl.value.trim()) || '🎁';
+  const cost = parseInt(costEl ? costEl.value : '');
+  if (!title || isNaN(cost) || cost <= 0) return alert("Por favor, introduce un nombre y una cantidad válida.");
+  state.rewards.push({ id: Date.now(), title, icon, cost });
+  if (titleEl) titleEl.value = '';
+  if (iconEl) iconEl.value = '';
+  if (costEl) costEl.value = '';
+  await saveLocalStorage();
+  renderApp();
+}
+
+async function deleteReward(id) {
+  if (confirm("¿Seguro que deseas eliminar este premio?")) {
+    state.rewards = state.rewards.filter(r => r.id !== id);
+    await saveLocalStorage();
+    renderApp();
+  }
+}
+
+async function changeUserAvatar(userId) {
+  const user = state.users[userId];
+  if (!user) return;
+  const input = prompt(`Cambiar avatar de ${user.name}.\nPuedes escribir un emoji o pegar una URL de foto:`, user.avatar);
+  if (input !== null && input.trim() !== '') {
+    user.avatar = input.trim();
+    await saveLocalStorage();
+    renderApp();
+  }
+}
+
+async function modifyPoints(userId, delta) {
+  const user = state.users[userId];
+  if (user) {
+    user.points += delta;
+    if (user.points < 0) user.points = 0;
+    showPointsAnimation(delta, user.name, "Ajuste manual de puntos");
+    checkAchievements(user);
+    await saveLocalStorage();
+    renderApp();
+  }
+}
+
+async function deleteAction(id) {
+  if (confirm("¿Seguro que deseas eliminar esta tarea?")) {
+    state.actions = state.actions.filter(a => a.id !== id);
+    await saveLocalStorage();
+    renderApp();
+  }
+}
+
+async function addNewAction() {
+  const titleEl = document.getElementById('newActionTitle');
+  const iconEl = document.getElementById('newActionIcon');
+  const pointsEl = document.getElementById('newActionPoints');
+  const typeEl = document.getElementById('newActionType');
+  const title = titleEl ? titleEl.value.trim() : '';
+  const icon = (iconEl && iconEl.value.trim()) || '⭐';
+  const points = parseInt(pointsEl ? pointsEl.value : '');
+  const type = typeEl ? typeEl.value : 'positive';
+  if (!title || isNaN(points)) return alert("Por favor, introduce un título y puntos válidos.");
+  const finalPoints = type === 'negative' ? -Math.abs(points) : Math.abs(points);
+  state.actions.unshift({ id: Date.now(), title, points: finalPoints, type, icon });
+  if (titleEl) titleEl.value = '';
+  if (iconEl) iconEl.value = '';
+  if (pointsEl) pointsEl.value = '';
+  await saveLocalStorage();
+  renderApp();
+}
+
+async function resetMonthlyPoints() {
+  if (confirm("¿Deseas reiniciar la puntuación mensual y rachas a 0 para todos los miembros?")) {
+    Object.keys(state.users).forEach(k => {
+      state.users[k].points = 0;
+      state.users[k].streakDays = 0;
+      state.users[k].streakType = 'none';
+      state.users[k].totalCompleted = 0;
+    });
+    state.history = [];
+    state.redemptions = [];
+    await saveLocalStorage();
+    renderApp();
+  }
+}
+
+window.addEventListener('focus', fetchCloudData);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fetchCloudData(); });
+
+async function startApp() {
+  loadLocalStorage();
+  initUserSelect();
+  setActiveTab('home');
+  renderApp();
+  await fetchCloudData();
+  setupRealtimeListener();
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startApp);
+else startApp();
