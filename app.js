@@ -1453,162 +1453,76 @@ function renderManagerPanel() {
           <div class="truncate"><p class="text-xs text-zinc-100 font-bold truncate">${r.title}</p><p class="text-[10px] text-amber-400 font-bold">${r.cost} ⭐</p></div>
         </div>
         <div class="flex items-center gap-1">
-          <button onclick="editReward(${r.id})" class="text-[11px] text-amber-400 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20 font-bold active:scale-95">✏️</button>
-          <button onclick="deleteReward(${r.id})" class="text-[11px] text-red-400 bg-red-500/10 px-2.5 py-1.5 rounded-lg border border-red-500/20 font-bold active:scale-95">🗑️</button>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  // Gestor de Acciones/Tareas
-  const actionsContainer = document.getElementById('manageActionsList');
-  if (actionsContainer) {
-    actionsContainer.innerHTML = state.actions.map(a => `
-      <div class="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800/80 flex justify-between items-center gap-2">
-        <div class="flex items-center gap-2 truncate">
-          <span class="text-xl bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">${a.icon || '📌'}</span>
-          <div class="truncate"><p class="text-xs text-zinc-100 font-bold truncate">${a.title}</p><p class="text-[10px] ${a.points > 0 ? 'text-emerald-400' : 'text-red-400'} font-bold">${a.points > 0 ? '+' : ''}${a.points} pts</p></div>
-        </div>
-        <div class="flex items-center gap-1">
-          <button onclick="editAction(${a.id})" class="text-[11px] text-blue-400 bg-blue-500/10 px-2.5 py-1.5 rounded-lg border border-blue-500/20 font-bold active:scale-95">✏️</button>
-          <button onclick="deleteAction(${a.id})" class="text-[11px] text-red-400 bg-red-500/10 px-2.5 py-1.5 rounded-lg border border-red-500/20 font-bold active:scale-95">🗑️</button>
+          <button onclick="editReward(${r.id})" class="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-lg font-bold active:scale-95">Editar</button>
+          <button onclick="deleteReward(${r.id})" class="text-xs text-red-400 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded-lg font-bold active:scale-95">Eliminar</button>
         </div>
       </div>
     `).join('');
   }
 }
 
-// --- GESTIÓN DE EDICIÓN Y CREACIÓN DE ELEMENTOS ---
-
-async function editReward(rewardId) {
-  const reward = state.rewards.find(r => r.id === rewardId);
-  if (!reward) return;
-  
-  const newTitle = prompt("Nuevo nombre del premio:", reward.title);
-  if (newTitle === null || newTitle.trim() === "") return;
-  
-  const newCostStr = prompt("Nuevos puntos necesarios:", reward.cost);
-  const parsedCost = parseInt(newCostStr);
-  if (isNaN(parsedCost) || parsedCost <= 0) return alert("Por favor, introduce un coste válido.");
-
-  const newIcon = prompt("Nuevo icono Emoji:", reward.icon || "🎁");
-
-  reward.title = newTitle.trim();
-  reward.cost = parsedCost;
-  if (newIcon) reward.icon = newIcon.trim();
-
-  await saveLocalStorage();
-  renderApp();
-}
-
-async function createRewardPrompt() {
-  const title = prompt("Nombre del nuevo premio:");
-  if (!title || !title.trim()) return;
-
-  const costStr = prompt("Coste en puntos:");
-  const cost = parseInt(costStr);
-  if (isNaN(cost) || cost <= 0) return alert("Por favor, introduce un coste válido.");
-
-  const icon = prompt("Icono Emoji para el premio:", "🎁");
-
-  const newReward = {
-    id: Date.now(),
-    title: title.trim(),
-    cost: cost,
-    icon: icon ? icon.trim() : "🎁"
-  };
-
-  state.rewards.push(newReward);
-  await saveLocalStorage();
-  renderApp();
-}
-
-async function deleteReward(rewardId) {
-  if (!confirm("¿Seguro que deseas eliminar este premio?")) return;
-  state.rewards = state.rewards.filter(r => r.id !== rewardId);
-  await saveLocalStorage();
-  renderApp();
-}
-
-async function editAction(actionId) {
-  const action = state.actions.find(a => a.id === actionId);
-  if (!action) return;
-
-  const newTitle = prompt("Nuevo nombre de la tarea/acción:", action.title);
-  if (newTitle === null || !newTitle.trim()) return;
-
-  const newPointsStr = prompt("Nuevos puntos (usa números negativos para penalizaciones):", action.points);
-  const parsedPoints = parseInt(newPointsStr);
-  if (isNaN(parsedPoints)) return alert("Por favor, introduce una cantidad de puntos válida.");
-
-  const newIcon = prompt("Nuevo icono Emoji:", action.icon || "📌");
-
-  action.title = newTitle.trim();
-  action.points = parsedPoints;
-  action.type = parsedPoints >= 0 ? 'positive' : 'negative';
-  if (newIcon) action.icon = newIcon.trim();
-
-  await saveLocalStorage();
-  renderApp();
-}
-
-async function createActionPrompt() {
-  const title = prompt("Nombre de la nueva tarea o penalización:");
-  if (!title || !title.trim()) return;
-
-  const pointsStr = prompt("Puntos asignados (usa números positivos para recompensas y negativos para penalizaciones):");
-  const points = parseInt(pointsStr);
-  if (isNaN(points)) return alert("Por favor, introduce un valor numérico válido.");
-
-  const icon = prompt("Icono Emoji para la tarea:", points >= 0 ? "⭐" : "⚠️");
-
-  const newAction = {
-    id: Date.now(),
-    title: title.trim(),
-    points: points,
-    type: points >= 0 ? 'positive' : 'negative',
-    icon: icon ? icon.trim() : (points >= 0 ? "⭐" : "⚠️")
-  };
-
-  state.actions.push(newAction);
-  await saveLocalStorage();
-  renderApp();
-}
-
-async function deleteAction(actionId) {
-  if (!confirm("¿Seguro que deseas eliminar esta tarea?")) return;
-  state.actions = state.actions.filter(a => a.id !== actionId);
-  await saveLocalStorage();
-  renderApp();
-}
-
+// --- ACCIONES DE ADMINISTRACIÓN ---
 async function changeUserAvatar(userId) {
   const user = state.users[userId];
   if (!user) return;
-
-  const newAvatar = prompt(`Introduce un nuevo Emoji o URL de imagen para el avatar de ${user.name}:`, user.avatar);
-  if (newAvatar !== null && newAvatar.trim() !== "") {
-    user.avatar = newAvatar.trim();
+  const newAv = prompt(`Introduce un Emoji o URL de imagen para ${user.name}:`, user.avatar);
+  if (newAv !== null && newAv.trim() !== '') {
+    user.avatar = newAv.trim();
     await saveLocalStorage();
     renderApp();
   }
 }
 
-async function modifyPoints(userId, amount) {
+async function modifyPoints(userId, delta) {
   const user = state.users[userId];
   if (!user) return;
-
-  user.points += amount;
+  user.points += delta;
   if (user.points < 0) user.points = 0;
-
-  state.history.unshift(`Ajuste manual de puntos para ${user.name}: ${amount > 0 ? '+' : ''}${amount} pts`);
+  state.history.unshift(`⚙️ Ajuste manual de puntos para ${user.name}: (${delta > 0 ? '+' : ''}${delta} pts)`);
   checkAchievements(user);
+  await saveLocalStorage();
+  renderApp();
+}
+
+async function createRewardPrompt() {
+  const title = prompt("Título de la recompensa:");
+  if (!title) return;
+  const costStr = prompt("Coste en puntos:");
+  const cost = parseInt(costStr);
+  if (isNaN(cost) || cost <= 0) return alert("Coste no válido.");
+  const icon = prompt("Emoji para el icono (opcional):", "🎁") || "🎁";
+
+  state.rewards.push({ id: Date.now(), title, cost, icon });
+  await saveLocalStorage();
+  renderApp();
+}
+
+async function editReward(rewardId) {
+  const reward = state.rewards.find(r => r.id === rewardId);
+  if (!reward) return;
+  const title = prompt("Nuevo título:", reward.title);
+  if (!title) return;
+  const costStr = prompt("Nuevo coste:", reward.cost);
+  const cost = parseInt(costStr);
+  if (isNaN(cost) || cost <= 0) return alert("Coste no válido.");
+  const icon = prompt("Nuevo Emoji:", reward.icon) || reward.icon;
+
+  reward.title = title;
+  reward.cost = cost;
+  reward.icon = icon;
 
   await saveLocalStorage();
   renderApp();
 }
 
-// --- INICIALIZACIÓN ---
+async function deleteReward(rewardId) {
+  if (!confirm("¿Seguro que quieres eliminar este premio?")) return;
+  state.rewards = state.rewards.filter(r => r.id !== rewardId);
+  await saveLocalStorage();
+  renderApp();
+}
+
+// --- INICIALIZACIÓN DE LA APLICACIÓN ---
 document.addEventListener('DOMContentLoaded', async () => {
   loadLocalStorage();
   await fetchCloudData();
