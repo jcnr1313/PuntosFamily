@@ -5,11 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FamilyPoints PRO</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#09090b">
+  <meta id="themeColorMeta" name="theme-color" content="#09090b">
 
   <!-- Consola de depuración móvil (Eruda) -->
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>eruda.init();</script>
+
+  <!-- Lógica e inicialización del Modo Claro / Oscuro -->
+  <script>
+    (function initTheme() {
+      const savedTheme = localStorage.getItem('familypoints_theme');
+      if (savedTheme === 'light') {
+        document.documentElement.classList.remove('dark');
+      } else if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+        document.documentElement.classList.remove('dark');
+      }
+    })();
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.classList.toggle('dark');
+      localStorage.setItem('familypoints_theme', isDark ? 'dark' : 'light');
+      
+      const themeIcon = document.getElementById('themeIcon');
+      if (themeIcon) {
+        themeIcon.textContent = isDark ? '☀️' : '🌙';
+      }
+
+      const metaTheme = document.getElementById('themeColorMeta');
+      if (metaTheme) {
+        metaTheme.setAttribute('content', isDark ? '#09090b' : '#f4f4f5');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const themeIcon = document.getElementById('themeIcon');
+      if (themeIcon) {
+        const isDark = document.documentElement.classList.contains('dark');
+        themeIcon.textContent = isDark ? '☀️' : '🌙';
+      }
+    });
+  </script>
 
   <!-- SDK Supabase y Tailwind CSS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -38,13 +76,18 @@
               '0%': { filter: 'hue-rotate(0deg) brightness(1)' },
               '50%': { filter: 'hue-rotate(180deg) brightness(1.2)' },
               '100%': { filter: 'hue-rotate(360deg) brightness(1)' }
+            },
+            goldPulse: {
+              '0%, 100%': { boxShadow: '0 0 10px rgba(234,179,8,0.4)', transform: 'scale(1)' },
+              '50%': { boxShadow: '0 0 20px rgba(234,179,8,0.9)', transform: 'scale(1.05)' }
             }
           },
           animation: {
             trophy: 'trophyBounce 2s infinite ease-in-out',
             glow: 'glowPulse 2s infinite ease-in-out',
             shimmer: 'shimmer 3s infinite linear',
-            holo: 'holoCard 4s infinite linear'
+            holo: 'holoCard 4s infinite linear',
+            gold: 'goldPulse 2s infinite ease-in-out'
           }
         }
       }
@@ -74,7 +117,7 @@
       <div>
         <div class="flex items-center gap-2">
           <h1 class="text-xl font-black tracking-tight text-zinc-900 dark:text-white">FamilyPoints</h1>
-          <span class="text-[10px] bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">PRO</span>
+          <span class="text-[10px] bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-zinc-950 font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-gold">PRO</span>
           
           <!-- Indicador de Sincronización Supabase -->
           <span id="syncIndicator" title="Estado de Sincronización en Tiempo Real" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -84,7 +127,7 @@
 
       <div class="flex items-center gap-2">
         <!-- Toggle Modo Claro / Oscuro -->
-        <button onclick="toggleTheme()" class="p-2 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold transition hover:scale-105" title="Cambiar Tema">
+        <button onclick="toggleTheme()" class="p-2 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold transition hover:scale-105 active:scale-95" title="Cambiar Tema">
           <span id="themeIcon">☀️</span>
         </button>
 
