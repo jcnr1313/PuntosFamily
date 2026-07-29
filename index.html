@@ -33,12 +33,18 @@
             shimmer: {
               '0%': { backgroundPosition: '-200% 0' },
               '100%': { backgroundPosition: '200% 0' }
+            },
+            holoCard: {
+              '0%': { filter: 'hue-rotate(0deg) brightness(1)' },
+              '50%': { filter: 'hue-rotate(180deg) brightness(1.2)' },
+              '100%': { filter: 'hue-rotate(360deg) brightness(1)' }
             }
           },
           animation: {
             trophy: 'trophyBounce 2s infinite ease-in-out',
             glow: 'glowPulse 2s infinite ease-in-out',
-            shimmer: 'shimmer 3s infinite linear'
+            shimmer: 'shimmer 3s infinite linear',
+            holo: 'holoCard 4s infinite linear'
           }
         }
       }
@@ -52,29 +58,45 @@
       object-fit: cover;
       border-radius: 9999px;
     }
+    /* Estilos especiales para cartas de cromos */
+    .cromo-legendary {
+      background: linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6, #3b82f6);
+      background-size: 300% 300%;
+      animation: shimmer 3s infinite linear;
+    }
   </style>
 </head>
-<body class="bg-zinc-950 text-zinc-100 min-h-screen pb-28 font-sans antialiased selection:bg-blue-500 selection:text-white">
+<body class="bg-zinc-100 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen pb-28 font-sans antialiased transition-colors duration-300">
 
   <!-- Header -->
-  <header class="p-4 bg-zinc-900/90 backdrop-blur-2xl border-b border-zinc-800/80 sticky top-0 z-40">
+  <header class="p-4 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl border-b border-zinc-200 dark:border-zinc-800/80 sticky top-0 z-40 transition-colors">
     <div class="max-w-md mx-auto flex justify-between items-center">
       <div>
         <div class="flex items-center gap-2">
-          <h1 class="text-xl font-black tracking-tight text-white">FamilyPoints</h1>
+          <h1 class="text-xl font-black tracking-tight text-zinc-900 dark:text-white">FamilyPoints</h1>
           <span class="text-[10px] bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">PRO</span>
+          
+          <!-- Indicador de Sincronización Supabase -->
+          <span id="syncIndicator" title="Estado de Sincronización en Tiempo Real" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
         </div>
-        <p class="text-xs text-zinc-400 font-medium mt-0.5" id="familyHeaderTitle">Familia Navarro Potenciano</p>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-0.5" id="familyHeaderTitle">Familia Navarro Potenciano</p>
       </div>
 
-      <!-- Selector de usuario activo -->
-      <div class="flex items-center gap-2 bg-zinc-950 px-2.5 py-1.5 rounded-2xl border border-zinc-800 shadow-inner">
-        <div id="currentAvatar" class="avatar-box w-7 h-7 flex items-center justify-center text-lg overflow-hidden">
-          👦
+      <div class="flex items-center gap-2">
+        <!-- Toggle Modo Claro / Oscuro -->
+        <button onclick="toggleTheme()" class="p-2 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold transition hover:scale-105" title="Cambiar Tema">
+          <span id="themeIcon">☀️</span>
+        </button>
+
+        <!-- Selector de usuario activo -->
+        <div class="flex items-center gap-1.5 bg-zinc-200 dark:bg-zinc-950 px-2.5 py-1.5 rounded-2xl border border-zinc-300 dark:border-zinc-800 shadow-inner">
+          <div id="currentAvatar" class="avatar-box w-7 h-7 flex items-center justify-center text-lg overflow-hidden">
+            👦
+          </div>
+          <select id="userSelect" onchange="handleUserSelectChange(this)" class="bg-transparent text-xs font-extrabold text-zinc-900 dark:text-white outline-none cursor-pointer">
+            <!-- Dinámico -->
+          </select>
         </div>
-        <select id="userSelect" onchange="handleUserSelectChange(this)" class="bg-transparent text-xs font-extrabold text-white outline-none cursor-pointer">
-          <!-- Dinámico -->
-        </select>
       </div>
     </div>
   </header>
@@ -115,12 +137,12 @@
       </div>
 
       <!-- Podio Final de Mes -->
-      <div class="bg-zinc-900/90 rounded-[2rem] p-5 border border-amber-500/30 space-y-3 shadow-lg relative overflow-hidden">
+      <div class="bg-white/90 dark:bg-zinc-900/90 rounded-[2rem] p-5 border border-amber-500/30 space-y-3 shadow-lg relative overflow-hidden transition-colors">
         <div class="flex justify-between items-center">
-          <h3 class="font-bold text-sm text-amber-400 flex items-center gap-2">
+          <h3 class="font-bold text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
             <span>🏛️</span> Podio Final de Mes
           </h3>
-          <span class="text-[10px] font-black bg-amber-400/10 text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-400/20">Cierre Mensual</span>
+          <span class="text-[10px] font-black bg-amber-400/10 text-amber-600 dark:text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-400/20">Cierre Mensual</span>
         </div>
         <div id="podiumList" class="flex justify-center items-end gap-3 pt-2 pb-1">
           <!-- Dinámico -->
@@ -128,12 +150,12 @@
       </div>
 
       <!-- Estadísticas y Racha del Usuario Seleccionado -->
-      <div class="bg-zinc-900/90 rounded-[2rem] p-5 border border-zinc-800/80 space-y-3 shadow-lg">
+      <div class="bg-white/90 dark:bg-zinc-900/90 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-3 shadow-lg transition-colors">
         <div class="flex justify-between items-center">
-          <h3 class="font-bold text-sm text-zinc-200 flex items-center gap-2">
+          <h3 class="font-bold text-sm text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
             <span>📊</span> Estadísticas y Racha
           </h3>
-          <span id="statsUserName" class="text-xs font-black text-blue-400"></span>
+          <span id="statsUserName" class="text-xs font-black text-blue-600 dark:text-blue-400"></span>
         </div>
         <div id="userStatsGrid" class="grid grid-cols-2 gap-2 text-xs">
           <!-- Dinámico -->
@@ -141,12 +163,12 @@
       </div>
 
       <!-- Actividad Reciente -->
-      <div class="bg-zinc-900/90 rounded-[2rem] p-5 border border-zinc-800/80 space-y-3 shadow-lg">
+      <div class="bg-white/90 dark:bg-zinc-900/90 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-3 shadow-lg transition-colors">
         <div class="flex justify-between items-center">
-          <h3 class="font-bold text-sm text-zinc-200 flex items-center gap-2">
+          <h3 class="font-bold text-sm text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
             <span class="text-xl">⚡</span> Actividad Reciente
           </h3>
-          <span id="activityCount" class="text-xs font-black bg-zinc-800 text-zinc-400 px-2.5 py-0.5 rounded-full">0</span>
+          <span id="activityCount" class="text-xs font-black bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2.5 py-0.5 rounded-full">0</span>
         </div>
         <div id="activityList" class="space-y-2 text-xs text-zinc-500 text-center py-4">
           Aún no hay movimientos este mes.
@@ -157,85 +179,97 @@
     <!-- PESTAÑA: ARCADE / MINIJUEGOS, COLECCIÓN Y GUÍA -->
     <section id="tab-arcade" class="space-y-6 tab-content hidden">
 
-      <!-- PASES VIP Y TICKET DORADO -->
+      <!-- PASES VIP Y ABRIR SOBRE DE CROMOS -->
       <div class="bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-amber-500/20 rounded-[2rem] p-5 border border-amber-500/40 space-y-3 shadow-lg relative overflow-hidden">
         <div class="flex justify-between items-center">
           <div class="flex items-center gap-2">
             <span class="text-2xl animate-pulse">🎟️</span>
             <div>
-              <h3 class="font-black text-sm text-amber-300">Pases VIP y Tickets Dorados</h3>
-              <p class="text-[11px] text-zinc-400">Gana pases haciendo tareas para tiradas especiales.</p>
+              <h3 class="font-black text-sm text-amber-600 dark:text-amber-300">Pases VIP y Sobres Épicos</h3>
+              <p class="text-[11px] text-zinc-600 dark:text-zinc-400">Usa tus pases o 50 Pts para abrir sobres de cromos.</p>
             </div>
           </div>
           <span id="vipPassesCount" class="text-xs font-black bg-amber-400 text-zinc-950 px-3 py-1 rounded-full shadow-md">
             0 Pases
           </span>
         </div>
-        <button onclick="jugarCajaVIP()" class="w-full py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-zinc-950 font-black text-xs rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition flex items-center justify-center gap-2">
-          <span>🎁</span> Abrir Caja Sorpresa VIP (Consume 1 Pase)
-        </button>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="abrirSobreCromos('pase')" class="py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-zinc-950 font-black text-xs rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition flex items-center justify-center gap-1.5">
+            <span>🎁</span> Abrir con Pase VIP
+          </button>
+          <button onclick="abrirSobreCromos('puntos')" class="py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-xs rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition flex items-center justify-center gap-1.5">
+            <span>🃏</span> Sobre (50 Pts)
+          </button>
+        </div>
       </div>
 
-      <!-- ÁLBUM DE CROMOS Y COLECCIONABLES DIGITALES -->
-      <div class="bg-zinc-900/90 rounded-[2rem] p-5 border border-zinc-800/80 space-y-3 shadow-xl">
-        <div class="flex justify-between items-center border-b border-zinc-800 pb-2">
-          <h3 class="font-black text-sm text-purple-400 flex items-center gap-2">
-            <span>🖼️</span> Álbum de Cromos Digitales
+      <!-- ÁLBUM DE CROMOS MULTICOLECCIÓN -->
+      <div class="bg-white/90 dark:bg-zinc-900/90 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-4 shadow-xl transition-colors">
+        <div class="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-800 pb-2">
+          <h3 class="font-black text-sm text-purple-600 dark:text-purple-400 flex items-center gap-2">
+            <span>🖼️</span> Colección de Cromos Digitales
           </h3>
-          <span id="albumProgress" class="text-[10px] font-black bg-purple-500/10 text-purple-300 px-2.5 py-0.5 rounded-full border border-purple-500/20">0 / 8 Cromos</span>
+          <span id="albumProgress" class="text-[10px] font-black bg-purple-500/10 text-purple-600 dark:text-purple-300 px-2.5 py-0.5 rounded-full border border-purple-500/20">0 / 0 Cromos</span>
         </div>
-        <p class="text-[11px] text-zinc-400">Consigue cartas coleccionables jugando en el Arcade o abriendo Cajas VIP.</p>
+
+        <!-- Filtros de Colección -->
+        <div class="flex gap-1.5 overflow-x-auto pb-1 text-[11px] font-bold scrollbar-none" id="collectionFilters">
+          <button onclick="filterAlbum('all')" class="px-3 py-1 rounded-full bg-purple-600 text-white whitespace-nowrap">Todas</button>
+          <button onclick="filterAlbum('onepiece')" class="px-3 py-1 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">🏴‍☠️ One Piece</button>
+          <button onclick="filterAlbum('strangerthings')" class="px-3 py-1 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">🧇 Stranger Things</button>
+          <button onclick="filterAlbum('pokemon')" class="px-3 py-1 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">⚡ Pokémon</button>
+        </div>
         
-        <div id="cromosGrid" class="grid grid-cols-4 gap-2 pt-1">
+        <div id="cromosGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2.5 pt-1">
           <!-- Se renderiza dinámicamente -->
         </div>
       </div>
 
       <!-- GUÍA Y EXPLICACIÓN DE RECOMPENSAS / MISIONES / JEFE FINAL -->
-      <div class="bg-zinc-900/90 rounded-[2rem] p-6 border border-zinc-800/80 space-y-6 shadow-xl">
+      <div class="bg-white/90 dark:bg-zinc-900/90 rounded-[2rem] p-6 border border-zinc-200 dark:border-zinc-800/80 space-y-6 shadow-xl transition-colors">
 
         <!-- Cabecera -->
-        <div class="border-b border-zinc-800 pb-3">
-          <h2 class="text-2xl font-black text-amber-400 flex items-center gap-2">
+        <div class="border-b border-zinc-200 dark:border-zinc-800 pb-3">
+          <h2 class="text-2xl font-black text-amber-500 dark:text-amber-400 flex items-center gap-2">
             🏆 GUÍA Y RECOMPENSAS 🏆
           </h2>
-          <p class="text-zinc-400 text-xs mt-1">
+          <p class="text-zinc-500 dark:text-zinc-400 text-xs mt-1">
             Aprende cómo ganar puntos, vencer al Jefe Final y divertirte en los minijuegos.
           </p>
         </div>
 
         <!-- 1. Misiones -->
         <div>
-          <h3 class="text-sm font-black text-emerald-400 mb-2 flex items-center gap-1.5 uppercase tracking-wider">
+          <h3 class="text-sm font-black text-emerald-600 dark:text-emerald-400 mb-2 flex items-center gap-1.5 uppercase tracking-wider">
             📜 1. Misiones y Tareas
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
-              <h4 class="font-bold text-emerald-300">☀️ Misiones Diarias</h4>
-              <p class="text-zinc-400 text-[11px] my-1">Tareas de rutina cotidiana (hacer la cama, recoger, estudiar).</p>
-              <span class="inline-block bg-emerald-500/10 text-emerald-400 font-extrabold text-[10px] px-2 py-0.5 rounded-md border border-emerald-500/20">+10 a +30 Pts</span>
+            <div class="bg-zinc-100 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+              <h4 class="font-bold text-emerald-600 dark:text-emerald-300">☀️ Misiones Diarias</h4>
+              <p class="text-zinc-500 dark:text-zinc-400 text-[11px] my-1">Tareas de rutina cotidiana (hacer la cama, recoger, estudiar).</p>
+              <span class="inline-block bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px] px-2 py-0.5 rounded-md border border-emerald-500/20">+10 a +30 Pts</span>
             </div>
 
-            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
-              <h4 class="font-bold text-blue-300">🗓️ Misiones Semanales</h4>
-              <p class="text-zinc-400 text-[11px] my-1">Desafíos que requieren constancia continua durante la semana.</p>
-              <span class="inline-block bg-blue-500/10 text-blue-400 font-extrabold text-[10px] px-2 py-0.5 rounded-md border border-blue-500/20">+100 Pts + 🎟️ Pase VIP</span>
+            <div class="bg-zinc-100 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+              <h4 class="font-bold text-blue-600 dark:text-blue-300">🗓️ Misiones Semanales</h4>
+              <p class="text-zinc-500 dark:text-zinc-400 text-[11px] my-1">Desafíos que requieren constancia continua durante la semana.</p>
+              <span class="inline-block bg-blue-500/10 text-blue-600 dark:text-blue-400 font-extrabold text-[10px] px-2 py-0.5 rounded-md border border-blue-500/20">+100 Pts + 🎟️ Pase VIP</span>
             </div>
           </div>
         </div>
 
         <!-- 2. Jefe Final -->
-        <div class="bg-gradient-to-br from-red-950/60 via-zinc-950 to-zinc-950 p-4 rounded-2xl border border-red-500/40">
+        <div class="bg-gradient-to-br from-red-500/10 dark:from-red-950/60 via-zinc-100 dark:via-zinc-950 to-zinc-100 dark:to-zinc-950 p-4 rounded-2xl border border-red-500/40">
           <div class="flex justify-between items-center mb-2">
-            <h3 class="text-sm font-black text-red-400 flex items-center gap-1.5 uppercase tracking-wider">
+            <h3 class="text-sm font-black text-red-600 dark:text-red-400 flex items-center gap-1.5 uppercase tracking-wider">
               👾 2. El Jefe Final (Boss Fight)
             </h3>
-            <span class="bg-red-500/20 text-red-300 font-bold text-[10px] px-2 py-0.5 rounded-full border border-red-500/30">Familiar</span>
+            <span class="bg-red-500/20 text-red-600 dark:text-red-300 font-bold text-[10px] px-2 py-0.5 rounded-full border border-red-500/30">Familiar</span>
           </div>
-          <p class="text-xs text-zinc-300 mb-2">
+          <p class="text-xs text-zinc-700 dark:text-zinc-300 mb-2">
             Un desafío cooperativo semanal con una gran barra de vida (HP) que solo podréis vencer juntos.
           </p>
-          <div class="bg-zinc-900/90 p-3 rounded-xl text-[11px] text-zinc-400 space-y-1.5 border border-zinc-800">
+          <div class="bg-white dark:bg-zinc-900/90 p-3 rounded-xl text-[11px] text-zinc-600 dark:text-zinc-400 space-y-1.5 border border-zinc-200 dark:border-zinc-800">
             <p>• <strong>¿Cómo atacar?</strong> Cada tarea o misión completada le resta HP al Jefe Final.</p>
             <p>• <strong>Objetivo:</strong> Reducir su vida a 0 antes del domingo por la noche.</p>
             <p>• <strong>🏆 Gran Premio:</strong> Recompensa grupal (cine, cena especial o súper lote de puntos).</p>
@@ -244,82 +278,42 @@
 
         <!-- 3. Minijuegos Info -->
         <div>
-          <h3 class="text-sm font-black text-amber-400 mb-2 flex items-center gap-1.5 uppercase tracking-wider">
+          <h3 class="text-sm font-black text-amber-500 dark:text-amber-400 mb-2 flex items-center gap-1.5 uppercase tracking-wider">
             🎮 3. Reglas de los Minijuegos Arcade
           </h3>
-          <p class="text-xs text-zinc-400 mb-3">Arriesga tus puntos acumulados para multiplicar tu saldo, ganar cromos o probar tu suerte.</p>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Arriesga tus puntos acumulados para multiplicar tu saldo, ganar cromos o probar tu suerte.</p>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
+            <div class="bg-zinc-100 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800">
               <div class="flex justify-between items-center mb-1">
-                <span class="font-bold text-blue-400">🎲 Dado Misterioso</span>
-                <span class="text-[10px] font-black bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full">10 Pts</span>
+                <span class="font-bold text-blue-600 dark:text-blue-400">🎲 Dado Misterioso</span>
+                <span class="text-[10px] font-black bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">10 Pts</span>
               </div>
-              <p class="text-zinc-400 text-[11px]">Sacas 6 = +50 Pts + Cromo 🎲. Sacas 4/5 = +20 Pts. Sacas 1-3 = Medalla 🛡️.</p>
+              <p class="text-zinc-500 dark:text-zinc-400 text-[11px]">Sacas 6 = +50 Pts + Cromo 🎲. Sacas 4/5 = +20 Pts. Sacas 1-3 = Medalla 🛡️.</p>
             </div>
 
-            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
+            <div class="bg-zinc-100 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800">
               <div class="flex justify-between items-center mb-1">
-                <span class="font-bold text-purple-400">🎡 Ruleta Suerte</span>
-                <span class="text-[10px] font-black bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded-full">15 Pts</span>
+                <span class="font-bold text-purple-600 dark:text-purple-400">🎡 Ruleta Suerte</span>
+                <span class="text-[10px] font-black bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">15 Pts</span>
               </div>
-              <p class="text-zinc-400 text-[11px]">Bote = +100 Pts 💰. Épica = Cromo Raro 💎. Casilla Puntos = +30 Pts.</p>
+              <p class="text-zinc-500 dark:text-zinc-400 text-[11px]">Bote = +100 Pts 💰. Épica = Cromo Raro 💎. Casilla Puntos = +30 Pts.</p>
             </div>
 
-            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
+            <div class="bg-zinc-100 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800">
               <div class="flex justify-between items-center mb-1">
-                <span class="font-bold text-indigo-400">🎟️ Rasca y Gana</span>
-                <span class="text-[10px] font-black bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full">20 Pts</span>
+                <span class="font-bold text-indigo-600 dark:text-indigo-400">🎟️ Rasca y Gana</span>
+                <span class="text-[10px] font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">20 Pts</span>
               </div>
-              <p class="text-zinc-400 text-[11px]">Común (60%) = +10 Pts. Raro (30%) = +50 Pts. Épico (9%) = Cromo Épico 🦄. Legendario (1%) = +200 Pts.</p>
+              <p class="text-zinc-500 dark:text-zinc-400 text-[11px]">Común (60%) = +10 Pts. Raro (30%) = +50 Pts. Épico (9%) = Cromo Épico 🦄. Legendario (1%) = +200 Pts.</p>
             </div>
 
-            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
+            <div class="bg-zinc-100 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800">
               <div class="flex justify-between items-center mb-1">
-                <span class="font-bold text-amber-400">🎰 Tragaperras</span>
-                <span class="text-[10px] font-black bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full">25 Pts</span>
+                <span class="font-bold text-amber-600 dark:text-amber-400">🎰 Tragaperras</span>
+                <span class="text-[10px] font-black bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full">25 Pts</span>
               </div>
-              <p class="text-zinc-400 text-[11px]">👑 👑 👑 = Jackpot (+300 Pts + Cromo Legendario 👑). Tres Iguales = +75 Pts.</p>
-            </div>
-
-            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
-              <div class="flex justify-between items-center mb-1">
-                <span class="font-bold text-emerald-400">📦 Caja Sorpresa</span>
-                <span class="text-[10px] font-black bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full">30 Pts</span>
-              </div>
-              <p class="text-zinc-400 text-[11px]">Bronce = 15 Pts + Sticker 🎁 | Plata = Emoji Rayo ⚡ | Oro = +150 Pts + Pase VIP 🎟️</p>
-            </div>
-
-            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
-              <div class="flex justify-between items-center mb-1">
-                <span class="font-bold text-rose-400">🧗 Escalera de la Suerte</span>
-                <span class="text-[10px] font-black bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded-full">15 Pts</span>
-              </div>
-              <p class="text-zinc-400 text-[11px]">¿Número mayor o menor? Sube 5 peldaños. Aciertas = Multiplicas | Fallas = 0 Pts.</p>
-            </div>
-
-            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
-              <div class="flex justify-between items-center mb-1">
-                <span class="font-bold text-red-500">💣 Cofre Explosivo</span>
-                <span class="text-[10px] font-black bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full">20 Pts</span>
-              </div>
-              <p class="text-zinc-400 text-[11px]">9 cofres: 8 tienen tesoros acumulables (+15 Pts) y 1 explota borrando lo ganado.</p>
-            </div>
-
-            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800">
-              <div class="flex justify-between items-center mb-1">
-                <span class="font-bold text-cyan-400">🥤 Trilogía de Vasos</span>
-                <span class="text-[10px] font-black bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded-full">10 Pts</span>
-              </div>
-              <p class="text-zinc-400 text-[11px]">3 vasos invertidos, solo 1 tiene la bola de oro. ¡33% de ganar +40 Pts al instante!</p>
-            </div>
-
-            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 sm:col-span-2">
-              <div class="flex justify-between items-center mb-1">
-                <span class="font-bold text-violet-400">🚀 Cohete a la Luna</span>
-                <span class="text-[10px] font-black bg-violet-500/10 text-violet-400 px-2 py-0.5 rounded-full">35 Pts</span>
-              </div>
-              <p class="text-zinc-400 text-[11px]">Lanza un cohete que sube de multiplicador (x1.5, x2, x5). ¡Decide cuándo saltar antes de que explote en el aire!</p>
+              <p class="text-zinc-500 dark:text-zinc-400 text-[11px]">👑 👑 👑 = Jackpot (+300 Pts + Cromo Legendario 👑). Tres Iguales = +75 Pts.</p>
             </div>
           </div>
         </div>
@@ -327,10 +321,10 @@
       </div>
 
       <!-- BOTONERA DE JUEGO INTERACTIVA (ARCADE) -->
-      <div class="bg-zinc-900/90 rounded-[2rem] p-6 border border-zinc-800/80 space-y-4 shadow-xl">
-        <h3 class="text-base font-black text-white flex items-center justify-between">
+      <div class="bg-white/90 dark:bg-zinc-900/90 rounded-[2rem] p-6 border border-zinc-200 dark:border-zinc-800/80 space-y-4 shadow-xl transition-colors">
+        <h3 class="text-base font-black text-zinc-900 dark:text-white flex items-center justify-between">
           <span>🎮 JUGAR AHORA</span>
-          <span class="text-xs font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-full" id="userPointsArcadeTab">0 Pts</span>
+          <span class="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-full" id="userPointsArcadeTab">0 Pts</span>
         </h3>
 
         <!-- Mensaje de Resultado -->
@@ -373,24 +367,6 @@
             <span class="text-xs">Escalera</span>
             <span class="text-[10px] font-medium opacity-80">15 Pts</span>
           </button>
-
-          <button onclick="jugar('cofre')" class="p-3.5 bg-red-600 hover:bg-red-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-red-600/20 active:scale-95 transition">
-            <span class="text-2xl">💣</span>
-            <span class="text-xs">Cofre Explosivo</span>
-            <span class="text-[10px] font-medium opacity-80">20 Pts</span>
-          </button>
-
-          <button onclick="jugar('vasos')" class="p-3.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-cyan-600/20 active:scale-95 transition">
-            <span class="text-2xl">🥤</span>
-            <span class="text-xs">Tres Vasos</span>
-            <span class="text-[10px] font-medium opacity-80">10 Pts</span>
-          </button>
-
-          <button onclick="jugar('cohete')" class="p-3.5 bg-violet-600 hover:bg-violet-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-violet-600/20 active:scale-95 transition col-span-2 sm:col-span-1">
-            <span class="text-2xl">🚀</span>
-            <span class="text-xs">Cohete Lunar</span>
-            <span class="text-[10px] font-medium opacity-80">35 Pts</span>
-          </button>
         </div>
       </div>
 
@@ -400,18 +376,18 @@
     <section id="tab-tasks" class="space-y-4 tab-content hidden">
       
       <!-- Indicador visual si los Puntos Dobles están activos -->
-      <div id="tasksDoublePointsBadge" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3 flex items-center justify-between text-amber-400 text-xs font-black">
+      <div id="tasksDoublePointsBadge" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3 flex items-center justify-between text-amber-600 dark:text-amber-400 text-xs font-black">
         <span class="flex items-center gap-2">
           <span>⚡</span> ¡MODO PUNTOS DOBLES ACTIVO!
         </span>
         <span class="bg-amber-400 text-zinc-950 px-2 py-0.5 rounded-full text-[10px]">x2</span>
       </div>
 
-      <div class="grid grid-cols-2 gap-2 bg-zinc-900 p-1.5 rounded-2xl border border-zinc-800/80">
-        <button id="btnTaskPositive" onclick="toggleTaskType('positive')" class="py-3 rounded-xl text-xs font-black transition-all bg-zinc-800 text-white shadow-md flex items-center justify-center gap-2">
+      <div class="grid grid-cols-2 gap-2 bg-zinc-200 dark:bg-zinc-900 p-1.5 rounded-2xl border border-zinc-300 dark:border-zinc-800/80">
+        <button id="btnTaskPositive" onclick="toggleTaskType('positive')" class="py-3 rounded-xl text-xs font-black transition-all bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-md flex items-center justify-center gap-2">
           <span class="text-base">✨</span> Ganar Puntos
         </button>
-        <button id="btnTaskNegative" onclick="toggleTaskType('negative')" class="py-3 rounded-xl text-xs font-black transition-all text-zinc-400 hover:text-white flex items-center justify-center gap-2">
+        <button id="btnTaskNegative" onclick="toggleTaskType('negative')" class="py-3 rounded-xl text-xs font-black transition-all text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center justify-center gap-2">
           <span class="text-base">⚠️</span> Penalizaciones
         </button>
       </div>
@@ -424,8 +400,8 @@
     <!-- PESTAÑA: PREMIOS -->
     <section id="tab-rewards" class="space-y-4 tab-content hidden">
       <div class="flex justify-between items-center px-1">
-        <h2 class="font-bold text-sm text-zinc-300">Catálogo de Premios</h2>
-        <span class="text-xs font-extrabold bg-amber-400/10 text-amber-400 border border-amber-400/20 px-3 py-1.5 rounded-full flex items-center gap-1" id="userPointsRewardTab">0 ⭐</span>
+        <h2 class="font-bold text-sm text-zinc-700 dark:text-zinc-300">Catálogo de Premios</h2>
+        <span class="text-xs font-extrabold bg-amber-400/10 text-amber-600 dark:text-amber-400 border border-amber-400/20 px-3 py-1.5 rounded-full flex items-center gap-1" id="userPointsRewardTab">0 ⭐</span>
       </div>
       <div id="rewardsGrid" class="grid grid-cols-2 gap-3.5">
         <!-- Dinámico -->
@@ -436,16 +412,16 @@
     <section id="tab-manager" class="space-y-5 tab-content hidden">
       
       <!-- Pantalla de Bloqueo PIN -->
-      <div id="pinLockScreen" class="bg-zinc-900 rounded-[2rem] p-6 border border-zinc-800 text-center space-y-4 shadow-xl">
-        <div class="w-14 h-14 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center text-3xl mx-auto border border-blue-500/20">
+      <div id="pinLockScreen" class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-6 border border-zinc-200 dark:border-zinc-800 text-center space-y-4 shadow-xl transition-colors">
+        <div class="w-14 h-14 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center text-3xl mx-auto border border-blue-500/20">
           🔒
         </div>
         <div>
-          <h3 class="font-black text-white text-base">Acceso Restringido</h3>
-          <p class="text-xs text-zinc-400 mt-1">Introduce el PIN de Padres para acceder al panel.</p>
+          <h3 class="font-black text-zinc-900 dark:text-white text-base">Acceso Restringido</h3>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Introduce el PIN de Padres para acceder al panel.</p>
         </div>
         <div class="flex justify-center gap-2">
-          <input id="pinInput" type="password" maxlength="4" placeholder="••••" class="w-36 bg-zinc-950 text-center font-mono text-2xl tracking-widest border border-zinc-800 rounded-2xl px-3 py-2.5 text-white outline-none focus:border-blue-500">
+          <input id="pinInput" type="password" maxlength="4" placeholder="••••" class="w-36 bg-zinc-100 dark:bg-zinc-950 text-center font-mono text-2xl tracking-widest border border-zinc-300 dark:border-zinc-800 rounded-2xl px-3 py-2.5 text-zinc-900 dark:text-white outline-none focus:border-blue-500">
         </div>
         <button onclick="unlockManager()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl transition shadow-lg shadow-blue-600/30">
           Desbloquear Panel
@@ -456,21 +432,21 @@
       <div id="pinUnlockedContent" class="space-y-5 hidden">
         <div class="flex justify-between items-center">
           <div>
-            <h2 class="text-lg font-black text-white">Gestor Familiar</h2>
-            <p class="text-xs text-zinc-400">Edita títulos, puntos, avatares y catálogo completo.</p>
+            <h2 class="text-lg font-black text-zinc-900 dark:text-white">Gestor Familiar</h2>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">Edita títulos, puntos, avatares y catálogo completo.</p>
           </div>
-          <button onclick="lockManager()" class="text-xs font-bold text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-xl">🔒 Bloquear</button>
+          <button onclick="lockManager()" class="text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-zinc-200 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 px-3 py-1.5 rounded-xl">🔒 Bloquear</button>
         </div>
 
         <!-- Controles de Eventos Especiales (Padres) -->
-        <div class="bg-zinc-900 rounded-[2rem] p-5 border border-amber-500/30 space-y-3">
-          <h3 class="font-bold text-xs uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+        <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-amber-500/30 space-y-3 transition-colors">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
             <span>⚡</span> Eventos y Pases VIP
           </h3>
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-xs font-bold text-white">Modo Puntos Dobles (2X)</p>
-              <p class="text-[11px] text-zinc-400">Activa o desactiva la Hora Feliz para los niños.</p>
+              <p class="text-xs font-bold text-zinc-900 dark:text-white">Modo Puntos Dobles (2X)</p>
+              <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Activa o desactiva la Hora Feliz para los niños.</p>
             </div>
             <button onclick="toggleDoublePointsMode()" class="px-3 py-1.5 bg-amber-500 text-zinc-950 text-xs font-black rounded-xl shadow-md">
               Activar/Desactivar
@@ -479,12 +455,12 @@
         </div>
 
         <!-- Histórico de Premios Canjeados -->
-        <div class="bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800/80 space-y-3">
+        <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-3 transition-colors">
           <div class="flex justify-between items-center">
-            <h3 class="font-bold text-xs uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+            <h3 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
               <span>🎁</span> Histórico de Premios Canjeados
             </h3>
-            <span id="redemptionsCount" class="text-[10px] bg-amber-400/10 text-amber-400 px-2 py-0.5 rounded-full font-bold">0</span>
+            <span id="redemptionsCount" class="text-[10px] bg-amber-400/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full font-bold">0</span>
           </div>
           <div id="redemptionsList" class="space-y-2 max-h-48 overflow-y-auto pr-1">
             <!-- Dinámico -->
@@ -492,36 +468,36 @@
         </div>
 
         <!-- Personalizar Avatares -->
-        <div class="bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800/80 space-y-3">
-          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-400">Personalizar Fotos / Avatares</h3>
+        <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-3 transition-colors">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Personalizar Fotos / Avatares</h3>
           <div id="avatarCustomizerList" class="space-y-3">
             <!-- Dinámico -->
           </div>
         </div>
 
         <!-- Control Rápido de Puntos -->
-        <div class="bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800/80 space-y-3">
-          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-400">Control Rápido de Puntos</h3>
+        <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-3 transition-colors">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Control Rápido de Puntos</h3>
           <div id="manualPointsControl" class="space-y-2.5">
             <!-- Dinámico -->
           </div>
         </div>
 
         <!-- Gestión de Premios / Catálogo Completo -->
-        <div class="bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800/80 space-y-4">
-          <h3 class="font-bold text-xs uppercase tracking-wider text-amber-400">Editar Catálogo de Premios</h3>
+        <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-4 transition-colors">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400">Editar Catálogo de Premios</h3>
           
           <div id="manageRewardsList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
             <!-- Dinámico -->
           </div>
 
           <!-- Crear Nuevo Premio -->
-          <div class="pt-3 border-t border-zinc-800 space-y-2">
-            <p class="text-xs font-bold text-zinc-300">Añadir Nuevo Premio</p>
-            <input id="newRewardTitle" type="text" placeholder="Ej: Ir a los bolos" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500">
+          <div class="pt-3 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
+            <p class="text-xs font-bold text-zinc-700 dark:text-zinc-300">Añadir Nuevo Premio</p>
+            <input id="newRewardTitle" type="text" placeholder="Ej: Ir a los bolos" class="w-full bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-900 dark:text-white outline-none focus:border-amber-500">
             <div class="flex gap-2">
-              <input id="newRewardIcon" type="text" placeholder="Emoji (ej: 🎳)" class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500">
-              <input id="newRewardCost" type="number" placeholder="Puntos (ej: 300)" class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500">
+              <input id="newRewardIcon" type="text" placeholder="Emoji (ej: 🎳)" class="w-1/2 bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-900 dark:text-white outline-none focus:border-amber-500">
+              <input id="newRewardCost" type="number" placeholder="Puntos (ej: 300)" class="w-1/2 bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-900 dark:text-white outline-none focus:border-amber-500">
             </div>
             <button onclick="addNewReward()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-extrabold rounded-xl transition shadow-lg shadow-amber-500/20">
               + Añadir Premio
@@ -530,22 +506,22 @@
         </div>
 
         <!-- Administración de Tareas y Penalizaciones -->
-        <div class="bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800/80 space-y-3">
-          <h3 class="font-bold text-xs uppercase tracking-wider text-blue-400">Editar Tareas y Penalizaciones</h3>
+        <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-3 transition-colors">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-blue-600 dark:text-blue-400">Editar Tareas y Penalizaciones</h3>
           <div id="manageActionsList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
             <!-- Dinámico -->
           </div>
         </div>
 
         <!-- Crear Nueva Tarea / Penalización -->
-        <div class="bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800/80 space-y-3">
-          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-400">Crear Tarea o Penalización</h3>
+        <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-3 transition-colors">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Crear Tarea o Penalización</h3>
           <div class="space-y-2">
-            <input id="newActionTitle" type="text" placeholder="Ej: Doblar la ropa" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-blue-500">
+            <input id="newActionTitle" type="text" placeholder="Ej: Doblar la ropa" class="w-full bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-900 dark:text-white outline-none focus:border-blue-500">
             <div class="flex gap-2">
-              <input id="newActionIcon" type="text" placeholder="Emoji (ej: 👕)" class="w-1/3 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-blue-500">
-              <input id="newActionPoints" type="number" placeholder="Puntos" class="w-1/3 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-blue-500">
-              <select id="newActionType" class="w-1/3 bg-zinc-950 border border-zinc-800 rounded-xl px-2 py-2.5 text-xs text-white outline-none focus:border-blue-500">
+              <input id="newActionIcon" type="text" placeholder="Emoji (ej: 👕)" class="w-1/3 bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-900 dark:text-white outline-none focus:border-blue-500">
+              <input id="newActionPoints" type="number" placeholder="Puntos" class="w-1/3 bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-900 dark:text-white outline-none focus:border-blue-500">
+              <select id="newActionType" class="w-1/3 bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl px-2 py-2.5 text-xs text-zinc-900 dark:text-white outline-none focus:border-blue-500">
                 <option value="positive">Suma (+)</option>
                 <option value="negative">Resta (-)</option>
               </select>
@@ -561,17 +537,17 @@
 
     <!-- PESTAÑA: AJUSTES -->
     <section id="tab-settings" class="space-y-4 tab-content hidden">
-      <h2 class="text-lg font-black text-white">Ajustes</h2>
-      <div class="bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800/80 space-y-4 text-xs">
-        <div class="flex justify-between items-center py-2 border-b border-zinc-800">
-          <span class="text-zinc-300 font-medium">PIN de Padres</span>
-          <button onclick="changePinPrompt()" class="text-blue-400 font-bold hover:underline">Cambiar PIN</button>
+      <h2 class="text-lg font-black text-zinc-900 dark:text-white">Ajustes</h2>
+      <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-4 text-xs transition-colors">
+        <div class="flex justify-between items-center py-2 border-b border-zinc-200 dark:border-zinc-800">
+          <span class="text-zinc-700 dark:text-zinc-300 font-medium">PIN de Padres</span>
+          <button onclick="changePinPrompt()" class="text-blue-600 dark:text-blue-400 font-bold hover:underline">Cambiar PIN</button>
         </div>
-        <div class="flex justify-between items-center py-2 border-b border-zinc-800">
-          <span class="text-zinc-300 font-medium">Ciclo de Puntos</span>
-          <span class="text-blue-400 font-bold">Mensual</span>
+        <div class="flex justify-between items-center py-2 border-b border-zinc-200 dark:border-zinc-800">
+          <span class="text-zinc-700 dark:text-zinc-300 font-medium">Ciclo de Puntos</span>
+          <span class="text-blue-600 dark:text-blue-400 font-bold">Mensual</span>
         </div>
-        <button onclick="resetMonthlyPoints()" class="w-full py-3 bg-red-500/10 border border-red-500/20 text-red-400 font-extrabold rounded-xl hover:bg-red-500/20 transition">
+        <button onclick="resetMonthlyPoints()" class="w-full py-3 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 font-extrabold rounded-xl hover:bg-red-500/20 transition">
           Reiniciar Puntos Mensuales a 0
         </button>
       </div>
@@ -580,29 +556,29 @@
   </main>
 
   <!-- Navegación Inferior (6 Pestañas) -->
-  <nav class="fixed bottom-0 left-0 right-0 bg-zinc-900/90 backdrop-blur-2xl border-t border-zinc-800/80 p-2 z-50">
+  <nav class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl border-t border-zinc-200 dark:border-zinc-800/80 p-2 z-50 transition-colors">
     <div class="max-w-md mx-auto grid grid-cols-6 gap-0.5 text-center">
-      <button onclick="setActiveTab('home')" id="nav-home" class="flex flex-col items-center py-1.5 text-blue-500 font-bold">
+      <button onclick="setActiveTab('home')" id="nav-home" class="flex flex-col items-center py-1.5 text-blue-600 dark:text-blue-500 font-bold">
         <span class="text-xl">🏠</span>
         <span class="text-[9px]">Inicio</span>
       </button>
-      <button onclick="setActiveTab('arcade')" id="nav-arcade" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium">
+      <button onclick="setActiveTab('arcade')" id="nav-arcade" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 font-medium">
         <span class="text-xl">🎮</span>
         <span class="text-[9px]">Arcade</span>
       </button>
-      <button onclick="setActiveTab('tasks')" id="nav-tasks" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium">
+      <button onclick="setActiveTab('tasks')" id="nav-tasks" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 font-medium">
         <span class="text-xl">📋</span>
         <span class="text-[9px]">Tareas</span>
       </button>
-      <button onclick="setActiveTab('rewards')" id="nav-rewards" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium">
+      <button onclick="setActiveTab('rewards')" id="nav-rewards" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 font-medium">
         <span class="text-xl">🎁</span>
         <span class="text-[9px]">Premios</span>
       </button>
-      <button onclick="setActiveTab('manager')" id="nav-manager" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium">
+      <button onclick="setActiveTab('manager')" id="nav-manager" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 font-medium">
         <span class="text-xl">🎛️</span>
         <span class="text-[9px]">Gestor</span>
       </button>
-      <button onclick="setActiveTab('settings')" id="nav-settings" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-300 font-medium">
+      <button onclick="setActiveTab('settings')" id="nav-settings" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 font-medium">
         <span class="text-xl">⚙️</span>
         <span class="text-[9px]">Ajustes</span>
       </button>
