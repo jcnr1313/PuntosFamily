@@ -496,7 +496,7 @@ function renderMinigamesSection() {
         </div>
       </div>
 
-      <!-- 4. LA TORRE DE LA SUERTE (NUEVO MINIJUEGO) -->
+      <!-- 4. LA TORRE DE LA SUERTE -->
       <div class="bg-zinc-900 p-4 rounded-3xl border border-red-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🏰</div>
         <h3 class="text-sm font-black text-red-300">La Torre del Riesgo</h3>
@@ -508,7 +508,7 @@ function renderMinigamesSection() {
         </button>
       </div>
 
-      <!-- 5. CAJA SORPRESA MÁGICA VISUAL (NUEVO MINIJUEGO INTERACTIVO) -->
+      <!-- 5. CAJA SORPRESA MÁGICA VISUAL -->
       <div class="bg-zinc-900 p-4 rounded-3xl border border-amber-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🎁</div>
         <h3 class="text-sm font-black text-amber-300">Caja Sorpresa Mágica</h3>
@@ -533,9 +533,8 @@ function renderMinigamesSection() {
   `;
 }
 
-// --- FUNCIONES Y MODALES DE LOS NUEVOS MINIJUEGOS ---
+// --- FUNCIONES Y MODALES DE MINIJUEGOS ---
 
-// MINIJUEGO 1 NUEVO: LA TORRE DEL RIESGO
 let towerCurrentStep = 0;
 let towerAccumulatedPoints = 0;
 
@@ -576,7 +575,7 @@ function openTowerGameModal() {
 
 async function climbTowerStep() {
   towerCurrentStep++;
-  const isTrap = Math.random() < 0.35; // 35% de probabilidad de caer
+  const isTrap = Math.random() < 0.35;
   const statusMsg = document.getElementById('towerStatusMsg');
   const btnClimb = document.getElementById('btnTowerClimb');
   const btnCash = document.getElementById('btnTowerCashout');
@@ -637,7 +636,6 @@ async function cashoutTower() {
   renderApp();
 }
 
-// MINIJUEGOS EXISTENTES DADO Y COFRES
 async function playDiceRoll() {
   const user = state.users[state.currentUser];
   if (!user || user.points < 5) return alert("¡Necesitas al menos 5 puntos para tirar el dado!");
@@ -692,7 +690,6 @@ async function playTreasureChest(chestIndex) {
   renderApp();
 }
 
-// MINIJUEGO INTERACTIVO: ABRIR CAJA MÁGICA CON VISUAL MODAL
 function openLootboxModal() {
   const user = state.users[state.currentUser];
   const cost = state.lootboxCost || 30;
@@ -1481,18 +1478,54 @@ function renderManagerPanel() {
   }
 }
 
+// --- GESTIÓN DE EDICIÓN Y CREACIÓN DE ELEMENTOS ---
+
 async function editReward(rewardId) {
   const reward = state.rewards.find(r => r.id === rewardId);
   if (!reward) return;
+  
   const newTitle = prompt("Nuevo nombre del premio:", reward.title);
   if (newTitle === null || newTitle.trim() === "") return;
+  
   const newCostStr = prompt("Nuevos puntos necesarios:", reward.cost);
   const parsedCost = parseInt(newCostStr);
-  if (newCostStr === null || isNaN(parsedCost)) return;
-  const newIcon = prompt("Nuevo emoji:", reward.icon || '🎁');
+  if (isNaN(parsedCost) || parsedCost <= 0) return alert("Por favor, introduce un coste válido.");
+
+  const newIcon = prompt("Nuevo icono Emoji:", reward.icon || "🎁");
+
   reward.title = newTitle.trim();
-  reward.cost = Math.abs(parsedCost);
-  if (newIcon && newIcon.trim() !== "") reward.icon = newIcon.trim();
+  reward.cost = parsedCost;
+  if (newIcon) reward.icon = newIcon.trim();
+
+  await saveLocalStorage();
+  renderApp();
+}
+
+async function createRewardPrompt() {
+  const title = prompt("Nombre del nuevo premio:");
+  if (!title || !title.trim()) return;
+
+  const costStr = prompt("Coste en puntos:");
+  const cost = parseInt(costStr);
+  if (isNaN(cost) || cost <= 0) return alert("Por favor, introduce un coste válido.");
+
+  const icon = prompt("Icono Emoji para el premio:", "🎁");
+
+  const newReward = {
+    id: Date.now(),
+    title: title.trim(),
+    cost: cost,
+    icon: icon ? icon.trim() : "🎁"
+  };
+
+  state.rewards.push(newReward);
+  await saveLocalStorage();
+  renderApp();
+}
+
+async function deleteReward(rewardId) {
+  if (!confirm("¿Seguro que deseas eliminar este premio?")) return;
+  state.rewards = state.rewards.filter(r => r.id !== rewardId);
   await saveLocalStorage();
   renderApp();
 }
@@ -1500,120 +1533,85 @@ async function editReward(rewardId) {
 async function editAction(actionId) {
   const action = state.actions.find(a => a.id === actionId);
   if (!action) return;
-  const newTitle = prompt("Nuevo nombre de la tarea/penalización:", action.title);
-  if (newTitle === null || newTitle.trim() === "") return;
-  const newPointsStr = prompt("Nuevos puntos (usa signo - si es penalización):", action.points);
+
+  const newTitle = prompt("Nuevo nombre de la tarea/acción:", action.title);
+  if (newTitle === null || !newTitle.trim()) return;
+
+  const newPointsStr = prompt("Nuevos puntos (usa números negativos para penalizaciones):", action.points);
   const parsedPoints = parseInt(newPointsStr);
-  if (newPointsStr === null || isNaN(parsedPoints)) return;
-  const newIcon = prompt("Nuevo emoji:", action.icon || '⭐');
+  if (isNaN(parsedPoints)) return alert("Por favor, introduce una cantidad de puntos válida.");
+
+  const newIcon = prompt("Nuevo icono Emoji:", action.icon || "📌");
+
   action.title = newTitle.trim();
   action.points = parsedPoints;
-  action.type = parsedPoints < 0 ? 'negative' : 'positive';
-  if (newIcon && newIcon.trim() !== "") action.icon = newIcon.trim();
+  action.type = parsedPoints >= 0 ? 'positive' : 'negative';
+  if (newIcon) action.icon = newIcon.trim();
+
   await saveLocalStorage();
   renderApp();
 }
 
-async function addNewReward() {
-  const titleEl = document.getElementById('newRewardTitle');
-  const iconEl = document.getElementById('newRewardIcon');
-  const costEl = document.getElementById('newRewardCost');
-  const title = titleEl ? titleEl.value.trim() : '';
-  const icon = (iconEl && iconEl.value.trim()) || '🎁';
-  const cost = parseInt(costEl ? costEl.value : '');
-  if (!title || isNaN(cost) || cost <= 0) return alert("Por favor, introduce un nombre y una cantidad válida.");
-  state.rewards.push({ id: Date.now(), title, icon, cost });
-  if (titleEl) titleEl.value = '';
-  if (iconEl) iconEl.value = '';
-  if (costEl) costEl.value = '';
+async function createActionPrompt() {
+  const title = prompt("Nombre de la nueva tarea o penalización:");
+  if (!title || !title.trim()) return;
+
+  const pointsStr = prompt("Puntos asignados (usa números positivos para recompensas y negativos para penalizaciones):");
+  const points = parseInt(pointsStr);
+  if (isNaN(points)) return alert("Por favor, introduce un valor numérico válido.");
+
+  const icon = prompt("Icono Emoji para la tarea:", points >= 0 ? "⭐" : "⚠️");
+
+  const newAction = {
+    id: Date.now(),
+    title: title.trim(),
+    points: points,
+    type: points >= 0 ? 'positive' : 'negative',
+    icon: icon ? icon.trim() : (points >= 0 ? "⭐" : "⚠️")
+  };
+
+  state.actions.push(newAction);
   await saveLocalStorage();
   renderApp();
 }
 
-async function deleteReward(id) {
-  if (confirm("¿Seguro que deseas eliminar este premio?")) {
-    state.rewards = state.rewards.filter(r => r.id !== id);
-    await saveLocalStorage();
-    renderApp();
-  }
+async function deleteAction(actionId) {
+  if (!confirm("¿Seguro que deseas eliminar esta tarea?")) return;
+  state.actions = state.actions.filter(a => a.id !== actionId);
+  await saveLocalStorage();
+  renderApp();
 }
 
 async function changeUserAvatar(userId) {
   const user = state.users[userId];
   if (!user) return;
-  const input = prompt(`Cambiar avatar de ${user.name}.\nPuedes escribir un emoji o pegar una URL de foto:`, user.avatar);
-  if (input !== null && input.trim() !== '') {
-    user.avatar = input.trim();
+
+  const newAvatar = prompt(`Introduce un nuevo Emoji o URL de imagen para el avatar de ${user.name}:`, user.avatar);
+  if (newAvatar !== null && newAvatar.trim() !== "") {
+    user.avatar = newAvatar.trim();
     await saveLocalStorage();
     renderApp();
   }
 }
 
-async function modifyPoints(userId, delta) {
+async function modifyPoints(userId, amount) {
   const user = state.users[userId];
-  if (user) {
-    user.points += delta;
-    if (user.points < 0) user.points = 0;
-    showPointsAnimation(delta, user.name, "Ajuste manual de puntos");
-    checkAchievements(user);
-    await saveLocalStorage();
-    renderApp();
-  }
-}
+  if (!user) return;
 
-async function deleteAction(id) {
-  if (confirm("¿Seguro que deseas eliminar esta tarea?")) {
-    state.actions = state.actions.filter(a => a.id !== id);
-    await saveLocalStorage();
-    renderApp();
-  }
-}
+  user.points += amount;
+  if (user.points < 0) user.points = 0;
 
-async function addNewAction() {
-  const titleEl = document.getElementById('newActionTitle');
-  const iconEl = document.getElementById('newActionIcon');
-  const pointsEl = document.getElementById('newActionPoints');
-  const typeEl = document.getElementById('newActionType');
-  const title = titleEl ? titleEl.value.trim() : '';
-  const icon = (iconEl && iconEl.value.trim()) || '⭐';
-  const points = parseInt(pointsEl ? pointsEl.value : '');
-  const type = typeEl ? typeEl.value : 'positive';
-  if (!title || isNaN(points)) return alert("Por favor, introduce un título y puntos válidos.");
-  const finalPoints = type === 'negative' ? -Math.abs(points) : Math.abs(points);
-  state.actions.unshift({ id: Date.now(), title, points: finalPoints, type, icon });
-  if (titleEl) titleEl.value = '';
-  if (iconEl) iconEl.value = '';
-  if (pointsEl) pointsEl.value = '';
+  state.history.unshift(`Ajuste manual de puntos para ${user.name}: ${amount > 0 ? '+' : ''}${amount} pts`);
+  checkAchievements(user);
+
   await saveLocalStorage();
   renderApp();
 }
 
-async function resetMonthlyPoints() {
-  if (confirm("¿Deseas reiniciar la puntuación mensual y rachas a 0 para todos los miembros?")) {
-    Object.keys(state.users).forEach(k => {
-      state.users[k].points = 0;
-      state.users[k].streakDays = 0;
-      state.users[k].streakType = 'none';
-      state.users[k].totalCompleted = 0;
-    });
-    state.history = [];
-    state.redemptions = [];
-    await saveLocalStorage();
-    renderApp();
-  }
-}
-
-window.addEventListener('focus', fetchCloudData);
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fetchCloudData(); });
-
-async function startApp() {
+// --- INICIALIZACIÓN ---
+document.addEventListener('DOMContentLoaded', async () => {
   loadLocalStorage();
-  initUserSelect();
-  setActiveTab('home');
-  renderApp();
   await fetchCloudData();
   setupRealtimeListener();
-}
-
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startApp);
-else startApp();
+  renderApp();
+});
