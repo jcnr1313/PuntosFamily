@@ -33,6 +33,17 @@
       const metaTheme = document.getElementById('themeColorMeta');
       if (metaTheme) metaTheme.setAttribute('content', isDark ? '#09090b' : '#f8fafc');
     }
+
+    // Helper de compatibilidad para asegurar la ejecución de minijuegos
+    function ejecutarJuego(tipo) {
+      if (typeof jugarMiniJuego === 'function') {
+        jugarMiniJuego(tipo);
+      } else if (typeof jugar === 'function') {
+        jugar(tipo);
+      } else {
+        console.error('No se encontró la función para ejecutar el minijuego:', tipo);
+      }
+    }
   </script>
 
   <!-- Tailwind CSS y Supabase -->
@@ -76,7 +87,7 @@
 </head>
 <body class="bg-slate-100 dark:bg-darkBg text-zinc-800 dark:text-zinc-100 min-h-screen pb-32 font-sans antialiased transition-colors duration-300">
 
-  <!-- Header Minimalista y Estilizado -->
+  <!-- Header Superior -->
   <header class="px-4 py-3 bg-white/70 dark:bg-cardDark/85 backdrop-blur-xl border-b border-zinc-200/60 dark:border-zinc-800/60 sticky top-0 z-40">
     <div class="max-w-md mx-auto flex justify-between items-center">
       <div class="flex items-center gap-2.5">
@@ -111,15 +122,16 @@
   <!-- Contenedor Principal -->
   <main class="max-w-md mx-auto p-4 space-y-5">
 
-    <!-- 1. PESTAÑA INICIO -->
+    <!-- ==================== 1. PESTAÑA INICIO ==================== -->
     <section id="tab-home" class="space-y-4 tab-content">
+      <!-- Widget Jefe Final -->
       <div class="bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 border border-red-500/30 rounded-3xl p-4 shadow-xl shadow-red-950/20 space-y-3 relative overflow-hidden">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2.5">
             <span class="text-2xl animate-pulse">👾</span>
             <div>
               <span class="text-[9px] uppercase tracking-wider font-extrabold bg-red-500/20 text-red-400 px-2 py-0.5 rounded-md">JEFE FINAL CO-OP</span>
-              <h3 id="bossName" class="text-xs font-black mt-0.5 text-white">El Dragón de la Desorden</h3>
+              <h3 id="bossName" class="text-xs font-black mt-0.5 text-white">El Dragón del Desorden</h3>
             </div>
           </div>
           <div class="text-right">
@@ -132,6 +144,7 @@
         <p id="bossDesc" class="text-[11px] text-zinc-400 font-medium leading-tight">¡Suma puntos con tus hermanos para derrotarlo juntos!</p>
       </div>
 
+      <!-- Evento VIP -->
       <div id="vipEventsWidget" class="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-4 text-zinc-950 font-black shadow-xl shadow-amber-500/20 relative overflow-hidden animate-pulseGlow cursor-pointer flex items-center justify-between" onclick="openEventDetails()">
         <div class="flex items-center gap-3">
           <span id="eventBannerIcon" class="text-3xl">⚡</span>
@@ -144,6 +157,7 @@
         <span class="text-xs bg-zinc-950 text-white px-3 py-1.5 rounded-xl font-extrabold shadow flex-shrink-0">Ver</span>
       </div>
 
+      <!-- Tarjeta Ranking -->
       <div class="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 rounded-3xl p-5 text-white shadow-xl shadow-indigo-950/20 relative overflow-hidden space-y-3">
         <div class="flex justify-between items-start">
           <div>
@@ -155,6 +169,7 @@
         <div id="leaderboardList" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1"></div>
       </div>
 
+      <!-- Podio y Estadísticas -->
       <div class="grid grid-cols-1 gap-3">
         <div class="bg-white dark:bg-cardDark rounded-3xl p-4 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-2">
           <h3 class="font-extrabold text-xs uppercase tracking-wider text-amber-500 flex items-center gap-2">
@@ -173,6 +188,7 @@
         </div>
       </div>
 
+      <!-- Actividad Reciente -->
       <div class="bg-white dark:bg-cardDark rounded-3xl p-4 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-2">
         <h3 class="font-extrabold text-xs uppercase tracking-wider text-zinc-400 flex items-center gap-2">
           <span>⚡</span> Actividad Reciente
@@ -183,8 +199,9 @@
       </div>
     </section>
 
-    <!-- 2. PESTAÑA ARCADE Y MINIJUEGOS (Con todos los juegos restaurados y funcionales) -->
+    <!-- ==================== 2. PESTAÑA ARCADE ==================== -->
     <section id="tab-arcade" class="space-y-4 tab-content hidden">
+      <!-- Pases VIP y Sobres -->
       <div class="bg-gradient-to-r from-amber-500/10 to-purple-500/10 rounded-3xl p-4 border border-amber-500/30 flex items-center justify-between">
         <div>
           <h3 class="font-black text-xs uppercase tracking-wider text-amber-500">Pases VIP y Sobres Épicos</h3>
@@ -195,6 +212,7 @@
         </div>
       </div>
 
+      <!-- Contenedor Único del Salón Arcade (9 Juegos) -->
       <div class="bg-white dark:bg-cardDark rounded-3xl p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-3">
         <div class="flex justify-between items-center">
           <h3 class="font-black text-xs uppercase tracking-wider text-purple-500">🎮 Salón Arcade Completo</h3>
@@ -204,56 +222,58 @@
         <div id="resultado-juego" class="hidden p-3 rounded-2xl text-center font-bold text-xs shadow-sm"></div>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
-          <button onclick="jugarMiniJuego('dado')" class="p-3.5 bg-blue-600/10 hover:bg-blue-600 hover:text-white text-blue-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-blue-500/20 shadow-sm">
+          <button onclick="ejecutarJuego('dado')" class="p-3.5 bg-blue-600/10 hover:bg-blue-600 hover:text-white text-blue-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-blue-500/20 shadow-sm active:scale-95">
             <span class="text-2xl">🎲</span> Dado <span class="text-[9px] opacity-75 font-mono">10 Pts</span>
           </button>
-          <button onclick="jugarMiniJuego('ruleta')" class="p-3.5 bg-purple-600/10 hover:bg-purple-600 hover:text-white text-purple-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-purple-500/20 shadow-sm">
+          <button onclick="ejecutarJuego('ruleta')" class="p-3.5 bg-purple-600/10 hover:bg-purple-600 hover:text-white text-purple-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-purple-500/20 shadow-sm active:scale-95">
             <span class="text-2xl">🎡</span> Ruleta <span class="text-[9px] opacity-75 font-mono">15 Pts</span>
           </button>
-          <button onclick="jugarMiniJuego('rasca')" class="p-3.5 bg-indigo-600/10 hover:bg-indigo-600 hover:text-white text-indigo-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-indigo-500/20 shadow-sm">
+          <button onclick="ejecutarJuego('rasca')" class="p-3.5 bg-indigo-600/10 hover:bg-indigo-600 hover:text-white text-indigo-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-indigo-500/20 shadow-sm active:scale-95">
             <span class="text-2xl">🎟️</span> Rasca <span class="text-[9px] opacity-75 font-mono">20 Pts</span>
           </button>
-          <button onclick="jugarMiniJuego('slots')" class="p-3.5 bg-amber-600/10 hover:bg-amber-600 hover:text-white text-amber-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-amber-500/20 shadow-sm">
+          <button onclick="ejecutarJuego('slots')" class="p-3.5 bg-amber-600/10 hover:bg-amber-600 hover:text-white text-amber-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-amber-500/20 shadow-sm active:scale-95">
             <span class="text-2xl">🎰</span> Slots <span class="text-[9px] opacity-75 font-mono">25 Pts</span>
           </button>
-          <button onclick="jugarMiniJuego('caja')" class="p-3.5 bg-emerald-600/10 hover:bg-emerald-600 hover:text-white text-emerald-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-emerald-500/20 shadow-sm">
+          <button onclick="ejecutarJuego('caja')" class="p-3.5 bg-emerald-600/10 hover:bg-emerald-600 hover:text-white text-emerald-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-emerald-500/20 shadow-sm active:scale-95">
             <span class="text-2xl">📦</span> Caja <span class="text-[9px] opacity-75 font-mono">30 Pts</span>
           </button>
-          <button onclick="jugarMiniJuego('escalera')" class="p-3.5 bg-rose-600/10 hover:bg-rose-600 hover:text-white text-rose-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-rose-500/20 shadow-sm">
+          <button onclick="ejecutarJuego('escalera')" class="p-3.5 bg-rose-600/10 hover:bg-rose-600 hover:text-white text-rose-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-rose-500/20 shadow-sm active:scale-95">
             <span class="text-2xl">🧗</span> Escalera <span class="text-[9px] opacity-75 font-mono">15 Pts</span>
           </button>
-          <button onclick="jugarMiniJuego('memoria')" class="p-3.5 bg-cyan-600/10 hover:bg-cyan-600 hover:text-white text-cyan-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-cyan-500/20 shadow-sm">
+          <button onclick="ejecutarJuego('memoria')" class="p-3.5 bg-cyan-600/10 hover:bg-cyan-600 hover:text-white text-cyan-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-cyan-500/20 shadow-sm active:scale-95">
             <span class="text-2xl">🧠</span> Memoria <span class="text-[9px] opacity-75 font-mono">15 Pts</span>
           </button>
-          <button onclick="jugarMiniJuego('quince')" class="p-3.5 bg-teal-600/10 hover:bg-teal-600 hover:text-white text-teal-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-teal-500/20 shadow-sm">
+          <button onclick="ejecutarJuego('quince')" class="p-3.5 bg-teal-600/10 hover:bg-teal-600 hover:text-white text-teal-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-teal-500/20 shadow-sm active:scale-95">
             <span class="text-2xl">🔢</span> 15 Puntos <span class="text-[9px] opacity-75 font-mono">20 Pts</span>
           </button>
-          <button onclick="jugarMiniJuego('combate')" class="p-3.5 bg-red-600/10 hover:bg-red-600 hover:text-white text-red-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-red-500/20 shadow-sm">
+          <button onclick="ejecutarJuego('combate')" class="p-3.5 bg-red-600/10 hover:bg-red-600 hover:text-white text-red-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-red-500/20 shadow-sm active:scale-95">
             <span class="text-2xl">⚔️</span> Combate <span class="text-[9px] opacity-75 font-mono">25 Pts</span>
           </button>
         </div>
       </div>
     </section>
 
-    <!-- 3. PESTAÑA TAREAS Y MISIONES (Forzada a 2 columnas por línea) -->
+    <!-- ==================== 3. PESTAÑA TAREAS ==================== -->
     <section id="tab-tasks" class="space-y-4 tab-content hidden">
       <div class="grid grid-cols-2 gap-2 bg-zinc-200/60 dark:bg-cardDark p-1 rounded-2xl border border-zinc-300/40 dark:border-zinc-800">
         <button id="btnTaskPositive" onclick="toggleTaskType('positive')" class="py-2.5 rounded-xl text-xs font-extrabold bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm transition">✨ Ganar Puntos</button>
         <button id="btnTaskNegative" onclick="toggleTaskType('negative')" class="py-2.5 rounded-xl text-xs font-extrabold text-zinc-400 hover:text-white transition">⚠️ Penalizaciones</button>
       </div>
-      <!-- Clases CSS ajustadas explícitamente a grid-cols-2 para asegurar 2 elementos por línea -->
-      <div id="tasksGrid" class="grid grid-cols-2 gap-3">
-        <!-- Dinámico -->
+
+      <!-- Distribución estricta de 2 columnas por línea -->
+      <div id="tasksGrid" class="grid grid-cols-2 gap-2.5 sm:gap-3">
+        <!-- Contenido dinámico generado en app.js -->
       </div>
     </section>
 
-    <!-- 4. PESTAÑA PREMIOS Y EFECTIVO (Salón Arcade retirado de aquí) -->
+    <!-- ==================== 4. PESTAÑA PREMIOS ==================== -->
     <section id="tab-rewards" class="space-y-4 tab-content hidden">
       <div class="flex justify-between items-center px-1">
         <h2 class="font-black text-xs uppercase tracking-wider text-zinc-400">Catálogo de Premios</h2>
         <span class="text-xs font-black text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full" id="userPointsRewardTab">0 ⭐</span>
       </div>
 
+      <!-- Vales en Efectivo Real -->
       <div class="bg-gradient-to-r from-amber-500/10 to-emerald-500/10 rounded-3xl p-4 border border-amber-500/30 space-y-3">
         <div class="flex items-center justify-between">
           <h3 class="font-black text-xs uppercase tracking-wider text-amber-500">💵 Premios en Efectivo (Real Cash)</h3>
@@ -283,12 +303,13 @@
         </div>
       </div>
 
+      <!-- Resto de Premios Dinámicos -->
       <div id="rewardsGrid" class="grid grid-cols-2 gap-3">
         <!-- Dinámico -->
       </div>
     </section>
 
-    <!-- 5. PESTAÑA GUÍA Y NORMAS -->
+    <!-- ==================== 5. PESTAÑA GUÍA ==================== -->
     <section id="tab-guide" class="space-y-4 tab-content hidden">
       <div class="bg-white dark:bg-cardDark rounded-3xl p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-4 text-xs">
         <h2 class="text-sm font-black text-amber-500 flex items-center gap-2">
@@ -301,7 +322,7 @@
         <div class="space-y-3 pt-2">
           <div class="bg-zinc-100 dark:bg-zinc-900 p-3.5 rounded-2xl border border-zinc-200/40 dark:border-zinc-800 space-y-1">
             <h3 class="font-extrabold text-emerald-500 flex items-center gap-1.5"><span>📜</span> 1. Misiones y Tareas</h3>
-            <p class="text-zinc-400 text-[11px] leading-relaxed">Tareas de rutina cotidiana (hacer la cama, recoger, estudiar) que otorgan entre +10 y +30 Pts. Las semanales otorgan bonificaciones extra y Pases VIP.</p>
+            <p class="text-zinc-400 text-[11px] leading-relaxed">Tareas de rutina cotidiana que otorgan entre +10 y +30 Pts. Las semanales otorgan bonificaciones extra y Pases VIP.</p>
           </div>
 
           <div class="bg-zinc-100 dark:bg-zinc-900 p-3.5 rounded-2xl border border-zinc-200/40 dark:border-zinc-800 space-y-1">
@@ -311,13 +332,13 @@
 
           <div class="bg-zinc-100 dark:bg-zinc-900 p-3.5 rounded-2xl border border-zinc-200/40 dark:border-zinc-800 space-y-1">
             <h3 class="font-extrabold text-purple-500 flex items-center gap-1.5"><span>🎮</span> 3. Reglas de los Minijuegos Arcade</h3>
-            <p class="text-zinc-400 text-[11px] leading-relaxed">Arriesga tus puntos para multiplicar saldo o ganar cromos. El <strong>Dado</strong>, la <strong>Ruleta</strong>, el <strong>Rasca</strong>, las <strong>Slots</strong> y el resto de minijuegos tienen premios configurados.</p>
+            <p class="text-zinc-400 text-[11px] leading-relaxed">Arriesga tus puntos para multiplicar saldo o ganar cromos. Cada minijuego tiene premios y botes especiales configurados.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 6. PESTAÑA GESTOR (PIN PROTEGIDO) -->
+    <!-- ==================== 6. PESTAÑA GESTOR ==================== -->
     <section id="tab-manager" class="space-y-4 tab-content hidden">
       <div id="pinLockScreen" class="bg-white dark:bg-cardDark rounded-3xl p-6 border border-zinc-200/80 dark:border-zinc-800/80 text-center space-y-4 shadow-sm">
         <div class="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center text-2xl mx-auto border border-blue-500/20">🔒</div>
@@ -341,7 +362,7 @@
       </div>
     </section>
 
-    <!-- 7. PESTAÑA AJUSTES -->
+    <!-- ==================== 7. PESTAÑA AJUSTES ==================== -->
     <section id="tab-settings" class="space-y-4 tab-content hidden">
       <h2 class="text-sm font-black">Ajustes</h2>
       <div class="bg-white dark:bg-cardDark rounded-3xl p-4 border border-zinc-200/80 dark:border-zinc-800/80 space-y-3 text-xs shadow-sm">
