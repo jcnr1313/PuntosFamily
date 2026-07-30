@@ -1,6 +1,6 @@
 // --- CONFIGURACIÓN Y CLIENTE SUPABASE ---
 const SUPABASE_URL = 'https://dwfpellkjknjsoownvra.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInRefiI6ImR3ZnBlbGxramtuanNvb3dudnJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzQwMDYsImV4cCI6MjEwMDcxMDAwNn0.x75ND4DNtptpxVtf-tK2FNr_33zxhk5SF7_-sAb8-jY';
+const SUPABASE_KEY = 'sb_publishable_dCD5nodKSRF9ZIjNDU6GPw_15k2xcxv';
 
 function getSupabaseClient() {
   if (window.supabaseClient) return window.supabaseClient;
