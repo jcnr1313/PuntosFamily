@@ -982,8 +982,11 @@ function renderApp() {
     const avatarEl = document.getElementById('currentAvatar');
     if (avatarEl) avatarEl.innerHTML = renderAvatarHtml(user.avatar, "text-xl");
 
-    const pointsEl = document.getElementById('userPointsRewardTab');
-    if (pointsEl) pointsEl.innerText = `${user.points} ⭐`;
+    // CORRECCIÓN CLAVE: Actualiza simultáneamente el contador de puntos en TODAS las vistas (incluyendo Arcade y Premios)
+    const pointsEls = document.querySelectorAll('#userPointsRewardTab, #userPointsArcade, #userPointsHeader');
+    pointsEls.forEach(el => {
+      if (el) el.innerText = `${user.points} ⭐`;
+    });
   } catch (e) {}
 
   try { renderDoubleXpBanner(); } catch (e) {}
@@ -1618,7 +1621,6 @@ async function resetMonthlyPoints() {
   }
 }
 
-// --- FUNCIÓN AÑADIDA PARA EVITAR EL ERROR DE CONSOLA DEL WIDGET VIP ---
 function openEventDetails() {
   alert("🎉 ¡Evento VIP Activo! Todas las tareas suman el doble de puntos y puedes conseguir pases abriendo sobres.");
 }
@@ -1627,7 +1629,6 @@ window.addEventListener('focus', fetchCloudData);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fetchCloudData(); });
 
 async function startApp() {
-  // Aseguramos la sesión activa antes de cargar o pedir nada a la base de datos
   await asegurarSesionActiva();
 
   loadLocalStorage();
