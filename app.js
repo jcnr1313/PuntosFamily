@@ -17,20 +17,12 @@ async function asegurarSesionActiva() {
   if (!client) return;
 
   try {
-    // Comprobamos si ya hay una sesión guardada y activa
     const { data: { session }, error } = await client.auth.getSession();
-
     if (error || !session) {
-      console.warn("No hay sesión activa detectada. Iniciando sesión anónima automática...");
-      // Como la app no tiene login manual, autenticamos de forma transparente al cliente
       const { error: signInError } = await client.auth.signInAnonymously();
       if (signInError) {
         console.error("Error al iniciar sesión anónima en Supabase:", signInError.message);
-      } else {
-        console.log("Sesión anónima establecida correctamente en este dispositivo.");
       }
-    } else {
-      console.log("Sesión activa verificada para el usuario:", session.user.id);
     }
   } catch (err) {
     console.error("Excepción comprobando la sesión:", err);
@@ -70,10 +62,10 @@ let state = {
   dailyQuest: { title: 'Haz 2 tareas hoy', rewardPts: 15, date: null, completedBy: [] },
   familyGoal: { title: '👾 El Dragón del Desorden (Meta Familiar)', targetPoints: 500 },
   users: {
-    'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
-    'martina': { id: 'martina', name: 'Martina', role: 'hijo', avatar: '👧', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
-    'papa': { id: 'papa', name: 'Papá', role: 'padre', avatar: '🐍', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
-    'mama': { id: 'mama', name: 'Mamá', role: 'padre', avatar: '👩', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] }
+    'joan': { id: 'joan', name: 'Joan', role: 'miembro', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
+    'martina': { id: 'martina', name: 'Martina', role: 'miembro', avatar: '👧', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
+    'papa': { id: 'papa', name: 'Papá', role: 'miembro', avatar: '🐍', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
+    'mama': { id: 'mama', name: 'Mamá', role: 'miembro', avatar: '👩', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] }
   },
   actions: [
     { id: 1, title: 'Leer 30 min', points: 20, type: 'positive', icon: '📖' },
@@ -408,28 +400,13 @@ function initUserSelect() {
 function handleUserSelectChange(selectElement) {
   if (!selectElement) return;
   const targetUserId = selectElement.value;
-  const targetUser = state.users[targetUserId];
-
-  if (targetUser && targetUser.role === 'padre') {
-    const pinEntered = prompt(`Para acceder al perfil de ${targetUser.name} introduce el PIN parental:`);
-    if (pinEntered === state.parentPin) {
-      state.previousUser = targetUserId;
-      state.currentUser = targetUserId;
-    } else {
-      if (pinEntered !== null) alert("PIN incorrecto. Acceso denegado.");
-      selectElement.value = state.previousUser;
-      return;
-    }
-  } else {
-    state.previousUser = targetUserId;
-    state.currentUser = targetUserId;
-  }
+  state.previousUser = targetUserId;
+  state.currentUser = targetUserId;
   renderApp();
 }
 
 // --- LÓGICA DE RULETA SEMANAL ---
 function canSpinRoulette(user) {
-  if (user.role !== 'hijo') return false;
   if (!user.lastRouletteDate) return true;
   
   const lastDate = new Date(user.lastRouletteDate);
@@ -445,7 +422,7 @@ function canSpinRoulette(user) {
 
 async function spinRoulette() {
   const user = state.users[state.currentUser];
-  if (!user || user.role !== 'hijo') return;
+  if (!user) return;
   if (!canSpinRoulette(user)) return alert("¡Ya has tirado la ruleta esta semana! Vuelve el lunes que viene.");
 
   const prizes = [10, 15, 20, 25, 50, 100];
@@ -875,7 +852,7 @@ function renderDailyQuestWidget() {
       </div>
       <button 
         onclick="claimDailyQuest()"
-        ${isDone || user.role !== 'hijo' ? 'disabled' : ''}
+        ${isDone ? 'disabled' : ''}
         class="py-2 px-3 rounded-xl text-xs font-extrabold ${isDone ? 'bg-zinc-800 text-zinc-500 border border-zinc-700' : 'bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-md active:scale-95 transition'}">
         ${isDone ? '¡Hecha! ✅' : 'Reclamar'}
       </button>
@@ -885,7 +862,7 @@ function renderDailyQuestWidget() {
 
 async function claimDailyQuest() {
   const user = state.users[state.currentUser];
-  if (!user || user.role !== 'hijo') return;
+  if (!user) return;
   if (state.dailyQuest.completedBy.includes(user.id)) return;
 
   user.points += state.dailyQuest.rewardPts;
@@ -912,12 +889,11 @@ function renderFamilyGoal() {
   }
 
   const goal = state.familyGoal || { title: '👾 El Dragón del Desorden (Meta Co-op)', targetPoints: 500 };
-  const totalKidsPoints = Object.values(state.users)
-    .filter(u => u.role === 'hijo')
+  const totalFamilyPoints = Object.values(state.users)
     .reduce((acc, u) => acc + u.points, 0);
 
-  const percent = Math.min(100, Math.round((totalKidsPoints / goal.targetPoints) * 100));
-  const hpLeft = Math.max(0, goal.targetPoints - totalKidsPoints);
+  const percent = Math.min(100, Math.round((totalFamilyPoints / goal.targetPoints) * 100));
+  const hpLeft = Math.max(0, goal.targetPoints - totalFamilyPoints);
 
   container.className = "mb-4 bg-gradient-to-r from-red-950/80 via-purple-950/80 to-zinc-950 p-4 rounded-3xl border border-red-500/40 shadow-xl shadow-red-500/10";
   container.innerHTML = `
@@ -936,7 +912,7 @@ function renderFamilyGoal() {
     <div class="w-full bg-zinc-900/90 h-3.5 rounded-full overflow-hidden border border-red-500/30 p-0.5">
       <div class="bg-gradient-to-r from-red-600 via-orange-500 to-amber-400 h-full rounded-full transition-all duration-500 shadow-md shadow-red-500/50" style="width: ${percent}%"></div>
     </div>
-    <p class="text-[10px] text-zinc-400 font-bold mt-1.5 text-center">¡Suma puntos con tus hermanos para derrotarlo juntos! (${percent}% derrotado)</p>
+    <p class="text-[10px] text-zinc-400 font-bold mt-1.5 text-center">¡Suma puntos con la familia para derrotarlo juntos! (${percent}% derrotado)</p>
   `;
 }
 
@@ -1203,56 +1179,42 @@ function renderTasks() {
 }
 
 async function applyAction(actionId) {
-  const activeUser = state.users[state.currentUser];
-
-  if (activeUser && activeUser.role !== 'padre') {
-    const pinEntered = prompt("🔒 Introduce el PIN parental para confirmar la tarea:");
-    if (pinEntered !== state.parentPin) {
-      if (pinEntered !== null) alert("PIN incorrecto.");
-      return;
-    }
-  }
-
   const action = state.actions.find(a => a.id === actionId);
   if (!action) return;
 
-  const targetChildId = prompt("¿A quién quieres aplicar esta tarea?\nEscribe '1' para Joan o '2' para Martina:");
-  let child = null;
-
-  if (targetChildId === '1') child = state.users['joan'];
-  else if (targetChildId === '2') child = state.users['martina'];
-  else {
-    if (targetChildId !== null) alert("Opción no válida.");
+  const targetUserId = prompt("¿A qué miembro de la familia quieres aplicar esta tarea?\nEscribe:\n- 'joan' para Joan\n- 'martina' para Martina\n- 'papa' para Papá\n- 'mama' para Mamá");
+  
+  if (!targetUserId || !state.users[targetUserId.toLowerCase().trim()]) {
+    if (targetUserId !== null) alert("Usuario no válido.");
     return;
   }
 
-  if (child) {
-    let finalPoints = action.points;
-    if (action.type === 'positive' && state.doubleXpActive) {
-      finalPoints = action.points * 2;
-    }
+  const child = state.users[targetUserId.toLowerCase().trim()];
 
-    child.points += finalPoints;
-    if (child.points < 0) child.points = 0;
-
-    child.totalCompleted = (child.totalCompleted || 0) + 1;
-    if (action.type === 'positive') {
-      if (child.streakType === 'positive') child.streakDays += 1;
-      else { child.streakType = 'positive'; child.streakDays = 1; }
-    } else {
-      if (child.streakType === 'negative') child.streakDays += 1;
-      else { child.streakType = 'negative'; child.streakDays = 1; }
-    }
-
-    const performerName = activeUser ? activeUser.name : 'Padre/Madre';
-    state.history.unshift(`${performerName} registró para ${child.name}: ${action.title} (${finalPoints > 0 ? '+' : ''}${finalPoints} pts)`);
-
-    showPointsAnimation(finalPoints, child.name, action.title);
-    checkAchievements(child);
-
-    await saveLocalStorage();
-    renderApp();
+  let finalPoints = action.points;
+  if (action.type === 'positive' && state.doubleXpActive) {
+    finalPoints = action.points * 2;
   }
+
+  child.points += finalPoints;
+  if (child.points < 0) child.points = 0;
+
+  child.totalCompleted = (child.totalCompleted || 0) + 1;
+  if (action.type === 'positive') {
+    if (child.streakType === 'positive') child.streakDays += 1;
+    else { child.streakType = 'positive'; child.streakDays = 1; }
+  } else {
+    if (child.streakType === 'negative') child.streakDays += 1;
+    else { child.streakType = 'negative'; child.streakDays = 1; }
+  }
+
+  state.history.unshift(`Registro para ${child.name}: ${action.title} (${finalPoints > 0 ? '+' : ''}${finalPoints} pts)`);
+
+  showPointsAnimation(finalPoints, child.name, action.title);
+  checkAchievements(child);
+
+  await saveLocalStorage();
+  renderApp();
 }
 
 function updateActivityLog() {
@@ -1451,16 +1413,16 @@ function renderManagerPanel() {
 
   const pointsContainer = document.getElementById('manualPointsControl');
   if (pointsContainer) {
-    const kids = Object.values(state.users).filter(u => u.role === 'hijo');
-    pointsContainer.innerHTML = kids.map(kid => `
+    const familyMembers = Object.values(state.users);
+    pointsContainer.innerHTML = familyMembers.map(member => `
       <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex justify-between items-center">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">${renderAvatarHtml(kid.avatar, "text-base")}</div>
-          <div><p class="font-bold text-xs text-white">${kid.name}</p><span class="text-[11px] text-amber-400 font-bold">${kid.points} pts</span></div>
+          <div class="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">${renderAvatarHtml(member.avatar, "text-base")}</div>
+          <div><p class="font-bold text-xs text-white">${member.name}</p><span class="text-[11px] text-amber-400 font-bold">${member.points} pts</span></div>
         </div>
         <div class="flex items-center gap-1.5">
-          <button onclick="modifyPoints('${kid.id}', -10)" class="bg-zinc-900 text-red-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800 active:scale-95">-10</button>
-          <button onclick="modifyPoints('${kid.id}', 10)" class="bg-zinc-900 text-emerald-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800 active:scale-95">+10</button>
+          <button onclick="modifyPoints('${member.id}', -10)" class="bg-zinc-900 text-red-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800 active:scale-95">-10</button>
+          <button onclick="modifyPoints('${member.id}', 10)" class="bg-zinc-900 text-emerald-400 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-zinc-800 active:scale-95">+10</button>
         </div>
       </div>
     `).join('');
