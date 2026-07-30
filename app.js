@@ -19,10 +19,8 @@ async function asegurarSesionActiva() {
   try {
     const { data: { session }, error } = await client.auth.getSession();
     if (error || !session) {
-      const { error: signInError } = await client.auth.signInAnonymously();
-      if (signInError) {
-        console.error("Error al iniciar sesión anónima en Supabase:", signInError.message);
-      }
+      // Evitamos forzar inicio anónimo si está deshabilitado en Supabase
+      console.warn("Sesión no iniciada de forma estándar, operando en modo local/público.");
     }
   } catch (err) {
     console.error("Excepción comprobando la sesión:", err);
@@ -58,6 +56,10 @@ let state = {
   parentPin: '1234',
   currentTaskFilter: 'positive',
   lootboxCost: 30,
+  diceCost: 5,
+  chestCost: 15,
+  towerCost: 10,
+  scratchCost: 10,
   doubleXpActive: false,
   dailyQuest: { title: 'Haz 2 tareas hoy', rewardPts: 15, date: null, completedBy: [] },
   familyGoal: { title: '👾 El Dragón del Desorden (Meta Familiar)', targetPoints: 500 },
@@ -173,7 +175,7 @@ function getUserLevel(totalCompleted) {
   return { level, xpPercent, rankName };
 }
 
-// --- ANIMACIONES (PUNTOS, LOGROS Y FRASES) ---
+// --- ANIMACIONES Y GESTIÓN DE PUNTOS ---
 function showPointsAnimation(points, childName, title) {
   const isPositive = points > 0;
   playSound(isPositive ? 'positive' : 'negative');
@@ -278,6 +280,10 @@ async function saveLocalStorage() {
 
 function mergeStateData(remote) {
   if (remote.lootboxCost !== undefined) state.lootboxCost = remote.lootboxCost;
+  if (remote.diceCost !== undefined) state.diceCost = remote.diceCost;
+  if (remote.chestCost !== undefined) state.chestCost = remote.chestCost;
+  if (remote.towerCost !== undefined) state.towerCost = remote.towerCost;
+  if (remote.scratchCost !== undefined) state.scratchCost = remote.scratchCost;
   if (remote.doubleXpActive !== undefined) state.doubleXpActive = remote.doubleXpActive;
   if (remote.dailyQuest) state.dailyQuest = remote.dailyQuest;
   if (remote.parentPin) state.parentPin = remote.parentPin;
@@ -334,6 +340,10 @@ async function syncFullStateToCloud() {
       history: state.history,
       familyGoal: state.familyGoal,
       lootboxCost: state.lootboxCost,
+      diceCost: state.diceCost,
+      chestCost: state.chestCost,
+      towerCost: state.towerCost,
+      scratchCost: state.scratchCost,
       doubleXpActive: state.doubleXpActive,
       dailyQuest: state.dailyQuest
     };
@@ -405,6 +415,22 @@ function handleUserSelectChange(selectElement) {
   renderApp();
 }
 
+// --- FUNCIÓN GLOBAL JUGAR (MINIJUEGOS ARCADE) ---
+function jugar(tipo) {
+  const user = state.users[state.currentUser];
+  if (!user) return alert("Selecciona un usuario válido primero.");
+
+  if (tipo === 'dado') playDiceRoll();
+  else if (tipo === 'ruleta') spinRoulette();
+  else if (tipo === 'caja' || tipo === 'lootbox') openLootboxModal();
+  else if (tipo === 'torre') openTowerGameModal();
+  else if (tipo === 'rasca') playScratchCard();
+  else {
+    // Genérico por si se invoca otro tipo
+    alert(`¡Has seleccionado el minijuego: ${tipo}!`);
+  }
+}
+
 // --- LÓGICA DE RULETA SEMANAL ---
 function canSpinRoulette(user) {
   if (!user.lastRouletteDate) return true;
@@ -448,6 +474,10 @@ function renderMinigamesSection() {
 
   const user = state.users[state.currentUser];
   const lootCost = state.lootboxCost || 30;
+  const diceCost = state.diceCost || 5;
+  const chestCost = state.chestCost || 15;
+  const towerCost = state.towerCost || 10;
+  const scratchCost = state.scratchCost || 10;
   const rouletteAvailable = canSpinRoulette(user);
 
   container.innerHTML = `
@@ -458,7 +488,7 @@ function renderMinigamesSection() {
         </h2>
         <p class="text-xs text-purple-200 mt-1">¡Juega, prueba tu suerte y consigue premios o puntos extra!</p>
         <div class="mt-2 inline-block bg-zinc-950/80 px-3 py-1 rounded-full border border-amber-500/30 text-amber-400 text-xs font-black">
-          Tus Puntos: ${user ? user.points : 0} ⭐
+          Tus Puntos: <span id="userPointsArcadeTab">${user ? user.points : 0}</span> ⭐
         </div>
       </div>
 
@@ -468,7 +498,7 @@ function renderMinigamesSection() {
         <h3 class="text-sm font-black text-pink-300">Ruleta Semanal Gratuita</h3>
         <p class="text-[11px] text-zinc-400 mt-1">Gira una vez por semana gratis para conseguir puntos.</p>
         <button 
-          onclick="spinRoulette()" 
+          onclick="jugar('ruleta')" 
           ${!rouletteAvailable ? 'disabled' : ''} 
           class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-extrabold text-xs rounded-xl shadow-md disabled:opacity-40 active:scale-95 transition">
           ${rouletteAvailable ? '¡Girar Ruleta Gratis! 🚀' : 'Ya tiraste esta semana ⏳'}
@@ -479,11 +509,11 @@ function renderMinigamesSection() {
       <div class="bg-zinc-900 p-4 rounded-3xl border border-blue-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🎲</div>
         <h3 class="text-sm font-black text-blue-300">Dado de la Suerte</h3>
-        <p class="text-[11px] text-zinc-400 mt-1">Apuesta 5 puntos y lanza el dado. ¡Multiplica tus puntos según la cara que salga!</p>
+        <p class="text-[11px] text-zinc-400 mt-1">Apuesta ${diceCost} puntos y lanza el dado. ¡Multiplica tus puntos según la cara que salga!</p>
         <button 
-          onclick="playDiceRoll()" 
+          onclick="jugar('dado')" 
           class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-extrabold text-xs rounded-xl shadow-md active:scale-95 transition">
-          Lanzar Dado (5 ⭐)
+          Lanzar Dado (${diceCost} ⭐)
         </button>
       </div>
 
@@ -491,7 +521,7 @@ function renderMinigamesSection() {
       <div class="bg-zinc-900 p-4 rounded-3xl border border-emerald-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🧰</div>
         <h3 class="text-sm font-black text-emerald-300">Cofres Misteriosos</h3>
-        <p class="text-[11px] text-zinc-400 mt-1">Por 15 puntos, elige 1 de los 3 cofres y descubre qué recompensa oculta contiene.</p>
+        <p class="text-[11px] text-zinc-400 mt-1">Por ${chestCost} puntos, elige 1 de los 3 cofres y descubre qué recompensa oculta contiene.</p>
         <div class="flex justify-center gap-3 mt-3 w-full">
           <button onclick="playTreasureChest(1)" class="flex-1 py-3 bg-zinc-950 hover:bg-emerald-950/50 border border-emerald-500/40 rounded-2xl text-2xl active:scale-90 transition">📦</button>
           <button onclick="playTreasureChest(2)" class="flex-1 py-3 bg-zinc-950 hover:bg-emerald-950/50 border border-emerald-500/40 rounded-2xl text-2xl active:scale-90 transition">🎁</button>
@@ -503,11 +533,11 @@ function renderMinigamesSection() {
       <div class="bg-zinc-900 p-4 rounded-3xl border border-red-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🏰</div>
         <h3 class="text-sm font-black text-red-300">La Torre del Riesgo</h3>
-        <p class="text-[11px] text-zinc-400 mt-1">Apuesta 10 puntos y sube escalones. ¡Cuanto más alto subas más puntos ganas, pero si sale la Calavera lo pierdes todo!</p>
+        <p class="text-[11px] text-zinc-400 mt-1">Apuesta ${towerCost} puntos y sube escalones. ¡Cuanto más alto subas más puntos ganas, pero si sale la Calavera lo pierdes todo!</p>
         <button 
-          onclick="openTowerGameModal()" 
+          onclick="jugar('torre')" 
           class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-red-600 to-orange-500 text-white font-extrabold text-xs rounded-xl shadow-md active:scale-95 transition">
-          Entrar a la Torre (10 ⭐)
+          Entrar a la Torre (${towerCost} ⭐)
         </button>
       </div>
 
@@ -517,7 +547,7 @@ function renderMinigamesSection() {
         <h3 class="text-sm font-black text-amber-300">Caja Sorpresa Mágica</h3>
         <p class="text-[11px] text-zinc-400 mt-1">¡Abre una caja mágica y consigue vales especiales o super botes de puntos!</p>
         <button 
-          onclick="openLootboxModal()" 
+          onclick="jugar('caja')" 
           class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-zinc-950 font-black text-xs rounded-xl shadow-md active:scale-95 transition">
           Abrir Caja (${lootCost} ⭐)
         </button>
@@ -527,9 +557,9 @@ function renderMinigamesSection() {
       <div class="bg-zinc-900 p-4 rounded-3xl border border-yellow-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🎟️</div>
         <h3 class="text-sm font-black text-yellow-300">Rasca y Gana Dorado</h3>
-        <p class="text-[11px] text-zinc-400 mt-1">Rascar una tarjeta por 10 puntos para ganar premios directos.</p>
-        <div id="scratchCardArea" class="mt-3 w-full bg-gradient-to-br from-amber-400 to-yellow-600 rounded-2xl p-3 cursor-pointer active:scale-95 transition-transform border border-yellow-200 shadow-md flex items-center justify-center min-h-[50px]" onclick="playScratchCard()">
-          <span id="scratchText" class="text-zinc-950 font-black text-xs uppercase">¡Clic para rascar (10 ⭐)! 🪙</span>
+        <p class="text-[11px] text-zinc-400 mt-1">Rascar una tarjeta por ${scratchCost} puntos para ganar premios directos.</p>
+        <div id="scratchCardArea" class="mt-3 w-full bg-gradient-to-br from-amber-400 to-yellow-600 rounded-2xl p-3 cursor-pointer active:scale-95 transition-transform border border-yellow-200 shadow-md flex items-center justify-center min-h-[50px]" onclick="jugar('rasca')">
+          <span id="scratchText" class="text-zinc-950 font-black text-xs uppercase">¡Clic para rascar (${scratchCost} ⭐)! 🪙</span>
         </div>
       </div>
     </div>
@@ -542,12 +572,13 @@ let towerAccumulatedPoints = 0;
 
 function openTowerGameModal() {
   const user = state.users[state.currentUser];
-  if (!user || user.points < 10) return alert("¡Necesitas al menos 10 puntos para entrar a la Torre!");
-  if (!confirm("¿Deseas apostar 10 puntos para escalar La Torre del Riesgo? 🏰")) return;
+  const cost = state.towerCost || 10;
+  if (!user || user.points < cost) return alert(`¡Necesitas al menos ${cost} puntos para entrar a la Torre!`);
+  if (!confirm(`¿Deseas apostar ${cost} puntos para escalar La Torre del Riesgo? 🏰`)) return;
 
-  user.points -= 10;
+  user.points -= cost;
   towerCurrentStep = 0;
-  towerAccumulatedPoints = 10;
+  towerAccumulatedPoints = cost;
 
   const modal = document.createElement('div');
   modal.id = 'towerModal';
@@ -556,7 +587,7 @@ function openTowerGameModal() {
   modal.innerHTML = `
     <div class="bg-zinc-900 border border-red-500/40 w-full max-w-sm rounded-3xl p-5 text-center flex flex-col items-center gap-4 shadow-2xl relative">
       <h3 class="text-lg font-black text-white flex items-center gap-2">🏰 La Torre del Riesgo</h3>
-      <p class="text-xs text-zinc-400">Puntos acumulados: <span id="towerAcumPts" class="text-amber-400 font-extrabold text-sm">10 ⭐</span></p>
+      <p class="text-xs text-zinc-400">Puntos acumulados: <span id="towerAcumPts" class="text-amber-400 font-extrabold text-sm">${towerAccumulatedPoints} ⭐</span></p>
 
       <div class="w-full flex flex-col-reverse gap-2 my-2">
         <div id="step-3" class="p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-xs font-bold text-zinc-500 flex justify-between items-center"><span>Piso 3</span><span>50 ⭐</span></div>
@@ -640,10 +671,11 @@ async function cashoutTower() {
 
 async function playDiceRoll() {
   const user = state.users[state.currentUser];
-  if (!user || user.points < 5) return alert("¡Necesitas al menos 5 puntos para tirar el dado!");
-  if (!confirm("¿Deseas gastar 5 puntos para tirar el dado? 🎲")) return;
+  const cost = state.diceCost || 5;
+  if (!user || user.points < cost) return alert(`¡Necesitas al menos ${cost} puntos para tirar el dado!`);
+  if (!confirm(`¿Deseas gastar ${cost} puntos para tirar el dado? 🎲`)) return;
 
-  user.points -= 5;
+  user.points -= cost;
   const roll = Math.floor(Math.random() * 6) + 1;
   let wonPts = 0;
 
@@ -666,10 +698,11 @@ async function playDiceRoll() {
 
 async function playTreasureChest(chestIndex) {
   const user = state.users[state.currentUser];
-  if (!user || user.points < 15) return alert("¡Necesitas al menos 15 puntos para abrir un cofre!");
-  if (!confirm(`¿Quieres abrir el Cofre #${chestIndex} por 15 puntos? 🧰`)) return;
+  const cost = state.chestCost || 15;
+  if (!user || user.points < cost) return alert(`¡Necesitas al menos ${cost} puntos para abrir un cofre!`);
+  if (!confirm(`¿Quieres abrir el Cofre #${chestIndex} por ${cost} puntos? 🧰`)) return;
 
-  user.points -= 15;
+  user.points -= cost;
 
   const rewardsList = [
     { name: "¡Ganaste +25 Puntos!", pts: 25 },
@@ -758,10 +791,40 @@ function openLootboxModal() {
   }, 1800);
 }
 
-function renderRouletteBanner() {
+async function playScratchCard() {
   const user = state.users[state.currentUser];
-  let container = document.getElementById('rouletteBannerContainer');
+  const cost = state.scratchCost || 10;
+  if (!user || user.points < cost) return alert(`¡Necesitas al menos ${cost} puntos para rascar una tarjeta!`);
   
+  if (!confirm(`¿Quieres gastar ${cost} puntos en el Rasca y Gana? 🎟️`)) return;
+
+  user.points -= cost;
+
+  const prizes = [
+    { title: "¡Ganaste +15 Puntos!", pts: 15 },
+    { title: "¡Ganaste +30 Puntos!", pts: 30 },
+    { title: "¡Vale por 1 Helado!", pts: 0 },
+    { title: "¡Elegir la película de hoy!", pts: 0 },
+    { title: "¡Casi! Prueba otra vez", pts: 0 }
+  ];
+
+  const won = prizes[Math.floor(Math.random() * prizes.length)];
+  if (won.pts > 0) user.points += won.pts;
+
+  const area = document.getElementById('scratchText');
+  if (area) area.innerText = `🎉 ¡${won.title}!`;
+
+  state.history.unshift(`🎟️ ${user.name} rascó una tarjeta y obtuvo: ${won.title}`);
+  playSound('reward');
+  triggerHaptic();
+
+  checkAchievements(user);
+  await saveLocalStorage();
+  renderApp();
+}
+
+function renderRouletteBanner() {
+  let container = document.getElementById('rouletteBannerContainer');
   if (!container) {
     const homeTab = document.getElementById('tab-home');
     if (!homeTab) return;
@@ -916,37 +979,6 @@ function renderFamilyGoal() {
   `;
 }
 
-async function playScratchCard() {
-  const user = state.users[state.currentUser];
-  if (!user || user.points < 10) return alert("¡Necesitas al menos 10 puntos para rascar una tarjeta!");
-  
-  if (!confirm("¿Quieres gastar 10 puntos en el Rasca y Gana? 🎟️")) return;
-
-  user.points -= 10;
-
-  const prizes = [
-    { title: "¡Ganaste +15 Puntos!", pts: 15 },
-    { title: "¡Ganaste +30 Puntos!", pts: 30 },
-    { title: "¡Vale por 1 Helado!", pts: 0 },
-    { title: "¡Elegir la película de hoy!", pts: 0 },
-    { title: "¡Casi! Prueba otra vez", pts: 0 }
-  ];
-
-  const won = prizes[Math.floor(Math.random() * prizes.length)];
-  if (won.pts > 0) user.points += won.pts;
-
-  const area = document.getElementById('scratchText');
-  if (area) area.innerText = `🎉 ¡${won.title}!`;
-
-  state.history.unshift(`🎟️ ${user.name} rascó una tarjeta y obtuvo: ${won.title}`);
-  playSound('reward');
-  triggerHaptic();
-
-  checkAchievements(user);
-  await saveLocalStorage();
-  renderApp();
-}
-
 // --- RENDERIZADO PRINCIPAL ---
 function renderApp() {
   const user = state.users[state.currentUser];
@@ -958,8 +990,7 @@ function renderApp() {
     const avatarEl = document.getElementById('currentAvatar');
     if (avatarEl) avatarEl.innerHTML = renderAvatarHtml(user.avatar, "text-xl");
 
-    // CORRECCIÓN CLAVE: Actualiza simultáneamente el contador de puntos en TODAS las vistas (incluyendo Arcade y Premios)
-    const pointsEls = document.querySelectorAll('#userPointsRewardTab, #userPointsArcade, #userPointsHeader');
+    const pointsEls = document.querySelectorAll('#userPointsRewardTab, #userPointsArcade, #userPointsHeader, #userPointsArcadeTab');
     pointsEls.forEach(el => {
       if (el) el.innerText = `${user.points} ⭐`;
     });
@@ -1322,18 +1353,22 @@ function changePinPrompt() {
   } else if (current !== null) { alert("PIN incorrecto."); }
 }
 
-async function editLootboxCost() {
-  const current = state.lootboxCost || 30;
-  const nuevoStr = prompt("Introduce el nuevo coste en puntos de la Caja Sorpresa:", current);
-  const parsed = parseInt(nuevoStr);
-  
-  if (nuevoStr !== null && !isNaN(parsed) && parsed > 0) {
-    state.lootboxCost = parsed;
-    await saveLocalStorage();
-    renderApp();
-  } else if (nuevoStr !== null) {
-    alert("Introduce un número válido mayor a 0.");
-  }
+async function editMinigameCosts() {
+  const loot = prompt("Coste Caja Sorpresa:", state.lootboxCost || 30);
+  const dice = prompt("Coste Dado de la Suerte:", state.diceCost || 5);
+  const chest = prompt("Coste Cofres Misteriosos:", state.chestCost || 15);
+  const tower = prompt("Coste Torre del Riesgo:", state.towerCost || 10);
+  const scratch = prompt("Coste Rasca y Gana:", state.scratchCost || 10);
+
+  if (loot !== null) state.lootboxCost = parseInt(loot) || state.lootboxCost;
+  if (dice !== null) state.diceCost = parseInt(dice) || state.diceCost;
+  if (chest !== null) state.chestCost = parseInt(chest) || state.chestCost;
+  if (tower !== null) state.towerCost = parseInt(tower) || state.towerCost;
+  if (scratch !== null) state.scratchCost = parseInt(scratch) || state.scratchCost;
+
+  await saveLocalStorage();
+  renderApp();
+  alert("¡Costes de minijuegos actualizados con éxito!");
 }
 
 async function toggleDoubleXp() {
@@ -1345,26 +1380,29 @@ async function toggleDoubleXp() {
 function renderManagerPanel() {
   if (!isManagerUnlocked) return;
 
-  const lootboxControl = document.getElementById('lootboxControlWidget');
-  if (!lootboxControl) {
+  let lcWidget = document.getElementById('lootboxControlWidget');
+  if (!lcWidget) {
     const settingsPanel = document.getElementById('pinUnlockedContent');
     const firstSection = settingsPanel ? settingsPanel.querySelector('.space-y-4') : null;
     if (firstSection) {
       const div = document.createElement('div');
       div.id = 'lootboxControlWidget';
       firstSection.prepend(div);
+      lcWidget = div;
     }
   }
-  const lcWidget = document.getElementById('lootboxControlWidget');
+
   if (lcWidget) {
     lcWidget.innerHTML = `
       <div class="space-y-2 mb-4">
+        <div class="bg-gradient-to-r from-purple-950/40 to-zinc-950 p-3 rounded-2xl border border-purple-500/20 flex justify-between items-center">
+          <span class="text-xs font-bold text-white flex items-center gap-2">🎮 Configurar Costes Minijuegos</span>
+          <button onclick="editMinigameCosts()" class="text-[11px] text-purple-300 bg-purple-500/10 px-3 py-1.5 rounded-lg border border-purple-500/20 font-bold active:scale-95">Editar Costes</button>
+        </div>
+
         <div class="bg-gradient-to-r from-amber-950/40 to-zinc-950 p-3 rounded-2xl border border-amber-500/20 flex justify-between items-center">
           <span class="text-xs font-bold text-white flex items-center gap-2">🎁 Coste Caja Sorpresa</span>
-          <div class="flex items-center gap-2">
-            <span class="text-amber-400 font-black text-sm">${state.lootboxCost || 30} ⭐</span>
-            <button onclick="editLootboxCost()" class="text-[11px] text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20 font-bold active:scale-95">Editar</button>
-          </div>
+          <span class="text-amber-400 font-black text-sm">${state.lootboxCost || 30} ⭐</span>
         </div>
 
         <div class="bg-gradient-to-r from-red-950/40 to-zinc-950 p-3 rounded-2xl border border-red-500/20 flex justify-between items-center">
@@ -1583,16 +1621,11 @@ async function resetMonthlyPoints() {
   }
 }
 
-function openEventDetails() {
-  alert("🎉 ¡Evento VIP Activo! Todas las tareas suman el doble de puntos y puedes conseguir pases abriendo sobres.");
-}
-
 window.addEventListener('focus', fetchCloudData);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fetchCloudData(); });
 
 async function startApp() {
   await asegurarSesionActiva();
-
   loadLocalStorage();
   initUserSelect();
   setActiveTab('home');
