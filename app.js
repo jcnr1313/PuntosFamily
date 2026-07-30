@@ -1618,6 +1618,11 @@ async function resetMonthlyPoints() {
   }
 }
 
+// --- FUNCIÓN AÑADIDA PARA EVITAR EL ERROR DE CONSOLA DEL WIDGET VIP ---
+function openEventDetails() {
+  alert("🎉 ¡Evento VIP Activo! Todas las tareas suman el doble de puntos y puedes conseguir pases abriendo sobres.");
+}
+
 window.addEventListener('focus', fetchCloudData);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fetchCloudData(); });
 
