@@ -11,14 +11,16 @@
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>eruda.init();</script>
 
-  <!-- Lógica e inicialización del Tema -->
+  <!-- Lógica e inicialización del Modo Claro / Oscuro -->
   <script>
     (function initTheme() {
       const savedTheme = localStorage.getItem('familypoints_theme');
       if (savedTheme === 'light') {
         document.documentElement.classList.remove('dark');
-      } else {
+      } else if (savedTheme === 'dark') {
         document.documentElement.classList.add('dark');
+      } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+        document.documentElement.classList.remove('dark');
       }
     })();
 
@@ -28,14 +30,26 @@
       localStorage.setItem('familypoints_theme', isDark ? 'dark' : 'light');
       
       const themeIcon = document.getElementById('themeIcon');
-      if (themeIcon) themeIcon.textContent = isDark ? '☀️' : '🌙';
+      if (themeIcon) {
+        themeIcon.textContent = isDark ? '☀️' : '🌙';
+      }
 
       const metaTheme = document.getElementById('themeColorMeta');
-      if (metaTheme) metaTheme.setAttribute('content', isDark ? '#09090b' : '#f8fafc');
+      if (metaTheme) {
+        metaTheme.setAttribute('content', isDark ? '#09090b' : '#f4f4f5');
+      }
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const themeIcon = document.getElementById('themeIcon');
+      if (themeIcon) {
+        const isDark = document.documentElement.classList.contains('dark');
+        themeIcon.textContent = isDark ? '☀️' : '🌙';
+      }
+    });
   </script>
 
-  <!-- Tailwind CSS y Supabase -->
+  <!-- SDK Supabase y Tailwind CSS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   
@@ -44,24 +58,41 @@
       darkMode: 'class',
       theme: {
         extend: {
-          colors: { 
-            darkBg: '#09090b',
-            cardDark: '#121216',
-            cardLight: '#ffffff'
+          colors: { brand: '#3b82f6' },
+          keyframes: {
+            trophyBounce: {
+              '0%, 100%': { transform: 'translateY(0) scale(1)' },
+              '50%': { transform: 'translateY(-6px) scale(1.15)' }
+            },
+            glowPulse: {
+              '0%, 100%': { opacity: '0.6' },
+              '50%': { opacity: '1' }
+            },
+            shimmer: {
+              '0%': { backgroundPosition: '-200% 0' },
+              '100%': { backgroundPosition: '200% 0' }
+            },
+            holoCard: {
+              '0%': { filter: 'hue-rotate(0deg) brightness(1)' },
+              '50%': { filter: 'hue-rotate(180deg) brightness(1.2)' },
+              '100%': { filter: 'hue-rotate(360deg) brightness(1)' }
+            },
+            goldPulse: {
+              '0%, 100%': { boxShadow: '0 0 10px rgba(234,179,8,0.4)', transform: 'scale(1)' },
+              '50%': { boxShadow: '0 0 20px rgba(234,179,8,0.9)', transform: 'scale(1.05)' }
+            },
+            superPulse: {
+              '0%, 100%': { transform: 'scale(1)', filter: 'drop-shadow(0 0 12px rgba(245,158,11,0.6))' },
+              '50%': { transform: 'scale(1.02)', filter: 'drop-shadow(0 0 22px rgba(236,72,153,0.9))' }
+            }
           },
           animation: {
-            float: 'floatAnim 3s ease-in-out infinite',
-            pulseGlow: 'pulseGlow 2.5s ease-in-out infinite'
-          },
-          keyframes: {
-            floatAnim: {
-              '0%, 100%': { transform: 'translateY(0)' },
-              '50%': { transform: 'translateY(-4px)' }
-            },
-            pulseGlow: {
-              '0%, 100%': { boxShadow: '0 0 15px rgba(245,158,11,0.2)' },
-              '50%': { boxShadow: '0 0 25px rgba(245,158,11,0.5)' }
-            }
+            trophy: 'trophyBounce 2s infinite ease-in-out',
+            glow: 'glowPulse 2s infinite ease-in-out',
+            shimmer: 'shimmer 3s infinite linear',
+            holo: 'holoCard 4s infinite linear',
+            gold: 'goldPulse 2s infinite ease-in-out',
+            superEvent: 'superPulse 1.8s infinite ease-in-out'
           }
         }
       }
@@ -69,40 +100,48 @@
   </script>
 
   <style>
-    .avatar-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 9999px; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .avatar-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 9999px;
+    }
+    /* Estilos especiales para cartas de cromos */
+    .cromo-legendary {
+      background: linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6, #3b82f6);
+      background-size: 300% 300%;
+      animation: shimmer 3s infinite linear;
+    }
   </style>
 </head>
-<body class="bg-slate-100 dark:bg-darkBg text-zinc-800 dark:text-zinc-100 min-h-screen pb-32 font-sans antialiased transition-colors duration-300">
+<body class="bg-zinc-100 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen pb-28 font-sans antialiased transition-colors duration-300">
 
-  <!-- Header Minimalista y Estilizado -->
-  <header class="px-4 py-3 bg-white/70 dark:bg-cardDark/80 backdrop-blur-xl border-b border-zinc-200/60 dark:border-zinc-800/60 sticky top-0 z-40">
+  <!-- Header -->
+  <header class="p-4 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl border-b border-zinc-200 dark:border-zinc-800/80 sticky top-0 z-40 transition-colors">
     <div class="max-w-md mx-auto flex justify-between items-center">
-      <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-zinc-950 font-black text-base shadow-lg shadow-amber-500/20 animate-float">
-          ⚡
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl font-black tracking-tight text-zinc-900 dark:text-white">FamilyPoints</h1>
+          <span class="text-[10px] bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-zinc-950 font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-gold">PRO</span>
+          
+          <!-- Indicador de Sincronización Supabase -->
+          <span id="syncIndicator" title="Estado de Sincronización en Tiempo Real" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
         </div>
-        <div>
-          <div class="flex items-center gap-1.5">
-            <h1 class="text-sm font-black tracking-tight">FamilyPoints</h1>
-            <span class="text-[9px] bg-amber-500 text-zinc-950 font-black px-2 py-0.5 rounded-md uppercase tracking-wider">PRO</span>
-            <span id="syncIndicator" class="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50 animate-pulse"></span>
-          </div>
-          <p class="text-[10px] text-zinc-400 font-semibold" id="familyHeaderTitle">Navarro Potenciano</p>
-        </div>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-0.5" id="familyHeaderTitle">Familia Navarro Potenciano</p>
       </div>
 
       <div class="flex items-center gap-2">
-        <!-- Toggle Tema -->
-        <button onclick="toggleTheme()" class="w-9 h-9 rounded-xl bg-zinc-200/60 dark:bg-zinc-800/80 flex items-center justify-center text-sm transition hover:scale-105 active:scale-95">
+        <!-- Toggle Modo Claro / Oscuro -->
+        <button onclick="toggleTheme()" class="p-2 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold transition hover:scale-105 active:scale-95" title="Cambiar Tema">
           <span id="themeIcon">☀️</span>
         </button>
 
-        <!-- Selector Usuario -->
-        <div class="flex items-center gap-1.5 bg-zinc-200/60 dark:bg-zinc-800/80 px-2.5 py-1.5 rounded-xl">
-          <div id="currentAvatar" class="avatar-box w-6 h-6 flex items-center justify-center text-sm">👦</div>
-          <select id="userSelect" onchange="handleUserSelectChange(this)" class="bg-transparent text-xs font-bold text-zinc-800 dark:text-white outline-none cursor-pointer">
+        <!-- Selector de usuario activo -->
+        <div class="flex items-center gap-1.5 bg-zinc-200 dark:bg-zinc-950 px-2.5 py-1.5 rounded-2xl border border-zinc-300 dark:border-zinc-800 shadow-inner">
+          <div id="currentAvatar" class="avatar-box w-7 h-7 flex items-center justify-center text-lg overflow-hidden">
+            👦
+          </div>
+          <select id="userSelect" onchange="handleUserSelectChange(this)" class="bg-transparent text-xs font-extrabold text-zinc-900 dark:text-white outline-none cursor-pointer">
             <!-- Dinámico -->
           </select>
         </div>
@@ -110,269 +149,555 @@
     </div>
   </header>
 
-  <!-- Contenedor Principal -->
-  <main class="max-w-md mx-auto p-4 space-y-5">
+  <!-- Contenido Principal -->
+  <main class="max-w-md mx-auto p-4 space-y-6">
 
-    <!-- 1. PESTAÑA INICIO -->
+    <!-- PESTAÑA: INICIO / CLASIFICACIÓN Y ESTADÍSTICAS -->
     <section id="tab-home" class="space-y-4 tab-content">
       
-      <!-- Banner Evento VIP Épico -->
-      <div id="vipEventsWidget" class="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-4 text-zinc-950 font-black shadow-xl shadow-amber-500/20 relative overflow-hidden animate-pulseGlow cursor-pointer" onclick="openEventDetails()">
-        <div class="flex items-center justify-between relative z-10">
+      <!-- WIDGET INTERACTIVO DE EVENTOS Y PASES VIP -->
+      <div id="vipEventsWidget" class="bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 rounded-2xl p-4 text-zinc-950 font-black shadow-lg transition-all transform active:scale-98 relative overflow-hidden border-2 border-amber-300/60 animate-superEvent cursor-pointer" onclick="openEventDetails()">
+        <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <span id="eventBannerIcon" class="text-3xl">⚡</span>
+            <span id="eventBannerIcon" class="text-3xl animate-bounce">⚡</span>
             <div>
-              <span id="eventModeBadge" class="text-[9px] uppercase tracking-wider font-extrabold bg-zinc-950/20 text-zinc-950 px-2 py-0.5 rounded-md">EVENTO VIP</span>
-              <h4 id="eventBannerTitle" class="text-xs font-black mt-0.5">¡Hora Feliz 2X Puntos!</h4>
-              <p id="eventBannerDesc" class="text-[11px] font-bold text-zinc-900/80 leading-tight">Todas las tareas suman el doble.</p>
+              <div class="flex items-center gap-2">
+                <span id="eventModeBadge" class="text-[10px] uppercase tracking-wider font-extrabold bg-zinc-950/30 text-white px-2 py-0.5 rounded-md backdrop-blur-sm border border-white/20">EVENTO VIP</span>
+                <span id="eventStatusIndicator" class="text-[10px] font-mono bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded-full font-bold animate-pulse">● ACTIVO</span>
+              </div>
+              <h4 id="eventBannerTitle" class="text-sm font-black text-zinc-950 mt-0.5 tracking-tight">¡Hora Feliz 2X Puntos!</h4>
+              <p id="eventBannerDesc" class="text-[11px] font-bold text-zinc-900/90 leading-tight">¡Todas las tareas suman el doble y consigues Pases VIP!</p>
             </div>
           </div>
-          <span class="text-xs bg-zinc-950 text-white px-3 py-1.5 rounded-xl font-extrabold shadow">Ver</span>
+          <div class="flex flex-col items-end gap-1">
+            <span class="text-2xl">🎟️</span>
+            <span id="eventActionButton" class="text-[9px] bg-zinc-950 text-white px-2.5 py-1 rounded-xl uppercase tracking-wider font-extrabold hover:bg-zinc-800 transition">Ver Info</span>
+          </div>
         </div>
       </div>
 
-      <!-- Tarjeta Ranking Principal -->
-      <div class="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 rounded-3xl p-5 text-white shadow-xl shadow-indigo-950/20 relative overflow-hidden">
+      <div class="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 rounded-[2rem] p-6 text-white shadow-2xl shadow-blue-950/40 relative overflow-hidden">
         <div class="flex justify-between items-start">
           <div>
-            <span class="text-[10px] uppercase tracking-widest font-extrabold bg-white/20 px-2.5 py-1 rounded-full">Clasificación</span>
-            <h2 class="text-lg font-black tracking-tight mt-2">Ranking Mensual</h2>
+            <span class="text-[10px] uppercase tracking-widest font-black bg-white/20 px-3 py-1 rounded-full backdrop-blur-md">Ranking Mensual</span>
+            <h2 class="text-2xl font-black tracking-tight mt-2">Clasificación del Mes</h2>
           </div>
-          <span class="text-3xl animate-bounce">🏆</span>
+          <span class="text-5xl animate-trophy drop-shadow-lg">🏆</span>
         </div>
-        <div id="leaderboardList" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4">
+
+        <div id="leaderboardList" class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6">
           <!-- Dinámico -->
         </div>
       </div>
 
-      <!-- Podio y Estadísticas limpias en dos columnas o tarjetas ordenadas -->
-      <div class="grid grid-cols-1 gap-3">
-        <!-- Podio Final -->
-        <div class="bg-white dark:bg-cardDark rounded-3xl p-4 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-2">
-          <h3 class="font-extrabold text-xs uppercase tracking-wider text-amber-500 flex items-center gap-2">
+      <!-- Podio Final de Mes -->
+      <div class="bg-white/90 dark:bg-zinc-900/90 rounded-[2rem] p-5 border border-amber-500/30 space-y-3 shadow-lg relative overflow-hidden transition-colors">
+        <div class="flex justify-between items-center">
+          <h3 class="font-bold text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
             <span>🏛️</span> Podio Final de Mes
           </h3>
-          <div id="podiumList" class="flex justify-around items-end pt-2 pb-1">
-            <!-- Dinámico -->
-          </div>
+          <span class="text-[10px] font-black bg-amber-400/10 text-amber-600 dark:text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-400/20">Cierre Mensual</span>
         </div>
+        <div id="podiumList" class="flex justify-center items-end gap-3 pt-2 pb-1">
+          <!-- Dinámico -->
+        </div>
+      </div>
 
-        <!-- Estadísticas de Usuario -->
-        <div class="bg-white dark:bg-cardDark rounded-3xl p-4 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-2">
-          <div class="flex justify-between items-center">
-            <h3 class="font-extrabold text-xs uppercase tracking-wider text-zinc-500 flex items-center gap-2">
-              <span>📊</span> Tus Estadísticas
-            </h3>
-            <span id="statsUserName" class="text-xs font-black text-blue-500 bg-blue-500/10 px-2.5 py-0.5 rounded-full"></span>
-          </div>
-          <div id="userStatsGrid" class="grid grid-cols-2 gap-2 text-xs pt-1">
-            <!-- Dinámico -->
-          </div>
+      <!-- Estadísticas y Racha del Usuario Seleccionado -->
+      <div class="bg-white/90 dark:bg-zinc-900/90 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-3 shadow-lg transition-colors">
+        <div class="flex justify-between items-center">
+          <h3 class="font-bold text-sm text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
+            <span>📊</span> Estadísticas y Racha
+          </h3>
+          <span id="statsUserName" class="text-xs font-black text-blue-600 dark:text-blue-400"></span>
+        </div>
+        <div id="userStatsGrid" class="grid grid-cols-2 gap-2 text-xs">
+          <!-- Dinámico -->
         </div>
       </div>
 
       <!-- Actividad Reciente -->
-      <div class="bg-white dark:bg-cardDark rounded-3xl p-4 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-2">
-        <h3 class="font-extrabold text-xs uppercase tracking-wider text-zinc-500 flex items-center gap-2">
-          <span>⚡</span> Actividad Reciente
-        </h3>
-        <div id="activityList" class="space-y-2 text-xs text-zinc-400 text-center py-3 font-medium">
+      <div class="bg-white/90 dark:bg-zinc-900/90 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-3 shadow-lg transition-colors">
+        <div class="flex justify-between items-center">
+          <h3 class="font-bold text-sm text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
+            <span class="text-xl">⚡</span> Actividad Reciente
+          </h3>
+          <span id="activityCount" class="text-xs font-black bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2.5 py-0.5 rounded-full">0</span>
+        </div>
+        <div id="activityList" class="space-y-2 text-xs text-zinc-500 text-center py-4">
           Aún no hay movimientos este mes.
         </div>
       </div>
     </section>
 
-    <!-- 2. PESTAÑA ARCADE Y MINIJUEGOS -->
-    <section id="tab-arcade" class="space-y-4 tab-content hidden">
-      
-      <!-- Pases VIP y Sobres -->
-      <div class="bg-gradient-to-r from-amber-500/10 to-purple-500/10 rounded-3xl p-4 border border-amber-500/30 flex items-center justify-between">
-        <div>
-          <h3 class="font-black text-xs uppercase tracking-wider text-amber-500">Sobres y Pases VIP</h3>
-          <p class="text-[11px] text-zinc-400">Abre sobres de cromos épicos.</p>
-        </div>
-        <div class="flex gap-2">
-          <button onclick="abrirSobreCromos('pase')" class="px-3 py-2 bg-amber-500 text-zinc-950 font-extrabold text-xs rounded-xl shadow">Abrir</button>
-        </div>
-      </div>
+    <!-- PESTAÑA: ARCADE / MINIJUEGOS, COLECCIÓN Y GUÍA -->
+    <section id="tab-arcade" class="space-y-6 tab-content hidden">
 
-      <!-- Botonera Minijuegos Arcade -->
-      <div class="bg-white dark:bg-cardDark rounded-3xl p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-3">
+      <!-- PASES VIP Y ABRIR SOBRE DE CROMOS -->
+      <div class="bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-amber-500/20 rounded-[2rem] p-5 border border-amber-500/40 space-y-3 shadow-lg relative overflow-hidden">
         <div class="flex justify-between items-center">
-          <h3 class="font-black text-xs uppercase tracking-wider text-purple-500">🎮 Salón Arcade</h3>
-          <span class="text-xs font-black text-amber-500 bg-amber-500/10 px-2.5 py-0.5 rounded-full" id="userPointsArcadeTab">0 Pts</span>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl animate-pulse">🎟️</span>
+            <div>
+              <h3 class="font-black text-sm text-amber-600 dark:text-amber-300">Pases VIP y Sobres Épicos</h3>
+              <p class="text-[11px] text-zinc-600 dark:text-zinc-400">Usa tus pases o 50 Pts para abrir sobres de cromos.</p>
+            </div>
+          </div>
+          <span id="vipPassesCount" class="text-xs font-black bg-amber-400 text-zinc-950 px-3 py-1 rounded-full shadow-md">
+            0 Pases
+          </span>
         </div>
-
-        <div id="resultado-juego" class="hidden p-3 rounded-2xl text-center font-bold text-xs shadow-sm"></div>
-
-        <div class="grid grid-cols-3 gap-2.5 pt-1">
-          <button onclick="jugar('dado')" class="p-3 bg-blue-600/10 hover:bg-blue-600 hover:text-white text-blue-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-blue-500/20">
-            <span class="text-xl">🎲</span> Dado <span class="text-[9px] opacity-75">10 Pts</span>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="abrirSobreCromos('pase')" class="py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-zinc-950 font-black text-xs rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition flex items-center justify-center gap-1.5">
+            <span>🎁</span> Abrir con Pase VIP
           </button>
-          <button onclick="jugar('ruleta')" class="p-3 bg-purple-600/10 hover:bg-purple-600 hover:text-white text-purple-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-purple-500/20">
-            <span class="text-xl">🎡</span> Ruleta <span class="text-[9px] opacity-75">15 Pts</span>
-          </button>
-          <button onclick="jugar('rasca')" class="p-3 bg-indigo-600/10 hover:bg-indigo-600 hover:text-white text-indigo-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-indigo-500/20">
-            <span class="text-xl">🎟️</span> Rasca <span class="text-[9px] opacity-75">20 Pts</span>
-          </button>
-          <button onclick="jugar('slots')" class="p-3 bg-amber-600/10 hover:bg-amber-600 hover:text-white text-amber-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-amber-500/20">
-            <span class="text-xl">🎰</span> Slots <span class="text-[9px] opacity-75">25 Pts</span>
-          </button>
-          <button onclick="jugar('caja')" class="p-3 bg-emerald-600/10 hover:bg-emerald-600 hover:text-white text-emerald-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-emerald-500/20">
-            <span class="text-xl">📦</span> Caja <span class="text-[9px] opacity-75">30 Pts</span>
-          </button>
-          <button onclick="jugar('escalera')" class="p-3 bg-rose-600/10 hover:bg-rose-600 hover:text-white text-rose-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-rose-500/20">
-            <span class="text-xl">🧗</span> Escalera <span class="text-[9px] opacity-75">15 Pts</span>
+          <button onclick="abrirSobreCromos('puntos')" class="py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-xs rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition flex items-center justify-center gap-1.5">
+            <span>🃏</span> Sobre (50 Pts)
           </button>
         </div>
       </div>
+
+      <!-- ÁLBUM DE CROMOS MULTICOLECCIÓN -->
+      <div class="bg-white/90 dark:bg-zinc-900/90 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-4 shadow-xl transition-colors">
+        <div class="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-800 pb-2">
+          <h3 class="font-black text-sm text-purple-600 dark:text-purple-400 flex items-center gap-2">
+            <span>🖼️</span> Colección de Cromos Digitales
+          </h3>
+          <span id="albumProgress" class="text-[10px] font-black bg-purple-500/10 text-purple-600 dark:text-purple-300 px-2.5 py-0.5 rounded-full border border-purple-500/20">0 / 0 Cromos</span>
+        </div>
+
+        <!-- Filtros de Colección -->
+        <div class="flex gap-1.5 overflow-x-auto pb-1 text-[11px] font-bold scrollbar-none" id="collectionFilters">
+          <button onclick="filterAlbum('all')" class="px-3 py-1 rounded-full bg-purple-600 text-white whitespace-nowrap">Todas</button>
+          <button onclick="filterAlbum('onepiece')" class="px-3 py-1 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">🏴‍☠️ One Piece</button>
+          <button onclick="filterAlbum('strangerthings')" class="px-3 py-1 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">🧇 Stranger Things</button>
+          <button onclick="filterAlbum('pokemon')" class="px-3 py-1 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">⚡ Pokémon</button>
+        </div>
+        
+        <div id="cromosGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2.5 pt-1">
+          <!-- Se renderiza dinámicamente -->
+        </div>
+      </div>
+
+      <!-- GUÍA Y EXPLICACIÓN DE RECOMPENSAS / MISIONES / JEFE FINAL -->
+      <div class="bg-white/90 dark:bg-zinc-900/90 rounded-[2rem] p-6 border border-zinc-200 dark:border-zinc-800/80 space-y-6 shadow-xl transition-colors">
+
+        <!-- Cabecera -->
+        <div class="border-b border-zinc-200 dark:border-zinc-800 pb-3">
+          <h2 class="text-2xl font-black text-amber-500 dark:text-amber-400 flex items-center gap-2">
+            🏆 GUÍA Y RECOMPENSAS 🏆
+          </h2>
+          <p class="text-zinc-500 dark:text-zinc-400 text-xs mt-1">
+            Aprende cómo ganar puntos, vencer al Jefe Final y divertirte en los minijuegos.
+          </p>
+        </div>
+
+        <!-- 1. Misiones -->
+        <div>
+          <h3 class="text-sm font-black text-emerald-600 dark:text-emerald-400 mb-2 flex items-center gap-1.5 uppercase tracking-wider">
+            📜 1. Misiones y Tareas
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="bg-zinc-100 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+              <h4 class="font-bold text-emerald-600 dark:text-emerald-300">☀️ Misiones Diarias</h4>
+              <p class="text-zinc-500 dark:text-zinc-400 text-[11px] my-1">Tareas de rutina cotidiana (hacer la cama, recoger, estudiar).</p>
+              <span class="inline-block bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px] px-2 py-0.5 rounded-md border border-emerald-500/20">+10 a +30 Pts</span>
+            </div>
+
+            <div class="bg-zinc-100 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+              <h4 class="font-bold text-blue-600 dark:text-blue-300">🗓️ Misiones Semanales</h4>
+              <p class="text-zinc-500 dark:text-zinc-400 text-[11px] my-1">Desafíos que requieren constancia continua durante la semana.</p>
+              <span class="inline-block bg-blue-500/10 text-blue-600 dark:text-blue-400 font-extrabold text-[10px] px-2 py-0.5 rounded-md border border-blue-500/20">+100 Pts + 🎟️ Pase VIP</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Jefe Final -->
+        <div class="bg-gradient-to-br from-red-500/10 dark:from-red-950/60 via-zinc-100 dark:via-zinc-950 to-zinc-100 dark:to-zinc-950 p-4 rounded-2xl border border-red-500/40">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-sm font-black text-red-600 dark:text-red-400 flex items-center gap-1.5 uppercase tracking-wider">
+              👾 2. El Jefe Final (Boss Fight)
+            </h3>
+            <span class="bg-red-500/20 text-red-600 dark:text-red-300 font-bold text-[10px] px-2 py-0.5 rounded-full border border-red-500/30">Familiar</span>
+          </div>
+          <p class="text-xs text-zinc-700 dark:text-zinc-300 mb-2">
+            Un desafío cooperativo semanal con una gran barra de vida (HP) que solo podréis vencer juntos.
+          </p>
+          <div class="bg-white dark:bg-zinc-900/90 p-3 rounded-xl text-[11px] text-zinc-600 dark:text-zinc-400 space-y-1.5 border border-zinc-200 dark:border-zinc-800">
+            <p>• <strong>¿Cómo atacar?</strong> Cada tarea o misión completada le resta HP al Jefe Final.</p>
+            <p>• <strong>Objetivo:</strong> Reducir su vida a 0 antes del domingo por la noche.</p>
+            <p>• <strong>🏆 Gran Premio:</strong> Recompensa grupal (cine, cena especial o súper lote de puntos).</p>
+          </div>
+        </div>
+
+        <!-- 3. Minijuegos Info -->
+        <div>
+          <h3 class="text-sm font-black text-amber-500 dark:text-amber-400 mb-2 flex items-center gap-1.5 uppercase tracking-wider">
+            🎮 3. Reglas de los Minijuegos Arcade
+          </h3>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Arriesga tus puntos acumulados para multiplicar tu saldo, ganar cromos o probar tu suerte.</p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="bg-zinc-100 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-blue-600 dark:text-blue-400">🎲 Dado Misterioso</span>
+                <span class="text-[10px] font-black bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">10 Pts</span>
+              </div>
+              <p class="text-zinc-500 dark:text-zinc-400 text-[11px]">Sacas 6 = +50 Pts + Cromo 🎲. Sacas 4/5 = +20 Pts. Sacas 1-3 = Medalla 🛡️.</p>
+            </div>
+
+            <div class="bg-zinc-100 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-purple-600 dark:text-purple-400">🎡 Ruleta Suerte</span>
+                <span class="text-[10px] font-black bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">15 Pts</span>
+              </div>
+              <p class="text-zinc-500 dark:text-zinc-400 text-[11px]">Bote = +100 Pts 💰. Épica = Cromo Raro 💎. Casilla Puntos = +30 Pts.</p>
+            </div>
+
+            <div class="bg-zinc-100 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-indigo-600 dark:text-indigo-400">🎟️ Rasca y Gana</span>
+                <span class="text-[10px] font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">20 Pts</span>
+              </div>
+              <p class="text-zinc-500 dark:text-zinc-400 text-[11px]">Común (60%) = +10 Pts. Raro (30%) = +50 Pts. Épico (9%) = Cromo Épico 🦄. Legendario (1%) = +200 Pts.</p>
+            </div>
+
+            <div class="bg-zinc-100 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-amber-600 dark:text-amber-400">🎰 Tragaperras</span>
+                <span class="text-[10px] font-black bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full">25 Pts</span>
+              </div>
+              <p class="text-zinc-500 dark:text-zinc-400 text-[11px]">👑 👑 👑 = Jackpot (+300 Pts + Cromo Legendario 👑). Tres Iguales = +75 Pts.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BOTONERA DE JUEGO INTERACTIVA (ARCADE) -->
+      <div class="bg-white/90 dark:bg-zinc-900/90 rounded-[2rem] p-6 border border-zinc-200 dark:border-zinc-800/80 space-y-4 shadow-xl transition-colors">
+        <h3 class="text-base font-black text-zinc-900 dark:text-white flex items-center justify-between">
+          <span>🎮 JUGAR AHORA</span>
+          <span class="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-full" id="userPointsArcadeTab">0 Pts</span>
+        </h3>
+
+        <!-- Mensaje de Resultado -->
+        <div id="resultado-juego" class="hidden p-4 rounded-2xl text-center font-bold text-xs transition-all shadow-md"></div>
+
+        <!-- Botones de Acción -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <button onclick="jugar('dado')" class="p-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-blue-600/20 active:scale-95 transition">
+            <span class="text-2xl">🎲</span>
+            <span class="text-xs">Dado</span>
+            <span class="text-[10px] font-medium opacity-80">10 Pts</span>
+          </button>
+
+          <button onclick="jugar('ruleta')" class="p-3.5 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-purple-600/20 active:scale-95 transition">
+            <span class="text-2xl">🎡</span>
+            <span class="text-xs">Ruleta</span>
+            <span class="text-[10px] font-medium opacity-80">15 Pts</span>
+          </button>
+
+          <button onclick="jugar('rasca')" class="p-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-indigo-600/20 active:scale-95 transition">
+            <span class="text-2xl">🎟️</span>
+            <span class="text-xs">Rasca</span>
+            <span class="text-[10px] font-medium opacity-80">20 Pts</span>
+          </button>
+
+          <button onclick="jugar('slots')" class="p-3.5 bg-amber-600 hover:bg-amber-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-amber-600/20 active:scale-95 transition">
+            <span class="text-2xl">🎰</span>
+            <span class="text-xs">Slots</span>
+            <span class="text-[10px] font-medium opacity-80">25 Pts</span>
+          </button>
+
+          <button onclick="jugar('caja')" class="p-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-emerald-600/20 active:scale-95 transition">
+            <span class="text-2xl">📦</span>
+            <span class="text-xs">Caja Sorpresa</span>
+            <span class="text-[10px] font-medium opacity-80">30 Pts</span>
+          </button>
+
+          <button onclick="jugar('escalera')" class="p-3.5 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl flex flex-col items-center gap-1 font-black shadow-lg shadow-rose-600/20 active:scale-95 transition">
+            <span class="text-2xl">🧗</span>
+            <span class="text-xs">Escalera</span>
+            <span class="text-[10px] font-medium opacity-80">15 Pts</span>
+          </button>
+        </div>
+      </div>
+
     </section>
 
-    <!-- 3. PESTAÑA TAREAS Y MISIONES -->
+    <!-- PESTAÑA: TAREAS (Ganar / Penalizaciones) -->
     <section id="tab-tasks" class="space-y-4 tab-content hidden">
-      <div class="grid grid-cols-2 gap-2 bg-zinc-200/60 dark:bg-cardDark p-1 rounded-2xl border border-zinc-300/40 dark:border-zinc-800">
-        <button id="btnTaskPositive" onclick="toggleTaskType('positive')" class="py-2.5 rounded-xl text-xs font-extrabold bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm transition">✨ Ganar Puntos</button>
-        <button id="btnTaskNegative" onclick="toggleTaskType('negative')" class="py-2.5 rounded-xl text-xs font-extrabold text-zinc-400 hover:text-white transition">⚠️ Penalizaciones</button>
+      
+      <!-- Indicador visual si los Puntos Dobles están activos -->
+      <div id="tasksDoublePointsBadge" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3 flex items-center justify-between text-amber-600 dark:text-amber-400 text-xs font-black">
+        <span class="flex items-center gap-2">
+          <span>⚡</span> ¡MODO PUNTOS DOBLES ACTIVO!
+        </span>
+        <span class="bg-amber-400 text-zinc-950 px-2 py-0.5 rounded-full text-[10px]">x2</span>
       </div>
-      <div id="tasksGrid" class="grid grid-cols-2 gap-3">
+
+      <div class="grid grid-cols-2 gap-2 bg-zinc-200 dark:bg-zinc-900 p-1.5 rounded-2xl border border-zinc-300 dark:border-zinc-800/80">
+        <button id="btnTaskPositive" onclick="toggleTaskType('positive')" class="py-3 rounded-xl text-xs font-black transition-all bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-md flex items-center justify-center gap-2">
+          <span class="text-base">✨</span> Ganar Puntos
+        </button>
+        <button id="btnTaskNegative" onclick="toggleTaskType('negative')" class="py-3 rounded-xl text-xs font-black transition-all text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center justify-center gap-2">
+          <span class="text-base">⚠️</span> Penalizaciones
+        </button>
+      </div>
+
+      <div id="tasksGrid" class="grid grid-cols-2 gap-3.5">
         <!-- Dinámico -->
       </div>
     </section>
 
-    <!-- 4. PESTAÑA PREMIOS Y EFECTIVO -->
+    <!-- PESTAÑA: PREMIOS (Con Nuevos Premios Económicos Integrados) -->
     <section id="tab-rewards" class="space-y-4 tab-content hidden">
       <div class="flex justify-between items-center px-1">
-        <h2 class="font-black text-xs uppercase tracking-wider text-zinc-500">Catálogo de Premios</h2>
-        <span class="text-xs font-black text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full" id="userPointsRewardTab">0 ⭐</span>
+        <h2 class="font-bold text-sm text-zinc-700 dark:text-zinc-300">Catálogo de Premios</h2>
+        <span class="text-xs font-extrabold bg-amber-400/10 text-amber-600 dark:text-amber-400 border border-amber-400/20 px-3 py-1.5 rounded-full flex items-center gap-1" id="userPointsRewardTab">0 ⭐</span>
       </div>
 
-      <!-- Premios en Efectivo Real -->
-      <div class="bg-gradient-to-r from-amber-500/10 to-emerald-500/10 rounded-3xl p-4 border border-amber-500/30 space-y-3">
+      <!-- SECCIÓN DESTACADA: PREMIOS EN EFECTIVO / DINERO REAL -->
+      <div class="bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-emerald-500/20 rounded-[2rem] p-4 border-2 border-amber-400/50 space-y-3 shadow-xl relative overflow-hidden">
         <div class="flex items-center justify-between">
-          <h3 class="font-black text-xs uppercase tracking-wider text-amber-500">💵 Premios en Efectivo (Real Cash)</h3>
-          <span class="text-[10px] font-black bg-emerald-500 text-zinc-950 px-2 py-0.5 rounded-full">ÉPICO</span>
-        </div>
-        <div class="grid grid-cols-2 gap-2.5">
-          <div class="bg-white dark:bg-cardDark p-3 rounded-2xl border border-amber-500/20 flex flex-col justify-between shadow-sm">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl animate-bounce">💵</span>
             <div>
-              <div class="text-xl">💶</div>
-              <h4 class="font-black text-xs mt-1">Vale 5€</h4>
-            </div>
-            <div class="mt-3 flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800">
-              <span class="text-[11px] font-black text-amber-500">3.500 Pts</span>
-              <button onclick="canjearPremio('premio_5euro', 3500, 'Vale 5€ Dinero Real')" class="px-2.5 py-1 bg-amber-500 text-zinc-950 text-[10px] font-black rounded-xl">Canjear</button>
+              <h3 class="font-black text-sm text-amber-600 dark:text-amber-300 uppercase tracking-wider">Premios Económicos Real Cash</h3>
+              <p class="text-[11px] text-zinc-600 dark:text-zinc-400">Canjea tus puntos acumulados por dinero real.</p>
             </div>
           </div>
-          <div class="bg-white dark:bg-cardDark p-3 rounded-2xl border border-emerald-500/30 flex flex-col justify-between shadow-sm">
+          <span class="text-[10px] font-black bg-emerald-500 text-zinc-950 px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-pulse">¡ÉPICO!</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 pt-1">
+          <!-- Premio 5€ -->
+          <div class="bg-white/90 dark:bg-zinc-900 p-3.5 rounded-2xl border border-amber-500/40 flex flex-col justify-between shadow-md relative group hover:border-amber-400 transition">
             <div>
-              <div class="text-xl">💰</div>
-              <h4 class="font-black text-xs mt-1">Súper Vale 10€</h4>
+              <div class="text-2xl mb-1">💶</div>
+              <h4 class="font-black text-xs text-zinc-900 dark:text-white">Vale 5€ Dinero Real</h4>
+              <p class="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Ingreso directo o paga en efectivo.</p>
             </div>
-            <div class="mt-3 flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800">
-              <span class="text-[11px] font-black text-emerald-500">7.000 Pts</span>
-              <button onclick="canjearPremio('premio_10euro', 7000, 'Súper Vale 10€ Dinero Real')" class="px-2.5 py-1 bg-emerald-500 text-zinc-950 text-[10px] font-black rounded-xl">Canjear</button>
+            <div class="mt-3 flex items-center justify-between">
+              <span class="text-[11px] font-black text-amber-600 dark:text-amber-400">3.500 Pts</span>
+              <button onclick="canjearPremio('premio_5euro', 3500, 'Vale 5€ Dinero Real')" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-[10px] font-black rounded-lg transition active:scale-95 shadow">
+                Canjear
+              </button>
+            </div>
+          </div>
+
+          <!-- Premio 10€ -->
+          <div class="bg-white/90 dark:bg-zinc-900 p-3.5 rounded-2xl border-2 border-emerald-500/50 flex flex-col justify-between shadow-md relative group hover:border-emerald-400 transition animate-gold">
+            <div>
+              <div class="text-2xl mb-1">💰</div>
+              <h4 class="font-black text-xs text-zinc-900 dark:text-white">Súper Vale 10€</h4>
+              <p class="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Máxima recompensa económica.</p>
+            </div>
+            <div class="mt-3 flex items-center justify-between">
+              <span class="text-[11px] font-black text-emerald-600 dark:text-emerald-400">7.000 Pts</span>
+              <button onclick="canjearPremio('premio_10euro', 7000, 'Súper Vale 10€ Dinero Real')" class="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-[10px] font-black rounded-lg transition active:scale-95 shadow">
+                Canjear
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div id="rewardsGrid" class="grid grid-cols-2 gap-3">
+      <!-- Resto del Catálogo Dinámico -->
+      <div id="rewardsGrid" class="grid grid-cols-2 gap-3.5">
         <!-- Dinámico -->
       </div>
     </section>
 
-    <!-- 5. PESTAÑA GUÍA Y NORMAS (NUEVA: Explica juegos, misiones y eventos ordenadamente) -->
-    <section id="tab-guide" class="space-y-4 tab-content hidden">
-      <div class="bg-white dark:bg-cardDark rounded-3xl p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-4 text-xs">
-        <h2 class="text-sm font-black text-amber-500 flex items-center gap-2">
-          📖 GUÍA OFICIAL DE RECOMPENSAS
-        </h2>
-        <p class="text-zinc-400 leading-relaxed">
-          Bienvenido a la guía completa de normas, misiones, minijuegos y el Jefe Final. Todo lo que necesitas saber para subir de nivel.
-        </p>
-
-        <!-- Acordeón / Secciones Limpias -->
-        <div class="space-y-3 pt-2">
-          <div class="bg-zinc-100 dark:bg-zinc-900 p-3.5 rounded-2xl border border-zinc-200/40 dark:border-zinc-800">
-            <h3 class="font-extrabold text-emerald-500 mb-1">📜 Misiones Diarias y Semanales</h3>
-            <p class="text-zinc-400 text-[11px]">Realiza tareas de rutina cotidiana para sumar de +10 a +30 puntos diarios. Las misiones semanales otorgan bonificaciones extra y Pases VIP.</p>
-          </div>
-
-          <div class="bg-zinc-100 dark:bg-zinc-900 p-3.5 rounded-2xl border border-zinc-200/40 dark:border-zinc-800">
-            <h3 class="font-extrabold text-red-500 mb-1">👾 El Jefe Final (Boss Fight)</h3>
-            <p class="text-zinc-400 text-[11px]">Cada tarea completada resta vida (HP) al Jefe Final cooperativo semanal. Si lo vencéis antes del domingo, ¡hay premio familiar asegurado!</p>
-          </div>
-
-          <div class="bg-zinc-100 dark:bg-zinc-900 p-3.5 rounded-2xl border border-zinc-200/40 dark:border-zinc-800">
-            <h3 class="font-extrabold text-amber-500 mb-1">🎮 Reglas del Salón Arcade</h3>
-            <p class="text-zinc-400 text-[11px]">Arriesga pequeños montos de puntos para jugar al Dado, Ruleta, Rasca o Tragaperras y multiplica tus ganancias o consigue cromos exclusivos.</p>
-          </div>
+    <!-- PESTAÑA: GESTOR (Protegido por PIN) -->
+    <section id="tab-manager" class="space-y-5 tab-content hidden">
+      
+      <!-- Pantalla de Bloqueo PIN -->
+      <div id="pinLockScreen" class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-6 border border-zinc-200 dark:border-zinc-800 text-center space-y-4 shadow-xl transition-colors">
+        <div class="w-14 h-14 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center text-3xl mx-auto border border-blue-500/20">
+          🔒
         </div>
-      </div>
-    </section>
-
-    <!-- 6. PESTAÑA GESTOR (PIN PROTEGIDO) -->
-    <section id="tab-manager" class="space-y-4 tab-content hidden">
-      <div id="pinLockScreen" class="bg-white dark:bg-cardDark rounded-3xl p-6 border border-zinc-200/80 dark:border-zinc-800/80 text-center space-y-4 shadow-sm">
-        <div class="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center text-2xl mx-auto border border-blue-500/20">🔒</div>
         <div>
-          <h3 class="font-black text-sm">Acceso Restringido</h3>
-          <p class="text-xs text-zinc-400 mt-1">Introduce el PIN de Padres.</p>
+          <h3 class="font-black text-zinc-900 dark:text-white text-base">Acceso Restringido</h3>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Introduce el PIN de Padres para acceder al panel.</p>
         </div>
-        <input id="pinInput" type="password" maxlength="4" placeholder="••••" class="w-32 bg-zinc-100 dark:bg-zinc-950 text-center font-mono text-xl tracking-widest border border-zinc-200 dark:border-zinc-800 rounded-2xl px-3 py-2.5 outline-none focus:border-blue-500 mx-auto block">
-        <button onclick="unlockManager()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow">Desbloquear</button>
+        <div class="flex justify-center gap-2">
+          <input id="pinInput" type="password" maxlength="4" placeholder="••••" class="w-36 bg-zinc-100 dark:bg-zinc-950 text-center font-mono text-2xl tracking-widest border border-zinc-300 dark:border-zinc-800 rounded-2xl px-3 py-2.5 text-zinc-900 dark:text-white outline-none focus:border-blue-500">
+        </div>
+        <button onclick="unlockManager()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl transition shadow-lg shadow-blue-600/30">
+          Desbloquear Panel
+        </button>
       </div>
 
-      <div id="pinUnlockedContent" class="space-y-4 hidden">
+      <!-- Contenido Gestor -->
+      <div id="pinUnlockedContent" class="space-y-5 hidden">
         <div class="flex justify-between items-center">
-          <h2 class="font-black text-sm">Panel de Gestor</h2>
-          <button onclick="lockManager()" class="text-xs font-bold text-zinc-400 bg-zinc-200 dark:bg-zinc-800 px-3 py-1.5 rounded-xl">Bloquear</button>
+          <div>
+            <h2 class="text-lg font-black text-zinc-900 dark:text-white">Gestor Familiar</h2>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">Edita títulos, puntos, avatares y catálogo completo.</p>
+          </div>
+          <button onclick="lockManager()" class="text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-zinc-200 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 px-3 py-1.5 rounded-xl">🔒 Bloquear</button>
         </div>
-        <!-- Contenido dinámico del gestor -->
-        <div class="bg-white dark:bg-cardDark rounded-3xl p-4 border border-zinc-200 dark:border-zinc-800 space-y-3 text-xs">
-          <p class="text-zinc-400 font-medium">Desde aquí puedes configurar tareas, premios y eventos especiales.</p>
-          <div id="manageRewardsList" class="space-y-2"></div>
+
+        <!-- Panel de Control de Eventos Especiales y Pases VIP (Añadido / Mejorado) -->
+        <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-amber-500/40 space-y-4 shadow-lg transition-colors">
+          <div class="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-800 pb-2.5">
+            <h3 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <span>⚡</span> Selector de Eventos VIP y Puntos
+            </h3>
+            <span id="managerEventBadge" class="text-[10px] font-extrabold bg-amber-400/20 text-amber-600 dark:text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-400/30">CONFIGURAR</span>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">Modo de Evento Especial:</label>
+              <select id="eventModeSelect" class="w-full bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-zinc-900 dark:text-white outline-none focus:border-amber-500">
+                <option value="double">⚡ Hora Feliz (2X Puntos en Tareas)</option>
+                <option value="vip_rain">🎟️ Lluvia de Pases VIP (+1 Pase por Misión)</option>
+                <option value="cash_boost">💰 Evento Super Recompensas (Bonus Puntos)</option>
+              </select>
+            </div>
+
+            <div class="flex items-center justify-between pt-1">
+              <div>
+                <p class="text-xs font-bold text-zinc-900 dark:text-white">Estado del Evento</p>
+                <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Activa el evento visible para todos los niños.</p>
+              </div>
+              <button onclick="toggleDoublePointsMode()" id="btnToggleEventStatus" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 text-xs font-black rounded-xl shadow-md transition active:scale-95">
+                Activar Evento
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Histórico de Premios Canjeados -->
+        <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-3 transition-colors">
+          <div class="flex justify-between items-center">
+            <h3 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <span>🎁</span> Histórico de Premios Canjeados
+            </h3>
+            <span id="redemptionsCount" class="text-[10px] bg-amber-400/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full font-bold">0</span>
+          </div>
+          <div id="redemptionsList" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+            <!-- Dinámico -->
+          </div>
+        </div>
+
+        <!-- Personalizar Avatares -->
+        <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-3 transition-colors">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Personalizar Fotos / Avatares</h3>
+          <div id="avatarCustomizerList" class="space-y-3">
+            <!-- Dinámico -->
+          </div>
+        </div>
+
+        <!-- Control Rápido de Puntos -->
+        <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-3 transition-colors">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Control Rápido de Puntos</h3>
+          <div id="manualPointsControl" class="space-y-2.5">
+            <!-- Dinámico -->
+          </div>
+        </div>
+
+        <!-- Gestión de Premios / Catálogo Completo -->
+        <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-4 transition-colors">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400">Editar Catálogo de Premios</h3>
+          
+          <div id="manageRewardsList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+            <!-- Dinámico -->
+          </div>
+
+          <!-- Crear Nuevo Premio -->
+          <div class="pt-3 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
+            <p class="text-xs font-bold text-zinc-700 dark:text-zinc-300">Añadir Nuevo Premio</p>
+            <input id="newRewardTitle" type="text" placeholder="Ej: Ir a los bolos" class="w-full bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-900 dark:text-white outline-none focus:border-amber-500">
+            <div class="flex gap-2">
+              <input id="newRewardIcon" type="text" placeholder="Emoji (ej: 🎳)" class="w-1/2 bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-900 dark:text-white outline-none focus:border-amber-500">
+              <input id="newRewardCost" type="number" placeholder="Puntos (ej: 300)" class="w-1/2 bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-900 dark:text-white outline-none focus:border-amber-500">
+            </div>
+            <button onclick="addNewReward()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-extrabold rounded-xl transition shadow-lg shadow-amber-500/20">
+              + Añadir Premio
+            </button>
+          </div>
+        </div>
+
+        <!-- Administración de Tareas y Penalizaciones -->
+        <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-3 transition-colors">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-blue-600 dark:text-blue-400">Editar Tareas y Penalizaciones</h3>
+          <div id="manageActionsList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+            <!-- Dinámico -->
+          </div>
+        </div>
+
+        <!-- Crear Nueva Tarea / Penalización -->
+        <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-3 transition-colors">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Crear Tarea o Penalización</h3>
+          <div class="space-y-2">
+            <input id="newActionTitle" type="text" placeholder="Ej: Doblar la ropa" class="w-full bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-900 dark:text-white outline-none focus:border-blue-500">
+            <div class="flex gap-2">
+              <input id="newActionIcon" type="text" placeholder="Emoji (ej: 👕)" class="w-1/3 bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-900 dark:text-white outline-none focus:border-blue-500">
+              <input id="newActionPoints" type="number" placeholder="Puntos" class="w-1/3 bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-900 dark:text-white outline-none focus:border-blue-500">
+              <select id="newActionType" class="w-1/3 bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl px-2 py-2.5 text-xs text-zinc-900 dark:text-white outline-none focus:border-blue-500">
+                <option value="positive">Suma (+)</option>
+                <option value="negative">Resta (-)</option>
+              </select>
+            </div>
+            <button onclick="addNewAction()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold rounded-xl transition shadow-lg shadow-blue-600/20">
+              + Guardar Tarea
+            </button>
+          </div>
         </div>
       </div>
+
     </section>
 
-    <!-- 7. PESTAÑA AJUSTES -->
+    <!-- PESTAÑA: AJUSTES -->
     <section id="tab-settings" class="space-y-4 tab-content hidden">
-      <h2 class="text-sm font-black">Ajustes</h2>
-      <div class="bg-white dark:bg-cardDark rounded-3xl p-4 border border-zinc-200/80 dark:border-zinc-800/80 space-y-3 text-xs shadow-sm">
-        <div class="flex justify-between items-center py-2 border-b border-zinc-100 dark:border-zinc-800">
-          <span class="font-semibold text-zinc-400">PIN de Padres</span>
-          <button onclick="changePinPrompt()" class="text-blue-500 font-bold">Cambiar</button>
+      <h2 class="text-lg font-black text-zinc-900 dark:text-white">Ajustes</h2>
+      <div class="bg-white/90 dark:bg-zinc-900 rounded-[2rem] p-5 border border-zinc-200 dark:border-zinc-800/80 space-y-4 text-xs transition-colors">
+        <div class="flex justify-between items-center py-2 border-b border-zinc-200 dark:border-zinc-800">
+          <span class="text-zinc-700 dark:text-zinc-300 font-medium">PIN de Padres</span>
+          <button onclick="changePinPrompt()" class="text-blue-600 dark:text-blue-400 font-bold hover:underline">Cambiar PIN</button>
         </div>
-        <button onclick="resetMonthlyPoints()" class="w-full py-2.5 bg-red-500/10 text-red-500 font-extrabold rounded-xl">Reiniciar Puntos del Mes</button>
+        <div class="flex justify-between items-center py-2 border-b border-zinc-200 dark:border-zinc-800">
+          <span class="text-zinc-700 dark:text-zinc-300 font-medium">Ciclo de Puntos</span>
+          <span class="text-blue-600 dark:text-blue-400 font-bold">Mensual</span>
+        </div>
+        <button onclick="resetMonthlyPoints()" class="w-full py-3 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 font-extrabold rounded-xl hover:bg-red-500/20 transition">
+          Reiniciar Puntos Mensuales a 0
+        </button>
       </div>
     </section>
 
   </main>
 
-  <!-- Navegación Inferior (7 Pestañas bien distribuidas y limpias) -->
-  <nav class="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-cardDark/90 backdrop-blur-2xl border-t border-zinc-200/60 dark:border-zinc-800/60 p-2 z-50 shadow-lg">
-    <div class="max-w-md mx-auto grid grid-cols-7 gap-0.5 text-center">
-      <button onclick="setActiveTab('home')" id="nav-home" class="flex flex-col items-center py-1 text-blue-500 font-bold transition">
-        <span class="text-lg">🏠</span><span class="text-[8px]">Inicio</span>
+  <!-- Navegación Inferior (6 Pestañas) -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl border-t border-zinc-200 dark:border-zinc-800/80 p-2 z-50 transition-colors">
+    <div class="max-w-md mx-auto grid grid-cols-6 gap-0.5 text-center">
+      <button onclick="setActiveTab('home')" id="nav-home" class="flex flex-col items-center py-1.5 text-blue-600 dark:text-blue-500 font-bold">
+        <span class="text-xl">🏠</span>
+        <span class="text-[9px]">Inicio</span>
       </button>
-      <button onclick="setActiveTab('arcade')" id="nav-arcade" class="flex flex-col items-center py-1 text-zinc-400 hover:text-zinc-200 transition">
-        <span class="text-lg">🎮</span><span class="text-[8px]">Arcade</span>
+      <button onclick="setActiveTab('arcade')" id="nav-arcade" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 font-medium">
+        <span class="text-xl">🎮</span>
+        <span class="text-[9px]">Arcade</span>
       </button>
-      <button onclick="setActiveTab('tasks')" id="nav-tasks" class="flex flex-col items-center py-1 text-zinc-400 hover:text-zinc-200 transition">
-        <span class="text-lg">📋</span><span class="text-[8px]">Tareas</span>
+      <button onclick="setActiveTab('tasks')" id="nav-tasks" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 font-medium">
+        <span class="text-xl">📋</span>
+        <span class="text-[9px]">Tareas</span>
       </button>
-      <button onclick="setActiveTab('rewards')" id="nav-rewards" class="flex flex-col items-center py-1 text-zinc-400 hover:text-zinc-200 transition">
-        <span class="text-lg">🎁</span><span class="text-[8px]">Premios</span>
+      <button onclick="setActiveTab('rewards')" id="nav-rewards" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 font-medium">
+        <span class="text-xl">🎁</span>
+        <span class="text-[9px]">Premios</span>
       </button>
-      <button onclick="setActiveTab('guide')" id="nav-guide" class="flex flex-col items-center py-1 text-zinc-400 hover:text-zinc-200 transition">
-        <span class="text-lg">📖</span><span class="text-[8px]">Guía</span>
+      <button onclick="setActiveTab('manager')" id="nav-manager" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 font-medium">
+        <span class="text-xl">🎛️</span>
+        <span class="text-[9px]">Gestor</span>
       </button>
-      <button onclick="setActiveTab('manager')" id="nav-manager" class="flex flex-col items-center py-1 text-zinc-400 hover:text-zinc-200 transition">
-        <span class="text-lg">🎛️</span><span class="text-[8px]">Gestor</span>
-      </button>
-      <button onclick="setActiveTab('settings')" id="nav-settings" class="flex flex-col items-center py-1 text-zinc-400 hover:text-zinc-200 transition">
-        <span class="text-lg">⚙️</span><span class="text-[8px]">Ajustes</span>
+      <button onclick="setActiveTab('settings')" id="nav-settings" class="flex flex-col items-center py-1.5 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 font-medium">
+        <span class="text-xl">⚙️</span>
+        <span class="text-[9px]">Ajustes</span>
       </button>
     </div>
   </nav>
