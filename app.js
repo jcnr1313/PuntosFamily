@@ -1148,7 +1148,6 @@ function renderApp() {
   try { renderDailyQuestWidget(); } catch (e) {}
   try { renderRouletteBanner(); } catch (e) {}
 
-  // ORDEN NUEVO PANTALLA PRINCIPAL: Arriba ranking, centro podio/estadísticas/medallas del usuario seleccionado, abajo historial
   try { renderLeaderboard(); } catch (e) {}
   try { renderPodium(); } catch (e) {}
   try { renderUserStats(); } catch (e) {}
