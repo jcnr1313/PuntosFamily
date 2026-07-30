@@ -17,12 +17,10 @@ async function asegurarSesionActiva() {
   if (!client) return;
 
   try {
-    // Comprobamos si ya hay una sesión guardada y activa
     const { data: { session }, error } = await client.auth.getSession();
 
     if (error || !session) {
       console.warn("No hay sesión activa detectada. Iniciando sesión anónima automática...");
-      // Como la app no tiene login manual, autenticamos de forma transparente al cliente
       const { error: signInError } = await client.auth.signInAnonymously();
       if (signInError) {
         console.error("Error al iniciar sesión anónima en Supabase:", signInError.message);
@@ -1622,7 +1620,6 @@ window.addEventListener('focus', fetchCloudData);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fetchCloudData(); });
 
 async function startApp() {
-  // Aseguramos la sesión activa antes de cargar o pedir nada a la base de datos
   await asegurarSesionActiva();
 
   loadLocalStorage();
