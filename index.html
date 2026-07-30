@@ -132,9 +132,8 @@
   <!-- Contenedor Principal con pantallas separadas por ID -->
   <main class="max-w-md mx-auto p-4 space-y-5">
 
-    <!-- ==================== 1. PESTAÑA INICIO (RESUMEN GRÁFICO, PODIO, RANKING, RACHA, ACTIVIDAD) ==================== -->
+    <!-- ==================== 1. PESTAÑA INICIO ==================== -->
     <section id="tab-home" class="space-y-4 tab-content animate-fadeIn">
-      <!-- Widget Jefe Final -->
       <div class="bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 border border-red-500/30 rounded-3xl p-4 shadow-xl shadow-red-950/20 space-y-3 relative overflow-hidden">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2.5">
@@ -154,8 +153,7 @@
         <p id="bossDesc" class="text-[11px] text-zinc-400 font-medium leading-tight">¡Suma puntos con tus hermanos para derrotarlo juntos!</p>
       </div>
 
-      <!-- Evento VIP / Hora Feliz -->
-      <div id="vipEventsWidget" class="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-4 text-zinc-950 font-black shadow-xl shadow-amber-500/20 relative overflow-hidden animate-pulseGlow cursor-pointer flex items-center justify-between" onclick="openEventDetails()">
+      <div id="vipEventsWidget" class="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-4 text-zinc-950 font-black shadow-xl shadow-amber-500/25 relative overflow-hidden animate-pulseGlow cursor-pointer flex items-center justify-between" onclick="openEventDetails()">
         <div class="flex items-center gap-3">
           <span id="eventBannerIcon" class="text-3xl">⚡</span>
           <div>
@@ -167,7 +165,6 @@
         <span class="text-xs bg-zinc-950 text-white px-3 py-1.5 rounded-xl font-extrabold shadow flex-shrink-0">Ver</span>
       </div>
 
-      <!-- Tarjeta Ranking Principal -->
       <div class="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 rounded-3xl p-5 text-white shadow-xl shadow-indigo-950/20 relative overflow-hidden space-y-3">
         <div class="flex justify-between items-start">
           <div>
@@ -179,7 +176,6 @@
         <div id="leaderboardList" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1"></div>
       </div>
 
-      <!-- Podio y Estadísticas -->
       <div class="grid grid-cols-1 gap-3">
         <div class="bg-white dark:bg-cardDark rounded-3xl p-4 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-2">
           <h3 class="font-extrabold text-xs uppercase tracking-wider text-amber-500 flex items-center gap-2">
@@ -198,7 +194,6 @@
         </div>
       </div>
 
-      <!-- Actividad Reciente -->
       <div class="bg-white dark:bg-cardDark rounded-3xl p-4 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-2">
         <h3 class="font-extrabold text-xs uppercase tracking-wider text-zinc-400 flex items-center gap-2">
           <span>⚡</span> Actividad Reciente (Historial Gráfico)
@@ -209,7 +204,7 @@
       </div>
     </section>
 
-    <!-- ==================== 2. PESTAÑA TAREAS (SOLO TAREAS Y PENALIZACIONES) ==================== -->
+    <!-- ==================== 2. PESTAÑA TAREAS ==================== -->
     <section id="tab-tasks" class="space-y-4 tab-content hidden">
       <div class="flex justify-between items-center px-1">
         <h2 class="font-black text-xs uppercase tracking-wider text-zinc-400">Gestión de Tareas</h2>
@@ -221,15 +216,11 @@
         <button id="btnTaskNegative" onclick="toggleTaskType('negative')" class="py-2.5 rounded-xl text-xs font-extrabold text-zinc-400 hover:text-white transition">⚠️ Penalizaciones</button>
       </div>
 
-      <!-- Cuadrícula estricta de 2 columnas por línea para las tareas -->
-      <div id="tasksGrid" class="grid grid-cols-2 gap-2.5 sm:gap-3">
-        <!-- Contenido dinámico generado en app.js -->
-      </div>
+      <div id="tasksGrid" class="grid grid-cols-2 gap-2.5 sm:gap-3"></div>
     </section>
 
-    <!-- ==================== 3. PESTAÑA MINIJUEGOS (DADO, RULETA, RASCA, SLOTS, CAJA, ETC. GASTANDO PUNTOS) ==================== -->
+    <!-- ==================== 3. PESTAÑA MINIJUEGOS ==================== -->
     <section id="tab-arcade" class="space-y-4 tab-content hidden">
-      <!-- Pases VIP y Sobres de Cromos -->
       <div class="bg-gradient-to-r from-amber-500/10 to-purple-500/10 rounded-3xl p-4 border border-amber-500/30 flex items-center justify-between">
         <div>
           <h3 class="font-black text-xs uppercase tracking-wider text-amber-500">Pases VIP y Sobres Épicos</h3>
@@ -240,7 +231,6 @@
         </div>
       </div>
 
-      <!-- Contenedor del Salón de Minijuegos -->
       <div class="bg-white dark:bg-cardDark rounded-3xl p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-3">
         <div class="flex justify-between items-center">
           <h3 class="font-black text-xs uppercase tracking-wider text-purple-500">🎮 Salón de Minijuegos (Gasta Puntos)</h3>
@@ -251,37 +241,37 @@
 
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
           <button onclick="ejecutarJuego('dado')" class="p-3.5 bg-blue-600/10 hover:bg-blue-600 hover:text-white text-blue-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-blue-500/20 shadow-sm active:scale-95">
-            <span class="text-2xl">🎲</span> Dado <span class="text-[9px] opacity-75 font-mono">10 Pts</span>
+            <span class="text-2xl">🎲</span> Dado <span class="text-[9px] opacity-75 font-mono" id="costo-juego-dado">10 Pts</span>
           </button>
           <button onclick="ejecutarJuego('ruleta')" class="p-3.5 bg-purple-600/10 hover:bg-purple-600 hover:text-white text-purple-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-purple-500/20 shadow-sm active:scale-95">
-            <span class="text-2xl">🎡</span> Ruleta <span class="text-[9px] opacity-75 font-mono">15 Pts</span>
+            <span class="text-2xl">🎡</span> Ruleta <span class="text-[9px] opacity-75 font-mono" id="costo-juego-ruleta">15 Pts</span>
           </button>
           <button onclick="ejecutarJuego('rasca')" class="p-3.5 bg-indigo-600/10 hover:bg-indigo-600 hover:text-white text-indigo-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-indigo-500/20 shadow-sm active:scale-95">
-            <span class="text-2xl">🎟️</span> Rasca <span class="text-[9px] opacity-75 font-mono">20 Pts</span>
+            <span class="text-2xl">🎟️</span> Rasca <span class="text-[9px] opacity-75 font-mono" id="costo-juego-rasca">20 Pts</span>
           </button>
           <button onclick="ejecutarJuego('slots')" class="p-3.5 bg-amber-600/10 hover:bg-amber-600 hover:text-white text-amber-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-amber-500/20 shadow-sm active:scale-95">
-            <span class="text-2xl">🎰</span> Slots <span class="text-[9px] opacity-75 font-mono">25 Pts</span>
+            <span class="text-2xl">🎰</span> Slots <span class="text-[9px] opacity-75 font-mono" id="costo-juego-slots">25 Pts</span>
           </button>
           <button onclick="ejecutarJuego('caja')" class="p-3.5 bg-emerald-600/10 hover:bg-emerald-600 hover:text-white text-emerald-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-emerald-500/20 shadow-sm active:scale-95">
-            <span class="text-2xl">📦</span> Caja <span class="text-[9px] opacity-75 font-mono">30 Pts</span>
+            <span class="text-2xl">📦</span> Caja <span class="text-[9px] opacity-75 font-mono" id="costo-juego-caja">30 Pts</span>
           </button>
           <button onclick="ejecutarJuego('escalera')" class="p-3.5 bg-rose-600/10 hover:bg-rose-600 hover:text-white text-rose-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-rose-500/20 shadow-sm active:scale-95">
-            <span class="text-2xl">🧗</span> Escalera <span class="text-[9px] opacity-75 font-mono">15 Pts</span>
+            <span class="text-2xl">🧗</span> Escalera <span class="text-[9px] opacity-75 font-mono" id="costo-juego-escalera">15 Pts</span>
           </button>
           <button onclick="ejecutarJuego('memoria')" class="p-3.5 bg-cyan-600/10 hover:bg-cyan-600 hover:text-white text-cyan-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-cyan-500/20 shadow-sm active:scale-95">
-            <span class="text-2xl">🧠</span> Memoria <span class="text-[9px] opacity-75 font-mono">15 Pts</span>
+            <span class="text-2xl">🧠</span> Memoria <span class="text-[9px] opacity-75 font-mono" id="costo-juego-memoria">15 Pts</span>
           </button>
           <button onclick="ejecutarJuego('quince')" class="p-3.5 bg-teal-600/10 hover:bg-teal-600 hover:text-white text-teal-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-teal-500/20 shadow-sm active:scale-95">
-            <span class="text-2xl">🔢</span> 15 Puntos <span class="text-[9px] opacity-75 font-mono">20 Pts</span>
+            <span class="text-2xl">🔢</span> 15 Puntos <span class="text-[9px] opacity-75 font-mono" id="costo-juego-quince">20 Pts</span>
           </button>
           <button onclick="ejecutarJuego('combate')" class="p-3.5 bg-red-600/10 hover:bg-red-600 hover:text-white text-red-500 rounded-2xl flex flex-col items-center gap-1 font-bold text-xs transition border border-red-500/20 shadow-sm active:scale-95">
-            <span class="text-2xl">⚔️</span> Combate <span class="text-[9px] opacity-75 font-mono">25 Pts</span>
+            <span class="text-2xl">⚔️</span> Combate <span class="text-[9px] opacity-75 font-mono" id="costo-juego-combate">25 Pts</span>
           </button>
         </div>
       </div>
     </section>
 
-    <!-- ==================== 4. PESTAÑA MISIONES (MISIONES, REGLAS Y PASES VIP) ==================== -->
+    <!-- ==================== 4. PESTAÑA MISIONES ==================== -->
     <section id="tab-missions" class="space-y-4 tab-content hidden">
       <div class="bg-white dark:bg-cardDark rounded-3xl p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-4 text-xs">
         <h2 class="text-sm font-black text-emerald-500 flex items-center gap-2">
@@ -296,15 +286,11 @@
             <h3 class="font-extrabold text-emerald-500 flex items-center gap-1.5"><span>📜</span> Misión Diaria: Disciplina de Acero</h3>
             <p class="text-zinc-400 text-[11px] leading-relaxed">Completa al menos 3 tareas positivas hoy sin ninguna penalización. Recompensa: +50 Pts extra y 1 Pase VIP.</p>
           </div>
-          <div class="bg-zinc-100 dark:bg-zinc-900 p-3.5 rounded-2xl border border-zinc-200/40 dark:border-zinc-800 space-y-1">
-            <h3 class="font-extrabold text-amber-500 flex items-center gap-1.5"><span>👑</span> Sistema de Pases VIP</h3>
-            <p class="text-zinc-400 text-[11px] leading-relaxed">Los Pases VIP multiplican tus ganancias en tareas durante 24 horas y te permiten tirar en la ruleta especial sin coste.</p>
-          </div>
         </div>
       </div>
     </section>
 
-    <!-- ==================== 5. PESTAÑA TROFEOS (CROMOS GANADOS, LOGROS, TROFEOS Y EXPLICACIONES) ==================== -->
+    <!-- ==================== 5. PESTAÑA TROFEOS ==================== -->
     <section id="tab-trophies" class="space-y-4 tab-content hidden">
       <div class="bg-white dark:bg-cardDark rounded-3xl p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm space-y-4 text-xs">
         <h2 class="text-sm font-black text-amber-500 flex items-center gap-2">
@@ -323,23 +309,20 @@
           </div>
 
           <div class="bg-zinc-100 dark:bg-zinc-900 p-3.5 rounded-2xl border border-zinc-200/40 dark:border-zinc-800 space-y-2">
-            <h3 class="font-extrabold text-purple-500 flex items-center gap-1.5"><span>🏅</span> Logros Desbloqueados (Estilo Consola)</h3>
-            <div id="logrosListContainer" class="space-y-2 pt-1">
-              <!-- Dinámico desde app.js -->
-            </div>
+            <h3 class="font-extrabold text-purple-500 flex items-center gap-1.5"><span>🏅</span> Logros Desbloqueados</h3>
+            <div id="logrosListContainer" class="space-y-2 pt-1"></div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ==================== 6. PESTAÑA PREMIOS (CATÁLOGO DE CANJES) ==================== -->
+    <!-- ==================== 6. PESTAÑA PREMIOS ==================== -->
     <section id="tab-rewards" class="space-y-4 tab-content hidden">
       <div class="flex justify-between items-center px-1">
         <h2 class="font-black text-xs uppercase tracking-wider text-zinc-400">Catálogo de Premios</h2>
         <span class="text-xs font-black text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full" id="userPointsRewardTab">0 ⭐</span>
       </div>
 
-      <!-- Vales en Efectivo Real -->
       <div class="bg-gradient-to-r from-amber-500/10 to-emerald-500/10 rounded-3xl p-4 border border-amber-500/30 space-y-3">
         <div class="flex items-center justify-between">
           <h3 class="font-black text-xs uppercase tracking-wider text-amber-500">💵 Premios en Efectivo (Real Cash)</h3>
@@ -369,10 +352,7 @@
         </div>
       </div>
 
-      <!-- Resto de Premios Dinámicos -->
-      <div id="rewardsGrid" class="grid grid-cols-2 gap-3">
-        <!-- Dinámico -->
-      </div>
+      <div id="rewardsGrid" class="grid grid-cols-2 gap-3"></div>
     </section>
 
     <!-- ==================== 7. PESTAÑA GESTOR ==================== -->
@@ -392,6 +372,16 @@
           <h2 class="font-black text-sm">Panel de Gestor</h2>
           <button onclick="lockManager()" class="text-xs font-bold text-zinc-400 bg-zinc-200 dark:bg-zinc-800 px-3 py-1.5 rounded-xl">Bloquear</button>
         </div>
+        
+        <!-- Sección de configuración de costes de Minijuegos -->
+        <div class="bg-white dark:bg-cardDark rounded-3xl p-4 border border-zinc-200 dark:border-zinc-800 space-y-3 text-xs">
+          <h3 class="font-black text-xs uppercase tracking-wider text-purple-500">⚙️ Configurar Coste de Minijuegos</h3>
+          <p class="text-zinc-400">Modifica los puntos que cuesta jugar a cada minijuego:</p>
+          <div id="managerGameCosts" class="grid grid-cols-2 gap-2 pt-2">
+            <!-- Se llenará dinámicamente o editable aquí -->
+          </div>
+        </div>
+
         <div class="bg-white dark:bg-cardDark rounded-3xl p-4 border border-zinc-200 dark:border-zinc-800 space-y-3 text-xs">
           <p class="text-zinc-400 font-medium">Configura tareas, premios y eventos especiales desde aquí.</p>
           <div id="manageRewardsList" class="space-y-2"></div>
@@ -413,7 +403,7 @@
 
   </main>
 
-  <!-- Navegación Inferior Actualizada -->
+  <!-- Navegación Inferior -->
   <nav class="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-cardDark/90 backdrop-blur-2xl border-t border-zinc-200/60 dark:border-zinc-800/60 p-2 z-50 shadow-lg">
     <div class="max-w-md mx-auto grid grid-cols-8 gap-0.5 text-center">
       <button onclick="setActiveTab('home')" id="nav-home" class="flex flex-col items-center py-1 text-blue-500 font-bold transition">
@@ -443,7 +433,7 @@
     </div>
   </nav>
 
-  <!-- Contenedor para Notificaciones Estilo Consola (Logros / Puntos) -->
+  <!-- Contenedor para Notificaciones -->
   <div id="toastContainer" class="fixed top-16 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center space-y-2 pointer-events-none"></div>
 
   <script src="app.js"></script>
