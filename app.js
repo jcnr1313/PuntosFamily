@@ -17,10 +17,12 @@ async function asegurarSesionActiva() {
   if (!client) return;
 
   try {
+    // Comprobamos si ya hay una sesión guardada y activa
     const { data: { session }, error } = await client.auth.getSession();
 
     if (error || !session) {
       console.warn("No hay sesión activa detectada. Iniciando sesión anónima automática...");
+      // Como la app no tiene login manual, autenticamos de forma transparente al cliente
       const { error: signInError } = await client.auth.signInAnonymously();
       if (signInError) {
         console.error("Error al iniciar sesión anónima en Supabase:", signInError.message);
@@ -67,13 +69,6 @@ let state = {
   doubleXpActive: false,
   dailyQuest: { title: 'Haz 2 tareas hoy', rewardPts: 15, date: null, completedBy: [] },
   familyGoal: { title: '👾 El Dragón del Desorden (Meta Familiar)', targetPoints: 500 },
-  activeSpecialEvents: { christmas: false, halloween: false, summer: false, easter: false },
-  stickers: [
-    { id: 1, title: 'Cromo Dragón Dorado', unlocked: true },
-    { id: 2, title: 'Cromo Héroe Estelar', unlocked: true },
-    { id: 3, title: 'Cromo Escudo Mágico', unlocked: false },
-    { id: 4, title: 'Cromo Fénix de Fuego', unlocked: false }
-  ],
   users: {
     'joan': { id: 'joan', name: 'Joan', role: 'hijo', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
     'martina': { id: 'martina', name: 'Martina', role: 'hijo', avatar: '👧', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
@@ -299,8 +294,6 @@ function mergeStateData(remote) {
   if (remote.redemptions) state.redemptions = remote.redemptions;
   if (remote.history) state.history = remote.history;
   if (remote.familyGoal) state.familyGoal = remote.familyGoal;
-  if (remote.activeSpecialEvents) state.activeSpecialEvents = remote.activeSpecialEvents;
-  if (remote.stickers) state.stickers = remote.stickers;
   
   if (remote.users) {
     for (const key in remote.users) {
@@ -350,9 +343,7 @@ async function syncFullStateToCloud() {
       familyGoal: state.familyGoal,
       lootboxCost: state.lootboxCost,
       doubleXpActive: state.doubleXpActive,
-      dailyQuest: state.dailyQuest,
-      activeSpecialEvents: state.activeSpecialEvents,
-      stickers: state.stickers
+      dailyQuest: state.dailyQuest
     };
     await client.from('app_state').upsert({ id: 'main_config', data: payload, updated_at: new Date().toISOString() });
   } catch (err) {}
@@ -384,7 +375,7 @@ function renderAvatarHtml(avatarStr, sizeClasses = "w-full h-full text-2xl") {
 }
 
 function setActiveTab(tab) {
-  const tabs = ['home', 'tasks', 'rewards', 'minigames', 'missions', 'trophies', 'manager', 'settings'];
+  const tabs = ['home', 'tasks', 'rewards', 'minigames', 'manager', 'settings'];
   tabs.forEach(t => {
     const section = document.getElementById(`tab-${t}`);
     const navBtn = document.getElementById(`nav-${t}`);
@@ -499,7 +490,6 @@ function renderMinigamesSection() {
         <div class="text-4xl mb-2 animate-spin-slow">🎡</div>
         <h3 class="text-sm font-black text-pink-300">Ruleta Semanal Gratuita</h3>
         <p class="text-[11px] text-zinc-400 mt-1">Gira una vez por semana gratis para conseguir puntos.</p>
-        <div class="text-[10px] text-amber-300 font-semibold mt-1">Premio: De +10 a +100 puntos extra.</div>
         <button 
           onclick="spinRoulette()" 
           ${!rouletteAvailable ? 'disabled' : ''} 
@@ -513,7 +503,6 @@ function renderMinigamesSection() {
         <div class="text-4xl mb-2">🎲</div>
         <h3 class="text-sm font-black text-blue-300">Dado de la Suerte</h3>
         <p class="text-[11px] text-zinc-400 mt-1">Apuesta 5 puntos y lanza el dado. ¡Multiplica tus puntos según la cara que salga!</p>
-        <div class="text-[10px] text-amber-300 font-semibold mt-1">Premio: Hasta +30 puntos si sacas un 6.</div>
         <button 
           onclick="playDiceRoll()" 
           class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-extrabold text-xs rounded-xl shadow-md active:scale-95 transition">
@@ -526,7 +515,6 @@ function renderMinigamesSection() {
         <div class="text-4xl mb-2">🧰</div>
         <h3 class="text-sm font-black text-emerald-300">Cofres Misteriosos</h3>
         <p class="text-[11px] text-zinc-400 mt-1">Por 15 puntos, elige 1 de los 3 cofres y descubre qué recompensa oculta contiene.</p>
-        <div class="text-[10px] text-amber-300 font-semibold mt-1">Premio: Hasta +40 puntos o vales especiales de juego.</div>
         <div class="flex justify-center gap-3 mt-3 w-full">
           <button onclick="playTreasureChest(1)" class="flex-1 py-3 bg-zinc-950 hover:bg-emerald-950/50 border border-emerald-500/40 rounded-2xl text-2xl active:scale-90 transition">📦</button>
           <button onclick="playTreasureChest(2)" class="flex-1 py-3 bg-zinc-950 hover:bg-emerald-950/50 border border-emerald-500/40 rounded-2xl text-2xl active:scale-90 transition">🎁</button>
@@ -538,8 +526,7 @@ function renderMinigamesSection() {
       <div class="bg-zinc-900 p-4 rounded-3xl border border-red-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🏰</div>
         <h3 class="text-sm font-black text-red-300">La Torre del Riesgo</h3>
-        <p class="text-[11px] text-zinc-400 mt-1">Apuesta 10 puntos y sube escalones. ¡Cuanto más alto subas más puntos ganas, pero si sale la trampa lo pierdes todo!</p>
-        <div class="text-[10px] text-amber-300 font-semibold mt-1">Premio: Hasta +50 puntos en la cima.</div>
+        <p class="text-[11px] text-zinc-400 mt-1">Apuesta 10 puntos y sube escalones. ¡Cuanto más alto subas más puntos ganas, pero si sale la Calavera lo pierdes todo!</p>
         <button 
           onclick="openTowerGameModal()" 
           class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-red-600 to-orange-500 text-white font-extrabold text-xs rounded-xl shadow-md active:scale-95 transition">
@@ -552,7 +539,6 @@ function renderMinigamesSection() {
         <div class="text-4xl mb-2">🎁</div>
         <h3 class="text-sm font-black text-amber-300">Caja Sorpresa Mágica</h3>
         <p class="text-[11px] text-zinc-400 mt-1">¡Abre una caja mágica y consigue vales especiales o super botes de puntos!</p>
-        <div class="text-[10px] text-amber-300 font-semibold mt-1">Premio: Super botes de puntos y privilegios.</div>
         <button 
           onclick="openLootboxModal()" 
           class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-zinc-950 font-black text-xs rounded-xl shadow-md active:scale-95 transition">
@@ -565,151 +551,8 @@ function renderMinigamesSection() {
         <div class="text-4xl mb-2">🎟️</div>
         <h3 class="text-sm font-black text-yellow-300">Rasca y Gana Dorado</h3>
         <p class="text-[11px] text-zinc-400 mt-1">Rascar una tarjeta por 10 puntos para ganar premios directos.</p>
-        <div class="text-[10px] text-amber-300 font-semibold mt-1">Premio: Hasta +30 puntos o premios sorpresa.</div>
         <div id="scratchCardArea" class="mt-3 w-full bg-gradient-to-br from-amber-400 to-yellow-600 rounded-2xl p-3 cursor-pointer active:scale-95 transition-transform border border-yellow-200 shadow-md flex items-center justify-center min-h-[50px]" onclick="playScratchCard()">
           <span id="scratchText" class="text-zinc-950 font-black text-xs uppercase">¡Clic para rascar (10 ⭐)! 🪙</span>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-// --- SECCIÓN DE MISIONES, JEFE COOPERATIVO Y EVENTOS ---
-function renderMissionsSection() {
-  let container = document.getElementById('tab-missions');
-  if (!container) return;
-
-  const events = state.activeSpecialEvents || { christmas: false, halloween: false, summer: false, easter: false };
-
-  container.innerHTML = `
-    <div class="space-y-4 pb-20">
-      <div class="bg-gradient-to-r from-blue-900/60 to-indigo-950 p-4 rounded-3xl border border-blue-500/30 text-center shadow-xl">
-        <h2 class="text-lg font-black text-white flex items-center justify-center gap-2">
-          <span>🎯</span> MISIONES Y EVENTOS <span>🌟</span>
-        </h2>
-        <p class="text-xs text-blue-200 mt-1">¡Supera misiones, combate al jefe cooperativo y participa en eventos especiales!</p>
-      </div>
-
-      <!-- 1. MISIONES ACTIVAS / DIARIA -->
-      <div class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800 shadow-lg">
-        <h3 class="text-xs font-black text-amber-400 uppercase tracking-wider mb-2">⚔️ Misiones Activas</h3>
-        <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex items-center justify-between">
-          <div>
-            <p class="text-xs font-bold text-white">${state.dailyQuest.title}</p>
-            <p class="text-[10px] text-zinc-400">Completa la misión diaria para ganar <span class="text-amber-400 font-bold">+${state.dailyQuest.rewardPts} ⭐</span></p>
-          </div>
-          <span class="text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-xl font-black">Diaria</span>
-        </div>
-      </div>
-
-      <!-- 2. JEFE COOPERATIVO -->
-      <div class="bg-gradient-to-r from-red-950/70 via-purple-950/70 to-zinc-950 p-4 rounded-3xl border border-red-500/40 shadow-lg">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="text-3xl animate-bounce">👾</div>
-          <div>
-            <span class="text-[9px] font-black uppercase text-red-400 tracking-wider">Jefe Cooperativo Familiar</span>
-            <h3 class="text-xs font-black text-white">${state.familyGoal.title}</h3>
-          </div>
-        </div>
-        <p class="text-[11px] text-zinc-300 mt-1">¡Todos los puntos acumulados por los hijos restan vida al jefe! Al derrotarlo, toda la familia consigue una gran recompensa.</p>
-      </div>
-
-      <!-- 3. EVENTOS ESPECIALES ACTIVOS -->
-      <div class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800 shadow-lg space-y-3">
-        <h3 class="text-xs font-black text-purple-400 uppercase tracking-wider">🎪 Eventos Especiales en Curso</h3>
-        
-        ${events.christmas ? `
-          <div class="bg-gradient-to-r from-red-950 to-emerald-950 p-3 rounded-2xl border border-red-500/40">
-            <h4 class="text-xs font-black text-red-300 flex items-center gap-2">🎄 Evento Navidad</h4>
-            <p class="text-[11px] text-zinc-300 mt-1">¡Ayuda en casa para desbloquear regalos especiales bajo el árbol y puntos extra de Papá Noel!</p>
-          </div>
-        ` : ''}
-
-        ${events.halloween ? `
-          <div class="bg-gradient-to-r from-orange-950 to-purple-950 p-3 rounded-2xl border border-orange-500/40">
-            <h4 class="text-xs font-black text-orange-300 flex items-center gap-2">🎃 Evento Halloween</h4>
-            <p class="text-[11px] text-zinc-300 mt-1">¡Supera misiones terroríficas para conseguir caramelos de puntos y cromos fantasmales!</p>
-          </div>
-        ` : ''}
-
-        ${events.summer ? `
-          <div class="bg-gradient-to-r from-cyan-950 to-blue-950 p-3 rounded-2xl border border-cyan-500/40">
-            <h4 class="text-xs font-black text-cyan-300 flex items-center gap-2">☀️ Evento Verano</h4>
-            <p class="text-[11px] text-zinc-300 mt-1">¡Mantén la racha veraniega alta para ganar vales de helados y actividades de piscina!</p>
-          </div>
-        ` : ''}
-
-        ${events.easter ? `
-          <div class="bg-gradient-to-r from-yellow-950 to-pink-950 p-3 rounded-2xl border border-yellow-500/40">
-            <h4 class="text-xs font-black text-yellow-300 flex items-center gap-2">🐰 Evento Pascua</h4>
-            <p class="text-[11px] text-zinc-300 mt-1">¡Busca los huevos ocultos completando tareas especiales en familia!</p>
-          </div>
-        ` : ''}
-
-        {!events.christmas && !events.halloween && !events.summer && !events.easter ? `
-          <p class="text-xs text-zinc-500 text-center py-4">No hay ningún evento especial activo en este momento. ¡Papá/Mamá los activará en fechas señaladas!</p>
-        ` : ''}
-      </div>
-    </div>
-  `;
-}
-
-// --- SECCIÓN DE TROFEOS Y CROMOS ---
-function renderTrophiesSection() {
-  let container = document.getElementById('tab-trophies');
-  if (!container) return;
-
-  const user = state.users[state.currentUser];
-  const unlockedMeds = user ? (user.unlockedAchievements || []) : [];
-  const stickers = state.stickers || [];
-
-  container.innerHTML = `
-    <div class="space-y-4 pb-20">
-      <div class="bg-gradient-to-r from-amber-900/60 to-yellow-950 p-4 rounded-3xl border border-amber-500/30 text-center shadow-xl">
-        <h2 class="text-lg font-black text-white flex items-center justify-center gap-2">
-          <span>🏆</span> TROFEOS Y CROMOS <span>🌟</span>
-        </h2>
-        <p class="text-xs text-amber-200 mt-1">¡Consulta tus medallas conseguidas y tu colección de cromos!</p>
-      </div>
-
-      <!-- MEDALLAS Y LOGROS -->
-      <div class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800 shadow-lg">
-        <h3 class="text-xs font-black text-amber-400 uppercase tracking-wider mb-3">🏅 Medallas y Logros de ${user ? user.name : ''}</h3>
-        <div class="grid grid-cols-1 gap-2">
-          ${ACHIEVEMENTS.map(ach => {
-            const isUnlocked = unlockedMeds.includes(ach.id);
-            return `
-              <div class="bg-zinc-950 p-3 rounded-2xl border ${isUnlocked ? 'border-amber-500/40 bg-amber-950/20' : 'border-zinc-800 opacity-40'} flex items-center gap-3">
-                <span class="text-3xl">${ach.icon}</span>
-                <div>
-                  <p class="text-xs font-bold text-white">${ach.title} ${isUnlocked ? '✅' : '🔒'}</p>
-                  <p class="text-[10px] text-zinc-400">${ach.desc}</p>
-                </div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-
-      <!-- COLECCIÓN DE CROMOS -->
-      <div class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800 shadow-lg">
-        <h3 class="text-xs font-black text-purple-400 uppercase tracking-wider mb-3">🃏 Colección de Cromos</h3>
-        <div class="grid grid-cols-2 gap-3">
-          ${stickers.map(sticker => {
-            return `
-              <div class="p-3 rounded-2xl border flex flex-col items-center text-center gap-2 transition-all ${
-                sticker.unlocked 
-                  ? 'bg-gradient-to-b from-purple-950/80 to-zinc-950 border-purple-500/50 shadow-lg shadow-purple-500/20 text-white' 
-                  : 'bg-zinc-950/40 border-zinc-800/80 text-zinc-600 grayscale'
-              }">
-                <div class="text-3xl">${sticker.unlocked ? '✨🃏' : '🎴'}</div>
-                <p class="text-xs font-bold ${sticker.unlocked ? 'text-purple-200' : 'text-zinc-600'}">${sticker.title}</p>
-                <span class="text-[9px] font-black uppercase ${sticker.unlocked ? 'text-emerald-400' : 'text-zinc-600'}">
-                  ${sticker.unlocked ? 'Conseguido' : 'Falta por conseguir'}
-                </span>
-              </div>
-            `;
-          }).join('')}
         </div>
       </div>
     </div>
@@ -1128,7 +971,7 @@ async function playScratchCard() {
   renderApp();
 }
 
-// --- RENDERIZADO PRINCIPAL (NUEVO ORDEN VERTICAL) ---
+// --- RENDERIZADO PRINCIPAL ---
 function renderApp() {
   const user = state.users[state.currentUser];
   if (!user) return;
@@ -1147,15 +990,11 @@ function renderApp() {
   try { renderFamilyGoal(); } catch (e) {}
   try { renderDailyQuestWidget(); } catch (e) {}
   try { renderRouletteBanner(); } catch (e) {}
-
   try { renderLeaderboard(); } catch (e) {}
   try { renderPodium(); } catch (e) {}
   try { renderUserStats(); } catch (e) {}
-
   try { renderTasks(); } catch (e) {}
   try { renderMinigamesSection(); } catch (e) {}
-  try { renderMissionsSection(); } catch (e) {}
-  try { renderTrophiesSection(); } catch (e) {}
   try { renderRewards(); } catch (e) {}
   try { updateActivityLog(); } catch (e) {}
   try { renderManagerPanel(); } catch (e) {}
@@ -1538,57 +1377,36 @@ async function toggleDoubleXp() {
   renderApp();
 }
 
-async function toggleEventStatus(eventName) {
-  if (!state.activeSpecialEvents) state.activeSpecialEvents = { christmas: false, halloween: false, summer: false, easter: false };
-  state.activeSpecialEvents[eventName] = !state.activeSpecialEvents[eventName];
-  await saveLocalStorage();
-  renderManagerPanel();
-  renderApp();
-}
-
-// --- PANEL DE GESTOR MEJORADO ---
 function renderManagerPanel() {
   if (!isManagerUnlocked) return;
 
-  const settingsPanel = document.getElementById('pinUnlockedContent');
-  if (settingsPanel) {
-    let extraControls = document.getElementById('managerExtraControlsWidget');
-    if (!extraControls) {
-      extraControls = document.createElement('div');
-      extraControls.id = 'managerExtraControlsWidget';
-      settingsPanel.prepend(extraControls);
+  const lootboxControl = document.getElementById('lootboxControlWidget');
+  if (!lootboxControl) {
+    const settingsPanel = document.getElementById('pinUnlockedContent');
+    const firstSection = settingsPanel ? settingsPanel.querySelector('.space-y-4') : null;
+    if (firstSection) {
+      const div = document.createElement('div');
+      div.id = 'lootboxControlWidget';
+      firstSection.prepend(div);
     }
-
-    const events = state.activeSpecialEvents || { christmas: false, halloween: false, summer: false, easter: false };
-
-    extraControls.innerHTML = `
-      <div class="space-y-4 mb-6">
-        <!-- CAMBIAR PIN -->
-        <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 flex justify-between items-center">
-          <div>
-            <p class="font-bold text-xs text-white">Seguridad del Panel</p>
-            <p class="text-[10px] text-zinc-400">Modifica el PIN de acceso de gestor</p>
+  }
+  const lcWidget = document.getElementById('lootboxControlWidget');
+  if (lcWidget) {
+    lcWidget.innerHTML = `
+      <div class="space-y-2 mb-4">
+        <div class="bg-gradient-to-r from-amber-950/40 to-zinc-950 p-3 rounded-2xl border border-amber-500/20 flex justify-between items-center">
+          <span class="text-xs font-bold text-white flex items-center gap-2">🎁 Coste Caja Sorpresa</span>
+          <div class="flex items-center gap-2">
+            <span class="text-amber-400 font-black text-sm">${state.lootboxCost || 30} ⭐</span>
+            <button onclick="editLootboxCost()" class="text-[11px] text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20 font-bold active:scale-95">Editar</button>
           </div>
-          <button onclick="changePinPrompt()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl active:scale-95">Cambiar PIN 🔑</button>
         </div>
 
-        <!-- ACTIVAR / DESACTIVAR EVENTOS ESPECIALES -->
-        <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-800 space-y-2">
-          <p class="font-bold text-xs text-white">🎪 Activar / Desactivar Eventos Especiales</p>
-          <div class="grid grid-cols-2 gap-2">
-            <button onclick="toggleEventStatus('christmas')" class="py-2 px-3 rounded-xl text-xs font-bold border transition ${events.christmas ? 'bg-red-600 text-white border-red-500' : 'bg-zinc-900 text-zinc-400 border-zinc-800'}">
-              🎄 Navidad ${events.christmas ? 'ON' : 'OFF'}
-            </button>
-            <button onclick="toggleEventStatus('halloween')" class="py-2 px-3 rounded-xl text-xs font-bold border transition ${events.halloween ? 'bg-orange-600 text-white border-orange-500' : 'bg-zinc-900 text-zinc-400 border-zinc-800'}">
-              🎃 Halloween ${events.halloween ? 'ON' : 'OFF'}
-            </button>
-            <button onclick="toggleEventStatus('summer')" class="py-2 px-3 rounded-xl text-xs font-bold border transition ${events.summer ? 'bg-cyan-600 text-white border-cyan-500' : 'bg-zinc-900 text-zinc-400 border-zinc-800'}">
-              ☀️ Verano ${events.summer ? 'ON' : 'OFF'}
-            </button>
-            <button onclick="toggleEventStatus('easter')" class="py-2 px-3 rounded-xl text-xs font-bold border transition ${events.easter ? 'bg-pink-600 text-white border-pink-500' : 'bg-zinc-900 text-zinc-400 border-zinc-800'}">
-              🐰 Pascua ${events.easter ? 'ON' : 'OFF'}
-            </button>
-          </div>
+        <div class="bg-gradient-to-r from-red-950/40 to-zinc-950 p-3 rounded-2xl border border-red-500/20 flex justify-between items-center">
+          <span class="text-xs font-bold text-white flex items-center gap-2">🔥 Evento Doble XP (2x Puntos)</span>
+          <button onclick="toggleDoubleXp()" class="text-xs font-black px-3 py-1.5 rounded-lg border transition ${state.doubleXpActive ? 'bg-red-500 text-white border-red-400 animate-pulse' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}">
+            ${state.doubleXpActive ? 'ACTIVADO 🔥' : 'DESACTIVADO'}
+          </button>
         </div>
       </div>
     `;
@@ -1623,7 +1441,7 @@ function renderManagerPanel() {
           <div class="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden">${renderAvatarHtml(u.avatar, "text-xl")}</div>
           <span class="font-bold text-xs text-white">${u.name}</span>
         </div>
-        <button onclick="changeUserAvatar('${u.id}')" class="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl font-bold active:scale-95">Modificar Emoji / Foto</button>
+        <button onclick="changeUserAvatar('${u.id}')" class="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl font-bold active:scale-95">Cambiar Foto / Emoji</button>
       </div>
     `).join('');
   }
@@ -1804,6 +1622,7 @@ window.addEventListener('focus', fetchCloudData);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fetchCloudData(); });
 
 async function startApp() {
+  // Aseguramos la sesión activa antes de cargar o pedir nada a la base de datos
   await asegurarSesionActiva();
 
   loadLocalStorage();
