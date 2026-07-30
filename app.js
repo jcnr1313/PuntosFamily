@@ -11,6 +11,32 @@ function getSupabaseClient() {
   return null;
 }
 
+// --- VERIFICACIÓN Y AUTENTICACIÓN AUTOMÁTICA DE SESIÓN (SOLUCIÓN ERROR 401) ---
+async function asegurarSesionActiva() {
+  const client = getSupabaseClient();
+  if (!client) return;
+
+  try {
+    // Comprobamos si ya hay una sesión guardada y activa
+    const { data: { session }, error } = await client.auth.getSession();
+
+    if (error || !session) {
+      console.warn("No hay sesión activa detectada. Iniciando sesión anónima automática...");
+      // Como la app no tiene login manual, autenticamos de forma transparente al cliente
+      const { error: signInError } = await client.auth.signInAnonymously();
+      if (signInError) {
+        console.error("Error al iniciar sesión anónima en Supabase:", signInError.message);
+      } else {
+        console.log("Sesión anónima establecida correctamente en este dispositivo.");
+      }
+    } else {
+      console.log("Sesión activa verificada para el usuario:", session.user.id);
+    }
+  } catch (err) {
+    console.error("Excepción comprobando la sesión:", err);
+  }
+}
+
 let isManagerUnlocked = false;
 
 // --- FRASES MOTIVACIONALES (ANUNCIADOR ARCADE) ---
@@ -496,7 +522,7 @@ function renderMinigamesSection() {
         </div>
       </div>
 
-      <!-- 4. LA TORRE DE LA SUERTE (NUEVO MINIJUEGO) -->
+      <!-- 4. LA TORRE DE LA SUERTE -->
       <div class="bg-zinc-900 p-4 rounded-3xl border border-red-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🏰</div>
         <h3 class="text-sm font-black text-red-300">La Torre del Riesgo</h3>
@@ -508,7 +534,7 @@ function renderMinigamesSection() {
         </button>
       </div>
 
-      <!-- 5. CAJA SORPRESA MÁGICA VISUAL (NUEVO MINIJUEGO INTERACTIVO) -->
+      <!-- 5. CAJA SORPRESA MÁGICA VISUAL -->
       <div class="bg-zinc-900 p-4 rounded-3xl border border-amber-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🎁</div>
         <h3 class="text-sm font-black text-amber-300">Caja Sorpresa Mágica</h3>
@@ -533,9 +559,7 @@ function renderMinigamesSection() {
   `;
 }
 
-// --- FUNCIONES Y MODALES DE LOS NUEVOS MINIJUEGOS ---
-
-// MINIJUEGO 1 NUEVO: LA TORRE DEL RIESGO
+// --- FUNCIONES Y MODALES DE LOS MINIJUEGOS ---
 let towerCurrentStep = 0;
 let towerAccumulatedPoints = 0;
 
@@ -576,7 +600,7 @@ function openTowerGameModal() {
 
 async function climbTowerStep() {
   towerCurrentStep++;
-  const isTrap = Math.random() < 0.35; // 35% de probabilidad de caer
+  const isTrap = Math.random() < 0.35;
   const statusMsg = document.getElementById('towerStatusMsg');
   const btnClimb = document.getElementById('btnTowerClimb');
   const btnCash = document.getElementById('btnTowerCashout');
@@ -637,7 +661,6 @@ async function cashoutTower() {
   renderApp();
 }
 
-// MINIJUEGOS EXISTENTES DADO Y COFRES
 async function playDiceRoll() {
   const user = state.users[state.currentUser];
   if (!user || user.points < 5) return alert("¡Necesitas al menos 5 puntos para tirar el dado!");
@@ -692,7 +715,6 @@ async function playTreasureChest(chestIndex) {
   renderApp();
 }
 
-// MINIJUEGO INTERACTIVO: ABRIR CAJA MÁGICA CON VISUAL MODAL
 function openLootboxModal() {
   const user = state.users[state.currentUser];
   const cost = state.lootboxCost || 30;
@@ -759,7 +781,6 @@ function openLootboxModal() {
   }, 1800);
 }
 
-// BANNERS Y COMPONENTES
 function renderRouletteBanner() {
   const user = state.users[state.currentUser];
   let container = document.getElementById('rouletteBannerContainer');
@@ -1359,7 +1380,6 @@ async function toggleDoubleXp() {
 function renderManagerPanel() {
   if (!isManagerUnlocked) return;
 
-  // Widget Control Caja Sorpresa y Doble XP
   const lootboxControl = document.getElementById('lootboxControlWidget');
   if (!lootboxControl) {
     const settingsPanel = document.getElementById('pinUnlockedContent');
@@ -1392,7 +1412,6 @@ function renderManagerPanel() {
     `;
   }
 
-  // Historial de Canjes
   const redemptionsContainer = document.getElementById('redemptionsList');
   if (redemptionsContainer) {
     const redemptionsCount = document.getElementById('redemptionsCount');
@@ -1414,7 +1433,6 @@ function renderManagerPanel() {
     }
   }
 
-  // Personalizar Avatares
   const avatarContainer = document.getElementById('avatarCustomizerList');
   if (avatarContainer) {
     avatarContainer.innerHTML = Object.values(state.users).map(u => `
@@ -1428,7 +1446,6 @@ function renderManagerPanel() {
     `).join('');
   }
 
-  // Ajuste manual de puntos
   const pointsContainer = document.getElementById('manualPointsControl');
   if (pointsContainer) {
     const kids = Object.values(state.users).filter(u => u.role === 'hijo');
@@ -1446,7 +1463,6 @@ function renderManagerPanel() {
     `).join('');
   }
 
-  // Gestor de Premios
   const rewardsContainer = document.getElementById('manageRewardsList');
   if (rewardsContainer) {
     rewardsContainer.innerHTML = state.rewards.map(r => `
@@ -1463,7 +1479,6 @@ function renderManagerPanel() {
     `).join('');
   }
 
-  // Gestor de Acciones/Tareas
   const actionsContainer = document.getElementById('manageActionsList');
   if (actionsContainer) {
     actionsContainer.innerHTML = state.actions.map(a => `
@@ -1607,6 +1622,9 @@ window.addEventListener('focus', fetchCloudData);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fetchCloudData(); });
 
 async function startApp() {
+  // Aseguramos la sesión activa antes de cargar o pedir nada a la base de datos
+  await asegurarSesionActiva();
+
   loadLocalStorage();
   initUserSelect();
   setActiveTab('home');
