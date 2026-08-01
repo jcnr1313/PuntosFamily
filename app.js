@@ -19,7 +19,6 @@ async function asegurarSesionActiva() {
   try {
     const { data: { session }, error } = await client.auth.getSession();
     if (error || !session) {
-      // Evitamos forzar inicio anónimo si está deshabilitado en Supabase
       console.warn("Sesión no iniciada de forma estándar, operando en modo local/público.");
     }
   } catch (err) {
@@ -60,14 +59,16 @@ let state = {
   chestCost: 15,
   towerCost: 10,
   scratchCost: 10,
+  slotsCost: 10,
+  ladderCost: 10,
   doubleXpActive: false,
   dailyQuest: { title: 'Haz 2 tareas hoy', rewardPts: 15, date: null, completedBy: [] },
   familyGoal: { title: '👾 El Dragón del Desorden (Meta Familiar)', targetPoints: 500 },
   users: {
-    'joan': { id: 'joan', name: 'Joan', role: 'miembro', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
-    'martina': { id: 'martina', name: 'Martina', role: 'miembro', avatar: '👧', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
-    'papa': { id: 'papa', name: 'Papá', role: 'miembro', avatar: '🐍', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] },
-    'mama': { id: 'mama', name: 'Mamá', role: 'miembro', avatar: '👩', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [] }
+    'joan': { id: 'joan', name: 'Joan', role: 'miembro', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [], miniGameUsage: {} },
+    'martina': { id: 'martina', name: 'Martina', role: 'miembro', avatar: '👧', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [], miniGameUsage: {} },
+    'papa': { id: 'papa', name: 'Papá', role: 'miembro', avatar: '🐍', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [], miniGameUsage: {} },
+    'mama': { id: 'mama', name: 'Mamá', role: 'miembro', avatar: '👩', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [], miniGameUsage: {} }
   },
   actions: [
     { id: 1, title: 'Leer 30 min', points: 20, type: 'positive', icon: '📖' },
@@ -114,6 +115,19 @@ let state = {
   redemptions: [],
   history: []
 };
+
+// --- VALIDACIÓN DE USO ÚNICO DIARIO POR MINIJUEGO ---
+function puedeJugarMinijuegoHoy(user, minijuegoId) {
+  if (!user.miniGameUsage) user.miniGameUsage = {};
+  const hoyStr = new Date().toISOString().slice(0, 10);
+  return user.miniGameUsage[minijuegoId] !== hoyStr;
+}
+
+function registrarUsoMinijuegoHoy(user, minijuegoId) {
+  if (!user.miniGameUsage) user.miniGameUsage = {};
+  const hoyStr = new Date().toISOString().slice(0, 10);
+  user.miniGameUsage[minijuegoId] = hoyStr;
+}
 
 // --- EFECTOS DE SONIDO Y VIBRACIÓN HÁPTICA ---
 function playSound(type) {
@@ -284,6 +298,8 @@ function mergeStateData(remote) {
   if (remote.chestCost !== undefined) state.chestCost = remote.chestCost;
   if (remote.towerCost !== undefined) state.towerCost = remote.towerCost;
   if (remote.scratchCost !== undefined) state.scratchCost = remote.scratchCost;
+  if (remote.slotsCost !== undefined) state.slotsCost = remote.slotsCost;
+  if (remote.ladderCost !== undefined) state.ladderCost = remote.ladderCost;
   if (remote.doubleXpActive !== undefined) state.doubleXpActive = remote.doubleXpActive;
   if (remote.dailyQuest) state.dailyQuest = remote.dailyQuest;
   if (remote.parentPin) state.parentPin = remote.parentPin;
@@ -299,7 +315,8 @@ function mergeStateData(remote) {
         ...state.users[key],
         ...remote.users[key],
         unlockedAchievements: remote.users[key].unlockedAchievements || state.users[key].unlockedAchievements || [],
-        lastRouletteDate: remote.users[key].lastRouletteDate || state.users[key].lastRouletteDate || null
+        lastRouletteDate: remote.users[key].lastRouletteDate || state.users[key].lastRouletteDate || null,
+        miniGameUsage: remote.users[key].miniGameUsage || state.users[key].miniGameUsage || {}
       };
     }
   }
@@ -344,6 +361,8 @@ async function syncFullStateToCloud() {
       chestCost: state.chestCost,
       towerCost: state.towerCost,
       scratchCost: state.scratchCost,
+      slotsCost: state.slotsCost,
+      ladderCost: state.ladderCost,
       doubleXpActive: state.doubleXpActive,
       dailyQuest: state.dailyQuest
     };
@@ -420,15 +439,28 @@ function jugar(tipo) {
   const user = state.users[state.currentUser];
   if (!user) return alert("Selecciona un usuario válido primero.");
 
+  if (!puedenJugarHoyCheck(user, tipo)) {
+    return;
+  }
+
   if (tipo === 'dado') playDiceRoll();
   else if (tipo === 'ruleta') spinRoulette();
   else if (tipo === 'caja' || tipo === 'lootbox') openLootboxModal();
   else if (tipo === 'torre') openTowerGameModal();
   else if (tipo === 'rasca') playScratchCard();
+  else if (tipo === 'slots') playSlotsGame();
+  else if (tipo === 'escalera') playLadderGame();
   else {
-    // Genérico por si se invoca otro tipo
     alert(`¡Has seleccionado el minijuego: ${tipo}!`);
   }
+}
+
+function puedenJugarHoyCheck(user, tipo) {
+  if (!puedeJugarMinijuegoHoy(user, tipo) && tipo !== 'ruleta') {
+    showPointsAnimation(0, user.name, "¡Ya has jugado a este minijuego hoy!");
+    return false;
+  }
+  return true;
 }
 
 // --- LÓGICA DE RULETA SEMANAL ---
@@ -458,9 +490,63 @@ async function spinRoulette() {
   user.lastRouletteDate = new Date().toISOString();
   state.history.unshift(`🎡 ${user.name} giró la ruleta semanal y ganó +${wonPoints} pts`);
 
-  playSound('reward');
-  triggerHaptic();
   showPointsAnimation(wonPoints, user.name, "¡Premio de la Ruleta Semanal!");
+
+  checkAchievements(user);
+  await saveLocalStorage();
+  renderApp();
+}
+
+// --- MINIJUEGO: SLOTS (TRAGAPERRAS CORREGIDO) ---
+async function playSlotsGame() {
+  const user = state.users[state.currentUser];
+  const cost = state.slotsCost || 10;
+  if (!user || user.points < cost) return alert(`¡Necesitas al menos ${cost} puntos para jugar a Slots!`);
+  if (!confirm(`¿Deseas gastar ${cost} puntos para jugar a Slots 🎰?`)) return;
+
+  user.points -= cost;
+  registrarUsoMinijuegoHoy(user, 'slots');
+
+  const symbols = ['🍒', '🍋', '🔔', '⭐', '💎'];
+  const s1 = symbols[Math.floor(Math.random() * symbols.length)];
+  const s2 = symbols[Math.floor(Math.random() * symbols.length)];
+  const s3 = symbols[Math.floor(Math.random() * symbols.length)];
+
+  let wonPts = 0;
+  if (s1 === s2 && s2 === s3) {
+    wonPts = 60;
+  } else if (s1 === s2 || s2 === s3 || s1 === s3) {
+    wonPts = 15;
+  }
+
+  if (wonPts > 0) user.points += wonPts;
+
+  state.history.unshift(`🎰 ${user.name} jugó a Slots [${s1} ${s2} ${s3}] y ganó +${wonPts} pts`);
+  showPointsAnimation(wonPts, user.name, `Slots: ${s1} ${s2} ${s3}`);
+
+  checkAchievements(user);
+  await saveLocalStorage();
+  renderApp();
+}
+
+// --- MINIJUEGO: ESCALERA CORREGIDO ---
+async function playLadderGame() {
+  const user = state.users[state.currentUser];
+  const cost = state.ladderCost || 10;
+  if (!user || user.points < cost) return alert(`¡Necesitas al menos ${cost} puntos para jugar a La Escalera!`);
+  if (!confirm(`¿Deseas gastar ${cost} puntos para subir por La Escalera 🪜?`)) return;
+
+  user.points -= cost;
+  registrarUsoMinijuegoHoy(user, 'escalera');
+
+  const multipliers = [0, 5, 10, 25, 50];
+  const stepReached = Math.floor(Math.random() * multipliers.length);
+  const wonPts = multipliers[stepReached];
+
+  if (wonPts > 0) user.points += wonPts;
+
+  state.history.unshift(`🪜 ${user.name} subió al escalón ${stepReached} y ganó +${wonPts} pts`);
+  showPointsAnimation(wonPts, user.name, `¡Escalera (Paso ${stepReached})!`);
 
   checkAchievements(user);
   await saveLocalStorage();
@@ -478,6 +564,8 @@ function renderMinigamesSection() {
   const chestCost = state.chestCost || 15;
   const towerCost = state.towerCost || 10;
   const scratchCost = state.scratchCost || 10;
+  const slotsCost = state.slotsCost || 10;
+  const ladderCost = state.ladderCost || 10;
   const rouletteAvailable = canSpinRoulette(user);
 
   container.innerHTML = `
@@ -486,7 +574,7 @@ function renderMinigamesSection() {
         <h2 class="text-lg font-black text-white flex items-center justify-center gap-2">
           <span>🎮</span> ZONA DE MINIJUEGOS <span>🎰</span>
         </h2>
-        <p class="text-xs text-purple-200 mt-1">¡Juega, prueba tu suerte y consigue premios o puntos extra!</p>
+        <p class="text-xs text-purple-200 mt-1">¡Juega, prueba tu suerte y consigue premios o puntos extra (1 vez al día)!</p>
         <div class="mt-2 inline-block bg-zinc-950/80 px-3 py-1 rounded-full border border-amber-500/30 text-amber-400 text-xs font-black">
           Tus Puntos: <span id="userPointsArcadeTab">${user ? user.points : 0}</span> ⭐
         </div>
@@ -509,7 +597,7 @@ function renderMinigamesSection() {
       <div class="bg-zinc-900 p-4 rounded-3xl border border-blue-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🎲</div>
         <h3 class="text-sm font-black text-blue-300">Dado de la Suerte</h3>
-        <p class="text-[11px] text-zinc-400 mt-1">Apuesta ${diceCost} puntos y lanza el dado. ¡Multiplica tus puntos según la cara que salga!</p>
+        <p class="text-[11px] text-zinc-400 mt-1">Apuesta ${diceCost} puntos y lanza el dado.</p>
         <button 
           onclick="jugar('dado')" 
           class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-extrabold text-xs rounded-xl shadow-md active:scale-95 transition">
@@ -517,11 +605,35 @@ function renderMinigamesSection() {
         </button>
       </div>
 
-      <!-- 3. COFRES MISTERIOSOS -->
+      <!-- 3. SLOTS / TRAGAPERRAS -->
+      <div class="bg-zinc-900 p-4 rounded-3xl border border-yellow-500/30 shadow-lg flex flex-col items-center text-center">
+        <div class="text-4xl mb-2">🎰</div>
+        <h3 class="text-sm font-black text-yellow-300">Slots Tragaperras</h3>
+        <p class="text-[11px] text-zinc-400 mt-1">Alinea los símbolos para multiplicar puntos.</p>
+        <button 
+          onclick="jugar('slots')" 
+          class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-yellow-500 to-amber-600 text-zinc-950 font-black text-xs rounded-xl shadow-md active:scale-95 transition">
+          Jugar Slots (${slotsCost} ⭐)
+        </button>
+      </div>
+
+      <!-- 4. LA ESCALERA -->
+      <div class="bg-zinc-900 p-4 rounded-3xl border border-emerald-500/30 shadow-lg flex flex-col items-center text-center">
+        <div class="text-4xl mb-2">🪜</div>
+        <h3 class="text-sm font-black text-emerald-300">La Escalera de Premios</h3>
+        <p class="text-[11px] text-zinc-400 mt-1">Sube escalones y gana premios directos.</p>
+        <button 
+          onclick="jugar('escalera')" 
+          class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-extrabold text-xs rounded-xl shadow-md active:scale-95 transition">
+          Subir Escalera (${ladderCost} ⭐)
+        </button>
+      </div>
+
+      <!-- 5. COFRES MISTERIOSOS -->
       <div class="bg-zinc-900 p-4 rounded-3xl border border-emerald-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🧰</div>
         <h3 class="text-sm font-black text-emerald-300">Cofres Misteriosos</h3>
-        <p class="text-[11px] text-zinc-400 mt-1">Por ${chestCost} puntos, elige 1 de los 3 cofres y descubre qué recompensa oculta contiene.</p>
+        <p class="text-[11px] text-zinc-400 mt-1">Por ${chestCost} puntos, elige un cofre.</p>
         <div class="flex justify-center gap-3 mt-3 w-full">
           <button onclick="playTreasureChest(1)" class="flex-1 py-3 bg-zinc-950 hover:bg-emerald-950/50 border border-emerald-500/40 rounded-2xl text-2xl active:scale-90 transition">📦</button>
           <button onclick="playTreasureChest(2)" class="flex-1 py-3 bg-zinc-950 hover:bg-emerald-950/50 border border-emerald-500/40 rounded-2xl text-2xl active:scale-90 transition">🎁</button>
@@ -529,11 +641,11 @@ function renderMinigamesSection() {
         </div>
       </div>
 
-      <!-- 4. LA TORRE DE LA SUERTE -->
+      <!-- 6. LA TORRE DE LA SUERTE -->
       <div class="bg-zinc-900 p-4 rounded-3xl border border-red-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🏰</div>
         <h3 class="text-sm font-black text-red-300">La Torre del Riesgo</h3>
-        <p class="text-[11px] text-zinc-400 mt-1">Apuesta ${towerCost} puntos y sube escalones. ¡Cuanto más alto subas más puntos ganas, pero si sale la Calavera lo pierdes todo!</p>
+        <p class="text-[11px] text-zinc-400 mt-1">Apuesta ${towerCost} puntos y sube escalones.</p>
         <button 
           onclick="jugar('torre')" 
           class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-red-600 to-orange-500 text-white font-extrabold text-xs rounded-xl shadow-md active:scale-95 transition">
@@ -541,11 +653,11 @@ function renderMinigamesSection() {
         </button>
       </div>
 
-      <!-- 5. CAJA SORPRESA MÁGICA VISUAL -->
+      <!-- 7. CAJA SORPRESA MÁGICA VISUAL -->
       <div class="bg-zinc-900 p-4 rounded-3xl border border-amber-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🎁</div>
         <h3 class="text-sm font-black text-amber-300">Caja Sorpresa Mágica</h3>
-        <p class="text-[11px] text-zinc-400 mt-1">¡Abre una caja mágica y consigue vales especiales o super botes de puntos!</p>
+        <p class="text-[11px] text-zinc-400 mt-1">¡Abre una caja mágica!</p>
         <button 
           onclick="jugar('caja')" 
           class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-zinc-950 font-black text-xs rounded-xl shadow-md active:scale-95 transition">
@@ -553,11 +665,11 @@ function renderMinigamesSection() {
         </button>
       </div>
 
-      <!-- 6. RASCA Y GANA DORADO -->
+      <!-- 8. RASCA Y GANA DORADO -->
       <div class="bg-zinc-900 p-4 rounded-3xl border border-yellow-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2">🎟️</div>
         <h3 class="text-sm font-black text-yellow-300">Rasca y Gana Dorado</h3>
-        <p class="text-[11px] text-zinc-400 mt-1">Rascar una tarjeta por ${scratchCost} puntos para ganar premios directos.</p>
+        <p class="text-[11px] text-zinc-400 mt-1">Rascar una tarjeta por ${scratchCost} puntos.</p>
         <div id="scratchCardArea" class="mt-3 w-full bg-gradient-to-br from-amber-400 to-yellow-600 rounded-2xl p-3 cursor-pointer active:scale-95 transition-transform border border-yellow-200 shadow-md flex items-center justify-center min-h-[50px]" onclick="jugar('rasca')">
           <span id="scratchText" class="text-zinc-950 font-black text-xs uppercase">¡Clic para rascar (${scratchCost} ⭐)! 🪙</span>
         </div>
@@ -574,9 +686,11 @@ function openTowerGameModal() {
   const user = state.users[state.currentUser];
   const cost = state.towerCost || 10;
   if (!user || user.points < cost) return alert(`¡Necesitas al menos ${cost} puntos para entrar a la Torre!`);
+  if (!puedenJugarHoyCheck(user, 'torre')) return;
   if (!confirm(`¿Deseas apostar ${cost} puntos para escalar La Torre del Riesgo? 🏰`)) return;
 
   user.points -= cost;
+  registrarUsoMinijuegoHoy(user, 'torre');
   towerCurrentStep = 0;
   towerAccumulatedPoints = cost;
 
@@ -657,10 +771,7 @@ async function cashoutTower() {
   const user = state.users[state.currentUser];
   user.points += towerAccumulatedPoints;
 
-  playSound('reward');
-  triggerHaptic();
   showPointsAnimation(towerAccumulatedPoints, user.name, "¡Recompensa de La Torre!");
-
   state.history.unshift(`🏰 ${user.name} se plantó en la Torre del Riesgo con +${towerAccumulatedPoints} pts`);
   
   checkAchievements(user);
@@ -676,6 +787,7 @@ async function playDiceRoll() {
   if (!confirm(`¿Deseas gastar ${cost} puntos para tirar el dado? 🎲`)) return;
 
   user.points -= cost;
+  registrarUsoMinijuegoHoy(user, 'dado');
   const roll = Math.floor(Math.random() * 6) + 1;
   let wonPts = 0;
 
@@ -687,10 +799,8 @@ async function playDiceRoll() {
   if (wonPts > 0) user.points += wonPts;
 
   state.history.unshift(`🎲 ${user.name} tiró el dado, sacó un ${roll} y obtuvo +${wonPts} pts`);
-  playSound(wonPts > 0 ? 'reward' : 'negative');
-  triggerHaptic();
+  showPointsAnimation(wonPts, user.name, `Dado: Sacaste un ${roll} (+${wonPts} pts)`);
 
-  alert(`🎲 ¡Has sacado un ${roll}!\n\n${wonPts > 0 ? `¡Has ganado +${wonPts} Puntos! 🎉` : '¡Sigue intentándolo! 😅'}`);
   checkAchievements(user);
   await saveLocalStorage();
   renderApp();
@@ -700,9 +810,11 @@ async function playTreasureChest(chestIndex) {
   const user = state.users[state.currentUser];
   const cost = state.chestCost || 15;
   if (!user || user.points < cost) return alert(`¡Necesitas al menos ${cost} puntos para abrir un cofre!`);
+  if (!puedenJugarHoyCheck(user, 'cofres')) return;
   if (!confirm(`¿Quieres abrir el Cofre #${chestIndex} por ${cost} puntos? 🧰`)) return;
 
   user.points -= cost;
+  registrarUsoMinijuegoHoy(user, 'cofres');
 
   const rewardsList = [
     { name: "¡Ganaste +25 Puntos!", pts: 25 },
@@ -716,10 +828,8 @@ async function playTreasureChest(chestIndex) {
   if (won.pts > 0) user.points += won.pts;
 
   state.history.unshift(`🧰 ${user.name} abrió el cofre #${chestIndex} y encontró: ${won.name}`);
-  playSound('reward');
-  triggerHaptic();
+  showPointsAnimation(won.pts, user.name, `Cofre #${chestIndex}: ${won.name}`);
 
-  alert(`🧰 ¡ABRISTE EL COFRE #${chestIndex}! 🧰\n\nPremio: ${won.name}`);
   checkAchievements(user);
   await saveLocalStorage();
   renderApp();
@@ -733,9 +843,11 @@ function openLootboxModal() {
     alert(`¡Necesitas al menos ${cost} puntos para abrir la Caja Sorpresa!`);
     return;
   }
+  if (!puedenJugarHoyCheck(user, 'caja')) return;
   if (!confirm(`¿Quieres gastar ${cost} puntos para abrir la Caja Sorpresa Mágica? 🎁`)) return;
 
   user.points -= cost;
+  registrarUsoMinijuegoHoy(user, 'caja');
 
   const prizes = [
     { name: "15 min extra de consola", icon: "🎮", pts: 0 },
@@ -747,58 +859,24 @@ function openLootboxModal() {
   ];
 
   const won = prizes[Math.floor(Math.random() * prizes.length)];
+  if (won.pts > 0) user.points += won.pts;
 
-  const modal = document.createElement('div');
-  modal.className = "fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in";
-  modal.innerHTML = `
-    <div class="bg-zinc-900 border border-amber-500/40 w-full max-w-sm rounded-3xl p-6 text-center flex flex-col items-center gap-4 shadow-2xl relative">
-      <h3 class="text-lg font-black text-amber-400 uppercase tracking-wider">Caja Sorpresa Mágica</h3>
-      
-      <div id="boxAnim" class="text-7xl my-4 animate-bounce cursor-pointer">🎁</div>
-      <div id="boxText" class="text-xs font-bold text-zinc-300">¡Haciendo magia para abrir tu caja...!</div>
+  showPointsAnimation(won.pts || 15, user.name, `Caja Sorpresa: ${won.name}`);
+  state.history.unshift(`${user.name} abrió la Caja Sorpresa y ganó: ${won.name}`);
 
-      <button id="btnCloseLoot" onclick="this.closest('.fixed').remove()" class="hidden mt-2 py-2.5 px-6 bg-amber-500 text-zinc-950 font-black text-xs rounded-xl shadow-lg">
-        ¡Guardar Premio!
-      </button>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  setTimeout(async () => {
-    const boxAnim = document.getElementById('boxAnim');
-    const boxText = document.getElementById('boxText');
-    const btnClose = document.getElementById('btnCloseLoot');
-
-    if (boxAnim) {
-      boxAnim.classList.remove('animate-bounce');
-      boxAnim.innerHTML = won.icon;
-      boxAnim.className = "text-8xl my-2 animate-pulse";
-    }
-    if (boxText) {
-      boxText.innerHTML = `<span class="text-base font-black text-amber-300">${won.name}</span>`;
-    }
-    if (btnClose) btnClose.classList.remove('hidden');
-
-    if (won.pts > 0) user.points += won.pts;
-
-    state.history.unshift(`${user.name} abrió la Caja Sorpresa y ganó: ${won.name}`);
-    playSound('reward');
-    triggerHaptic();
-
-    checkAchievements(user);
-    await saveLocalStorage();
-    renderApp();
-  }, 1800);
+  checkAchievements(user);
+  saveLocalStorage();
+  renderApp();
 }
 
 async function playScratchCard() {
   const user = state.users[state.currentUser];
   const cost = state.scratchCost || 10;
   if (!user || user.points < cost) return alert(`¡Necesitas al menos ${cost} puntos para rascar una tarjeta!`);
-  
   if (!confirm(`¿Quieres gastar ${cost} puntos en el Rasca y Gana? 🎟️`)) return;
 
   user.points -= cost;
+  registrarUsoMinijuegoHoy(user, 'rasca');
 
   const prizes = [
     { title: "¡Ganaste +15 Puntos!", pts: 15 },
@@ -811,12 +889,8 @@ async function playScratchCard() {
   const won = prizes[Math.floor(Math.random() * prizes.length)];
   if (won.pts > 0) user.points += won.pts;
 
-  const area = document.getElementById('scratchText');
-  if (area) area.innerText = `🎉 ¡${won.title}!`;
-
+  showPointsAnimation(won.pts, user.name, `Rasca y Gana: ${won.title}`);
   state.history.unshift(`🎟️ ${user.name} rascó una tarjeta y obtuvo: ${won.title}`);
-  playSound('reward');
-  triggerHaptic();
 
   checkAchievements(user);
   await saveLocalStorage();
@@ -932,8 +1006,6 @@ async function claimDailyQuest() {
   state.dailyQuest.completedBy.push(user.id);
   state.history.unshift(`⚔️ ${user.name} completó la Misión Diaria (+${state.dailyQuest.rewardPts} pts)`);
 
-  playSound('reward');
-  triggerHaptic();
   showPointsAnimation(state.dailyQuest.rewardPts, user.name, "¡Misión Diaria Completada!");
 
   checkAchievements(user);
@@ -1117,7 +1189,6 @@ function renderUserStats() {
   }
 
   const lvlInfo = getUserLevel(user.totalCompleted);
-
   const unlockedMeds = user.unlockedAchievements || [];
   const medalsHtml = unlockedMeds.length === 0 
     ? '<span class="text-[10px] text-zinc-500">Aún no hay medallas</span>'
@@ -1209,18 +1280,32 @@ function renderTasks() {
   }).join('');
 }
 
+// --- SOLUCIÓN: ASIGNACIÓN DE PUNTOS A PAPÁ / MAMÁ / CUALQUIER USUARIO ---
 async function applyAction(actionId) {
   const action = state.actions.find(a => a.id === actionId);
   if (!action) return;
 
-  const targetUserId = prompt("¿A qué miembro de la familia quieres aplicar esta tarea?\nEscribe:\n- 'joan' para Joan\n- 'martina' para Martina\n- 'papa' para Papá\n- 'mama' para Mamá");
+  const targetInput = prompt("¿A qué miembro de la familia quieres aplicar esta tarea?\nEscribe:\n- 'joan'\n- 'martina'\n- 'papa'\n- 'mama'");
   
-  if (!targetUserId || !state.users[targetUserId.toLowerCase().trim()]) {
-    if (targetUserId !== null) alert("Usuario no válido.");
+  if (!targetInput) return;
+
+  // Limpiamos y normalizamos el texto introducido (convirtiendo acentos y pasando a minúsculas)
+  const cleanInput = targetInput.toLowerCase().trim()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // quita tildes de papá/mamá
+
+  // Mapeo robusto por si escriben el nombre completo o abreviado
+  let targetUserId = null;
+  if (cleanInput.includes('joan')) targetUserId = 'joan';
+  else if (cleanInput.includes('martina')) targetUserId = 'martina';
+  else if (cleanInput.includes('papa')) targetUserId = 'papa';
+  else if (cleanInput.includes('mama')) targetUserId = 'mama';
+
+  if (!targetUserId || !state.users[targetUserId]) {
+    alert("Usuario no válido. Por favor, escribe joan, martina, papa o mama.");
     return;
   }
 
-  const child = state.users[targetUserId.toLowerCase().trim()];
+  const child = state.users[targetUserId];
 
   let finalPoints = action.points;
   if (action.type === 'positive' && state.doubleXpActive) {
@@ -1310,8 +1395,6 @@ async function claimReward(rewardId) {
     state.redemptions.unshift({ id: Date.now(), userName: user.name, userAvatar: user.avatar, rewardTitle: reward.title, rewardIcon: reward.icon || '🎁', cost: reward.cost, date: dateStr });
     state.history.unshift(`${user.name} canjeó: ${reward.title} (-${reward.cost} pts)`);
 
-    playSound('reward');
-    triggerHaptic();
     showPointsAnimation(-reward.cost, user.name, `Canjeado: ${reward.title}`);
 
     await saveLocalStorage();
@@ -1359,12 +1442,16 @@ async function editMinigameCosts() {
   const chest = prompt("Coste Cofres Misteriosos:", state.chestCost || 15);
   const tower = prompt("Coste Torre del Riesgo:", state.towerCost || 10);
   const scratch = prompt("Coste Rasca y Gana:", state.scratchCost || 10);
+  const slots = prompt("Coste Slots:", state.slotsCost || 10);
+  const ladder = prompt("Coste Escalera:", state.ladderCost || 10);
 
   if (loot !== null) state.lootboxCost = parseInt(loot) || state.lootboxCost;
   if (dice !== null) state.diceCost = parseInt(dice) || state.diceCost;
   if (chest !== null) state.chestCost = parseInt(chest) || state.chestCost;
   if (tower !== null) state.towerCost = parseInt(tower) || state.towerCost;
   if (scratch !== null) state.scratchCost = parseInt(scratch) || state.scratchCost;
+  if (slots !== null) state.slotsCost = parseInt(slots) || state.slotsCost;
+  if (ladder !== null) state.ladderCost = parseInt(ladder) || state.ladderCost;
 
   await saveLocalStorage();
   renderApp();
