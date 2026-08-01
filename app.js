@@ -88,7 +88,7 @@ let state = {
   ladderCost: 10,
   doubleXpActive: false,
   dailyQuest: { title: 'Haz 2 tareas hoy', rewardPts: 15, date: null, completedBy: [] },
-  familyGoal: { title: '👾 El Dragón del Desorden (Meta Familiar)', targetPoints: 500 },
+  familyGoal: { title: '👾 El Dragón del Desorden (Meta Familiar)', targetPoints: 5500 },
   users: {
     'joan': { id: 'joan', name: 'Joan', role: 'miembro', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [], miniGameUsage: {}, stickers: [] },
     'martina': { id: 'martina', name: 'Martina', role: 'miembro', avatar: '👧', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [], miniGameUsage: {}, stickers: [] },
