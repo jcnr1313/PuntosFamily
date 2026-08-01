@@ -49,6 +49,31 @@ const ACHIEVEMENTS = [
   { id: 'points_500', title: 'Ahorrador Experto', desc: 'Acumula 500 puntos', icon: '💰', check: (u) => u.points >= 500 }
 ];
 
+// --- DEFINICIÓN DE CROMOS (COLECCIONABLES) ---
+const STICKER_COLLECTIONS = {
+  pokemon: [
+    { id: 'pk_1', name: 'Pikachu', rarity: 'Común', icon: '⚡' },
+    { id: 'pk_2', name: 'Charizard', rarity: 'Legendario', icon: '🔥' },
+    { id: 'pk_3', name: 'Bulbasaur', rarity: 'Común', icon: '🌿' },
+    { id: 'pk_4', name: 'Squirtle', rarity: 'Común', icon: '💧' },
+    { id: 'pk_5', name: 'Mewtwo', rarity: 'Legendario', icon: '🔮' }
+  ],
+  onepiece: [
+    { id: 'op_1', name: 'Luffy', rarity: 'Legendario', icon: '👒' },
+    { id: 'op_2', name: 'Zoro', rarity: 'Raro', icon: '⚔️' },
+    { id: 'op_3', name: 'Nami', rarity: 'Común', icon: '🍊' },
+    { id: 'op_4', name: 'Sanji', rarity: 'Raro', icon: '🍳' },
+    { id: 'op_5', name: 'Chopper', rarity: 'Común', icon: '🌸' }
+  ],
+  strangerthings: [
+    { id: 'st_1', name: 'Eleven', rarity: 'Legendario', icon: '🧇' },
+    { id: 'st_2', name: 'Demogorgon', rarity: 'Raro', icon: '👾' },
+    { id: 'st_3', name: 'Dustin', rarity: 'Común', icon: '🧢' },
+    { id: 'st_4', name: 'Mike', rarity: 'Común', icon: '🚲' },
+    { id: 'st_5', name: 'Vecna', rarity: 'Legendario', icon: '🕰️' }
+  ]
+};
+
 let state = {
   currentUser: 'joan',
   previousUser: 'joan',
@@ -65,10 +90,10 @@ let state = {
   dailyQuest: { title: 'Haz 2 tareas hoy', rewardPts: 15, date: null, completedBy: [] },
   familyGoal: { title: '👾 El Dragón del Desorden (Meta Familiar)', targetPoints: 500 },
   users: {
-    'joan': { id: 'joan', name: 'Joan', role: 'miembro', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [], miniGameUsage: {} },
-    'martina': { id: 'martina', name: 'Martina', role: 'miembro', avatar: '👧', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [], miniGameUsage: {} },
-    'papa': { id: 'papa', name: 'Papá', role: 'miembro', avatar: '🐍', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [], miniGameUsage: {} },
-    'mama': { id: 'mama', name: 'Mamá', role: 'miembro', avatar: '👩', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [], miniGameUsage: {} }
+    'joan': { id: 'joan', name: 'Joan', role: 'miembro', avatar: '👦', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [], miniGameUsage: {}, stickers: [] },
+    'martina': { id: 'martina', name: 'Martina', role: 'miembro', avatar: '👧', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [], miniGameUsage: {}, stickers: [] },
+    'papa': { id: 'papa', name: 'Papá', role: 'miembro', avatar: '🐍', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [], miniGameUsage: {}, stickers: [] },
+    'mama': { id: 'mama', name: 'Mamá', role: 'miembro', avatar: '👩', points: 0, streakType: 'none', streakDays: 0, totalCompleted: 0, lastActivityDate: null, lastRouletteDate: null, unlockedAchievements: [], miniGameUsage: {}, stickers: [] }
   },
   actions: [
     { id: 1, title: 'Leer 30 min', points: 20, type: 'positive', icon: '📖' },
@@ -316,7 +341,8 @@ function mergeStateData(remote) {
         ...remote.users[key],
         unlockedAchievements: remote.users[key].unlockedAchievements || state.users[key].unlockedAchievements || [],
         lastRouletteDate: remote.users[key].lastRouletteDate || state.users[key].lastRouletteDate || null,
-        miniGameUsage: remote.users[key].miniGameUsage || state.users[key].miniGameUsage || {}
+        miniGameUsage: remote.users[key].miniGameUsage || state.users[key].miniGameUsage || {},
+        stickers: remote.users[key].stickers || state.users[key].stickers || []
       };
     }
   }
@@ -396,7 +422,7 @@ function renderAvatarHtml(avatarStr, sizeClasses = "w-full h-full text-2xl") {
 }
 
 function setActiveTab(tab) {
-  const tabs = ['home', 'tasks', 'rewards', 'minigames', 'manager', 'settings'];
+  const tabs = ['home', 'tasks', 'rewards', 'minigames', 'stickers', 'manager', 'settings'];
   tabs.forEach(t => {
     const section = document.getElementById(`tab-${t}`);
     const navBtn = document.getElementById(`nav-${t}`);
@@ -434,24 +460,28 @@ function handleUserSelectChange(selectElement) {
   renderApp();
 }
 
-// --- FUNCIÓN GLOBAL JUGAR (MINIJUEGOS ARCADE) ---
+// --- FUNCIÓN GLOBAL JUGAR (MINIJUEGOS ARCADE Y SUERTE) ---
 function jugar(tipo) {
   const user = state.users[state.currentUser];
   if (!user) return alert("Selecciona un usuario válido primero.");
 
-  if (!puedenJugarHoyCheck(user, tipo)) {
-    return;
-  }
+  if (tipo === 'ruleta_suerte') {
+    spinLuckRoulette();
+  } else if (tipo === 'gacha_sobre') {
+    openStickerGacha();
+  } else {
+    if (!puedenJugarHoyCheck(user, tipo)) return;
 
-  if (tipo === 'dado') playDiceRoll();
-  else if (tipo === 'ruleta') spinRoulette();
-  else if (tipo === 'caja' || tipo === 'lootbox') openLootboxModal();
-  else if (tipo === 'torre') openTowerGameModal();
-  else if (tipo === 'rasca') playScratchCard();
-  else if (tipo === 'slots') playSlotsGame();
-  else if (tipo === 'escalera') playLadderGame();
-  else {
-    alert(`¡Has seleccionado el minijuego: ${tipo}!`);
+    if (tipo === 'dado') playDiceRoll();
+    else if (tipo === 'ruleta') spinRoulette();
+    else if (tipo === 'caja' || tipo === 'lootbox') openLootboxModal();
+    else if (tipo === 'torre') openTowerGameModal();
+    else if (tipo === 'rasca') playScratchCard();
+    else if (tipo === 'slots') playSlotsGame();
+    else if (tipo === 'escalera') playLadderGame();
+    else {
+      alert(`¡Has seleccionado el minijuego: ${tipo}!`);
+    }
   }
 }
 
@@ -461,6 +491,77 @@ function puedenJugarHoyCheck(user, tipo) {
     return false;
   }
   return true;
+}
+
+// --- NUEVOS MINIJUEGOS DE SUERTE Y CROMOS ---
+async function spinLuckRoulette() {
+  const user = state.users[state.currentUser];
+  const cost = 10;
+  if (!user || user.points < cost) return alert(`¡Necesitas al menos ${cost} puntos para girar la Ruleta de la Suerte!`);
+  if (!confirm(`¿Deseas gastar ${cost} puntos para girar la Ruleta de la Suerte (puede tocarte premio gordo o bancarrota)?`)) return;
+
+  user.points -= cost;
+  
+  const outcomes = [
+    { pts: 50, msg: '¡PREMIO GORDO! +50 Puntos' },
+    { pts: 20, msg: '¡Buena suerte! +20 Puntos' },
+    { pts: 5, msg: 'Premio pequeño +5 Puntos' },
+    { pts: 0, msg: '¡Sigue intentando! (0 Puntos)' },
+    { pts: -15, msg: '¡BANCARROTA! -15 Puntos' }
+  ];
+
+  const result = outcomes[Math.floor(Math.random() * outcomes.length)];
+  user.points += result.pts;
+  if (user.points < 0) user.points = 0;
+
+  state.history.unshift(`🎡 ${user.name} usó la Ruleta de la Suerte: ${result.msg}`);
+  showPointsAnimation(result.pts, user.name, result.msg);
+
+  checkAchievements(user);
+  await saveLocalStorage();
+  renderApp();
+}
+
+async function openStickerGacha() {
+  const user = state.users[state.currentUser];
+  const cost = 25;
+  if (!user || user.points < cost) return alert(`¡Necesitas al menos ${cost} puntos para abrir un Sobre de Cromos!`);
+  if (!confirm(`¿Deseas gastar ${cost} puntos para abrir un Sobre Sorpresa de Cromos (Stranger Things, One Piece, Pokémon)?`)) return;
+
+  user.points -= cost;
+
+  const categories = Object.keys(STICKER_COLLECTIONS);
+  const randomCat = categories[Math.floor(Math.random() * categories.length)];
+  const pool = STICKER_COLLECTIONS[randomCat];
+  const wonSticker = pool[Math.floor(Math.random() * pool.length)];
+
+  if (!user.stickers) user.stickers = [];
+  const alreadyOwned = user.stickers.includes(wonSticker.id);
+  if (!alreadyOwned) {
+    user.stickers.push(wonSticker.id);
+  }
+
+  state.history.unshift(`🃏 ${user.name} abrió un sobre y consiguió el cromo: ${wonSticker.name} (${randomCat.toUpperCase()})`);
+
+  showPointsAnimation(0, user.name, `¡Cromo conseguido: ${wonSticker.icon} ${wonSticker.name}!`);
+  
+  const modal = document.createElement('div');
+  modal.className = "fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in";
+  modal.innerHTML = `
+    <div class="bg-zinc-900 border border-amber-500/50 w-full max-w-xs rounded-3xl p-6 text-center flex flex-col items-center gap-4 shadow-2xl">
+      <span class="text-xs font-black uppercase tracking-widest text-amber-400">¡Nuevo Cromo Desbloqueado!</span>
+      <div class="text-6xl my-2 animate-bounce">${wonSticker.icon}</div>
+      <h3 class="text-base font-black text-white">${wonSticker.name}</h3>
+      <span class="text-xs px-3 py-1 bg-zinc-800 text-zinc-300 rounded-full font-bold">${wonSticker.rarity} - ${randomCat.toUpperCase()}</span>
+      <p class="text-[11px] text-zinc-400">${alreadyOwned ? '¡Ya lo tenías en tu colección (repetido)!' : '¡Añadido a tu álbum!'}</p>
+      <button onclick="this.closest('.fixed').remove()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs rounded-xl shadow-lg active:scale-95 transition">¡Genial! 🌟</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  checkAchievements(user);
+  await saveLocalStorage();
+  renderApp();
 }
 
 // --- LÓGICA DE RULETA SEMANAL ---
@@ -580,6 +681,30 @@ function renderMinigamesSection() {
         </div>
       </div>
 
+      <!-- NUEVO: RULETA DE LA SUERTE (PREMIOS / BANCARROTA) -->
+      <div class="bg-zinc-900 p-4 rounded-3xl border border-amber-500/30 shadow-lg flex flex-col items-center text-center">
+        <div class="text-4xl mb-2 animate-spin-slow">🎯</div>
+        <h3 class="text-sm font-black text-amber-300">Ruleta de la Suerte (Gana o Arriesga)</h3>
+        <p class="text-[11px] text-zinc-400 mt-1">Gasta 10 pts y prueba tu suerte: ¡premio gordo o bancarrota!</p>
+        <button 
+          onclick="jugar('ruleta_suerte')" 
+          class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-zinc-950 font-black text-xs rounded-xl shadow-md active:scale-95 transition">
+          Girar Ruleta de Suerte (10 ⭐)
+        </button>
+      </div>
+
+      <!-- NUEVO: COMPRA DE SOBRES DE CROMOS -->
+      <div class="bg-zinc-900 p-4 rounded-3xl border border-indigo-500/30 shadow-lg flex flex-col items-center text-center">
+        <div class="text-4xl mb-2">🃏</div>
+        <h3 class="text-sm font-black text-indigo-300">Sobre Sorpresa de Cromos</h3>
+        <p class="text-[11px] text-zinc-400 mt-1">Gasta 25 pts para abrir un sobre de Stranger Things, One Piece o Pokémon.</p>
+        <button 
+          onclick="jugar('gacha_sobre')" 
+          class="mt-3 w-full py-2.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-extrabold text-xs rounded-xl shadow-md active:scale-95 transition">
+          Abrir Sobre de Cromos (25 ⭐)
+        </button>
+      </div>
+
       <!-- 1. LA RULETA SEMANAL -->
       <div class="bg-zinc-900 p-4 rounded-3xl border border-pink-500/30 shadow-lg flex flex-col items-center text-center">
         <div class="text-4xl mb-2 animate-spin-slow">🎡</div>
@@ -676,6 +801,62 @@ function renderMinigamesSection() {
       </div>
     </div>
   `;
+}
+
+// --- SECCIÓN DE CROMOS (ÁLBUM) ---
+function renderStickersSection() {
+  let container = document.getElementById('tab-stickers');
+  if (!container) return;
+
+  const user = state.users[state.currentUser];
+  const userStickers = user.stickers || [];
+
+  let htmlContent = `
+    <div class="space-y-6 pb-20">
+      <div class="bg-gradient-to-r from-indigo-950 to-purple-950 p-4 rounded-3xl border border-indigo-500/30 text-center shadow-xl">
+        <h2 class="text-lg font-black text-white flex items-center justify-center gap-2">
+          <span>📚</span> ÁLBUM DE CROMOS <span>✨</span>
+        </h2>
+        <p class="text-xs text-indigo-200 mt-1">¡Colecciona cromos de Stranger Things, One Piece y Pokémon abriendo sobres!</p>
+      </div>
+  `;
+
+  for (const [catKey, stickersList] of Object.entries(STICKER_COLLECTIONS)) {
+    const catName = catKey === 'strangerthings' ? 'Stranger Things 🧇' : catKey === 'onepiece' ? 'One Piece 🏴‍☠️' : 'Pokémon ⚡';
+
+    htmlContent += `
+      <div class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800 shadow-lg">
+        <h3 class="text-sm font-black text-amber-300 mb-3">${catName}</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+    `;
+
+    stickersList.forEach(sticker => {
+      const isOwned = userStickers.includes(sticker.id);
+
+      if (isOwned) {
+        htmlContent += `
+          <div class="bg-gradient-to-br from-amber-950/60 to-zinc-950 p-3 rounded-2xl border-2 border-amber-400 shadow-lg flex flex-col items-center text-center gap-1">
+            <span class="text-3xl">${sticker.icon}</span>
+            <span class="text-xs font-black text-white">${sticker.name}</span>
+            <span class="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">${sticker.rarity}</span>
+          </div>
+        `;
+      } else {
+        htmlContent += `
+          <div class="bg-zinc-950/60 p-3 rounded-2xl border border-zinc-800/80 flex flex-col items-center text-center gap-1 opacity-40 grayscale filter">
+            <span class="text-3xl">❓</span>
+            <span class="text-xs font-black text-zinc-500">??????</span>
+            <span class="text-[9px] bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded-full font-bold">Bloqueado</span>
+          </div>
+        `;
+      }
+    });
+
+    htmlContent += `</div></div>`;
+  }
+
+  htmlContent += `</div>`;
+  container.innerHTML = htmlContent;
 }
 
 // --- FUNCIONES Y MODALES DE LOS MINIJUEGOS ---
@@ -915,7 +1096,7 @@ function renderRouletteBanner() {
         <div class="text-3xl">🎮</div>
         <div>
           <h3 class="text-xs font-black text-white">¡Zona de MiniJuegos!</h3>
-          <p class="text-[10px] text-pink-200 font-bold">Ruleta, Dados, Torre, Cofres y más</p>
+          <p class="text-[10px] text-pink-200 font-bold">Ruleta, Dados, Torre, Cromos y más</p>
         </div>
       </div>
       <span class="bg-white/20 text-white text-xs font-black px-3 py-1.5 rounded-xl">Jugar</span>
@@ -1077,6 +1258,7 @@ function renderApp() {
   try { renderUserStats(); } catch (e) {}
   try { renderTasks(); } catch (e) {}
   try { renderMinigamesSection(); } catch (e) {}
+  try { renderStickersSection(); } catch (e) {}
   try { renderRewards(); } catch (e) {}
   try { updateActivityLog(); } catch (e) {}
   try { renderManagerPanel(); } catch (e) {}
@@ -1280,7 +1462,7 @@ function renderTasks() {
   }).join('');
 }
 
-// --- SOLUCIÓN: ASIGNACIÓN DE PUNTOS A PAPÁ / MAMÁ / CUALQUIER USUARIO ---
+// --- ASIGNACIÓN DE PUNTOS A PAPÁ / MAMÁ / CUALQUIER USUARIO ---
 async function applyAction(actionId) {
   const action = state.actions.find(a => a.id === actionId);
   if (!action) return;
@@ -1289,11 +1471,9 @@ async function applyAction(actionId) {
   
   if (!targetInput) return;
 
-  // Limpiamos y normalizamos el texto introducido (convirtiendo acentos y pasando a minúsculas)
   const cleanInput = targetInput.toLowerCase().trim()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // quita tildes de papá/mamá
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-  // Mapeo robusto por si escriben el nombre completo o abreviado
   let targetUserId = null;
   if (cleanInput.includes('joan')) targetUserId = 'joan';
   else if (cleanInput.includes('martina')) targetUserId = 'martina';
