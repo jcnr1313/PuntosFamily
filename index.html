@@ -582,12 +582,34 @@
             <h3 class="font-bold text-xs uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
               <span>🎃</span> Gestor de Eventos Especiales (24h)
             </h3>
-            <span class="text-[10px] font-extrabold bg-purple-500/20 text-purple-600 dark:text-purple-300 px-2.5 py-0.5 rounded-full border border-purple-500/30">OCULTO POR DEFECTO</span>
+            <span class="text-[10px] font-extrabold bg-purple-500/20 text-purple-600 dark:text-purple-300 px-2.5 py-0.5 rounded-full border border-purple-500/30">ACTIVO</span>
           </div>
           <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Activa cualquiera de estos eventos. Durarán exactamente 24 horas visibles con banner temático y premios especiales exclusivos.</p>
 
+          <!-- Contenedor con botones funcionales para activar cada evento -->
           <div id="eventsManagerGrid" class="space-y-3 pt-1">
-            <!-- Renderizado dinámico desde app.js -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button onclick="triggerEvent24h('halloween')" class="p-3 bg-zinc-100 dark:bg-zinc-950 border border-orange-500/40 hover:bg-orange-500/10 rounded-xl text-left transition flex items-center justify-between">
+                <span class="text-xs font-black text-orange-500">🎃 Halloween</span>
+                <span class="text-[10px] bg-orange-500 text-zinc-950 px-2 py-1 rounded-lg font-extrabold">Activar (24h)</span>
+              </button>
+              <button onclick="triggerEvent24h('christmas')" class="p-3 bg-zinc-100 dark:bg-zinc-950 border border-red-500/40 hover:bg-red-500/10 rounded-xl text-left transition flex items-center justify-between">
+                <span class="text-xs font-black text-red-500">🎄 Navidad</span>
+                <span class="text-[10px] bg-red-500 text-white px-2 py-1 rounded-lg font-extrabold">Activar (24h)</span>
+              </button>
+              <button onclick="triggerEvent24h('easter')" class="p-3 bg-zinc-100 dark:bg-zinc-950 border border-pink-500/40 hover:bg-pink-500/10 rounded-xl text-left transition flex items-center justify-between">
+                <span class="text-xs font-black text-pink-500">🐰 Pascua</span>
+                <span class="text-[10px] bg-pink-500 text-white px-2 py-1 rounded-lg font-extrabold">Activar (24h)</span>
+              </button>
+              <button onclick="triggerEvent24h('birthday')" class="p-3 bg-zinc-100 dark:bg-zinc-950 border border-purple-500/40 hover:bg-purple-500/10 rounded-xl text-left transition flex items-center justify-between">
+                <span class="text-xs font-black text-purple-500">🎂 Cumpleaños</span>
+                <span class="text-[10px] bg-purple-500 text-white px-2 py-1 rounded-lg font-extrabold">Activar (24h)</span>
+              </button>
+              <button onclick="triggerEvent24h('newyear')" class="p-3 bg-zinc-100 dark:bg-zinc-950 border border-amber-500/40 hover:bg-amber-500/10 rounded-xl text-left transition flex items-center justify-between col-span-full">
+                <span class="text-xs font-black text-amber-500">🎆 Fin de Año</span>
+                <span class="text-[10px] bg-amber-500 text-zinc-950 px-2 py-1 rounded-lg font-extrabold">Activar (24h)</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -723,6 +745,25 @@
 
   </main>
 
+  <!-- VENTANA MODAL PARA "VER INFO" DE EVENTOS VIP -->
+  <div id="eventDetailsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-zinc-900 rounded-[2rem] p-6 max-w-sm w-full border border-amber-500/50 shadow-2xl space-y-4 relative">
+      <div class="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-800 pb-3">
+        <h3 class="font-black text-base text-amber-500 flex items-center gap-2">
+          <span>⚡</span> Detalles del Evento Activo
+        </h3>
+        <button onclick="closeEventDetails()" class="text-zinc-400 hover:text-zinc-100 font-bold text-lg">✕</button>
+      </div>
+      <div id="modalEventContent" class="text-xs text-zinc-600 dark:text-zinc-300 space-y-2">
+        <p><strong>Hora Feliz 2X Puntos:</strong> Durante las próximas 24 horas, todas las tareas y misiones que realices otorgan el doble de puntos de bonificación directamente a tu marcador personal.</p>
+        <p>¡Aprovecha para sumar el máximo de puntos y escalar posiciones en la clasificación mensual!</p>
+      </div>
+      <button onclick="closeEventDetails()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs rounded-xl shadow transition">
+        ¡Entendido!
+      </button>
+    </div>
+  </div>
+
   <!-- Navegación Inferior (6 Pestañas) -->
   <nav class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl border-t border-zinc-200 dark:border-zinc-800/80 p-2 z-50 transition-colors">
     <div class="max-w-md mx-auto grid grid-cols-6 gap-0.5 text-center">
@@ -752,6 +793,18 @@
       </button>
     </div>
   </nav>
+
+  <!-- Funciones de soporte modal de eventos si faltan en app.js -->
+  <script>
+    function openEventDetails() {
+      const modal = document.getElementById('eventDetailsModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+    function closeEventDetails() {
+      const modal = document.getElementById('eventDetailsModal');
+      if (modal) modal.classList.add('hidden');
+    }
+  </script>
 
   <script src="app.js"></script>
 </body>
